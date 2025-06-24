@@ -1,0 +1,16 @@
+/* This first rule set ensures that the default margins and padding are removed for all elements. */
+/* Also, box-sizing being set to border-box here ensures that layout adjustments are predictable and no boxes overlap or overflow into each other. */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* This second rule set here ensures that the background color of the page is an off white and that the container (in each of the CSS files for each page) is centered and follows flex display formatting (elements stack horizontally). */
+.app-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color:antiquewhite;
+}
