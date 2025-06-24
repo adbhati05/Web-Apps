@@ -2,7 +2,7 @@ import './TopBar.css';
 
 function TopBar() {
     return (
-        <div className=''>Top Bar</div>
+        <div className=''>TopBar</div>
     );
 }
 

@@ -2,7 +2,7 @@ import './LeftSideBar.css';
 
 function LeftSideBar() {
     return (
-        <div className=''>Left Side Bar</div>
+        <div className=''>LeftSideBar</div>
     );
 }
 

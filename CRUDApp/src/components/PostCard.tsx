@@ -2,7 +2,7 @@ import './PostCard.css';
 
 function PostCard() {
     return (
-        <div className=''>Post Card</div>
+        <div className=''>PostCard</div>
     );
 }
 

@@ -2,7 +2,7 @@ import './PostFeed.css';
 
 function PostFeed() {
     return (
-        <div className=''>Post Feed</div>
+        <div className=''>PostFeed</div>
     );
 }
 
