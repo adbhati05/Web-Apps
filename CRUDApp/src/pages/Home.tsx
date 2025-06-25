@@ -10,12 +10,12 @@ function Home() {
         <div>
             <TopBar />
             <div className='main-layout'>
-                <div className='side-bar'><LeftSideBar /></div>
+                <div className='left-side-bar'><LeftSideBar /></div>
                 <div className='post-feed'>
                     <PostFeed />
                     <PostCard />
                 </div>
-                <div className='side-bar'><RightSideBar /></div>
+                <div className='right-side-bar'><RightSideBar /></div>
             </div>
         </div>
         
