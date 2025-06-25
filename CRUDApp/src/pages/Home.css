@@ -1,7 +1,22 @@
-.container {
-    width: 95vw;
+/* This is the main container that will occupy the side bars and post feed for home page. Note that it's not named container since Bootstrap has its own container and that causes issues with how this renders. */
+.main-layout {
+    width: 90vw;
     height: 90vh;
     display: flex;
-    border: 3px solid black;
+    border: 2px solid dimgray;
     background-color: whitesmoke;
+}
+
+/* This is for each side bar (the flex: 1 statement ensures that each side bar takes up 1/5th of the entire container horizontally). */
+.side-bar {
+    flex: 1;
+    background-color: whitesmoke;
+    border: 2px solid dimgray;
+}
+
+/* This is for the post feed itself (the flex: 3 statemenet ensures that the feed takes up 3/5th of the entire container horizontally). */
+.post-feed {
+    flex: 3;
+    background-color: whitesmoke;
+    border: 2px solid dimgray;
 }

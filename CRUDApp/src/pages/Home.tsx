@@ -1,17 +1,24 @@
 import TopBar from '../components/TopBar';
-import SideBar from '../components/LeftSideBar';
+import LeftSideBar from '../components/LeftSideBar';
+import RightSideBar from '../components/RightSideBar';
 import PostFeed from '../components/PostFeed';
 import PostCard from '../components/PostCard';
 import './Home.css';
 
 function Home() {
     return (
-        <div className="container">
+        <div>
             <TopBar />
-            <SideBar />
-            <PostFeed />
-            <PostCard />
+            <div className='main-layout'>
+                <div className='side-bar'><LeftSideBar /></div>
+                <div className='post-feed'>
+                    <PostFeed />
+                    <PostCard />
+                </div>
+                <div className='side-bar'><RightSideBar /></div>
+            </div>
         </div>
+        
     );
 }
 
