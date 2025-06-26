@@ -8,9 +8,10 @@
 
 /* This second rule set here ensures that the background color of the page is an off white and that the container (in each of the CSS files for each page) is centered and follows flex display formatting (elements stack horizontally). */
 body {
+  font-family: Helvetica, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: paleturquoise;
+  background-color: ghostwhite;
 }
