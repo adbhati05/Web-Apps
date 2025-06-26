@@ -1,0 +1,46 @@
+/* Ensuring that the buttons are space 15 px away from the top and left borders of the side bar. */
+.spacing {
+    margin-top: 15px;
+    margin-left: 20px;
+}
+
+/* This rule set makes the lines separating the links to other pages in the left side bar more appealing. */
+.left-side-bar-line {
+    border-radius: 2px;
+    height: 4px;
+    background-color: black;
+    opacity: 75%;
+    width: 90%;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+/* This rule set makes the actual links in the left side bar match the theme of the site. */
+.left-side-bar-nav {
+    height: 45px;
+    background-color: aliceblue;
+    font-size: 18px;
+    border: 1px solid black;
+    border-radius: 22px;
+    border-color: aliceblue;
+    color: black;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* This ruleset makes it so the button will slightly increase in size when the user is hovering over it and also change color slightly. */
+.left-side-bar-nav:hover {
+    transform: scale(1.05);
+    background-color: lightblue;
+    border-color: lightblue;
+    color: black;
+}
+
+/* This rule set makes it so the button will increase even more in size after being clicked (and the text becomes bolder). */
+.left-side-bar-nav:active {
+    transform: scale(1.10);
+    background-color: lightblue;
+    border-color: lightblue;
+    color: black;
+    font-weight: bold;
+}
