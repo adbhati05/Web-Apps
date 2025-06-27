@@ -17,12 +17,11 @@
 
 /* This rule set makes the actual links in the left side bar match the theme of the site. */
 .left-side-bar-nav {
-    height: 45px;
+    height: 44px;
     background-color: aliceblue;
     font-size: 18px;
-    border: 1px solid black;
+    border: 1px solid aliceblue;
     border-radius: 22px;
-    border-color: aliceblue;
     color: black;
     padding-left: 15px;
     padding-right: 15px;
@@ -43,4 +42,72 @@
     border-color: lightblue;
     color: black;
     font-weight: bold;
+}
+
+/* The rule sets below are dedicated to styling the pfp/username button and the dropdown menu that is shown when it's clicked. */
+/* FIGURE OUT HOW TO GET THIS BUTTON TO APPEAR AT THE BOTTOM OF THE LEFT SIDEBAR W/O USING PIXELS FORCEFULLY. */
+.profile-dropdown {
+    margin-top: auto;
+    position: relative;
+    display: inline-block;
+}
+
+.pfp-button {
+    height: 44px;
+    align-items: center;
+    background-color: aliceblue;
+    border: 1px solid aliceblue;
+    border-radius: 22px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.pfp-button:hover {
+    transform: scale(1.05);
+    background-color: lightblue;
+    border-color: lightblue;
+    color: black;
+}
+
+.pfp-button:active {
+    transform: scale(1.10);
+    background-color: lightblue;
+    border-color: lightblue;
+    color: black;
+    font-weight: bold;
+}
+
+.pfp {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.username {
+    font-size: 18px;
+    color: black;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: lightblue;
+    min-width: 150px;
+    box-shadow: 0px 4px 8px (0, 0, 0, 0.1);
+    z-index: 1;
+    flex-direction: column;
+}
+
+.dropdown-content a {
+    padding: 10px 12px;
+    text-decoration: none;
+    color: black;
+    display: block;
+}
+
+.profile-dropdown.show .dropdown-content {
+    display: flex;
 }
