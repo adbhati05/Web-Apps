@@ -8,7 +8,6 @@
 }
 
 /* The rule sets below are dedicated to styling the pfp/username button and the dropdown menu that is shown when it's clicked. */
-/* FIGURE OUT HOW TO GET THIS BUTTON TO APPEAR AT THE BOTTOM OF THE LEFT SIDEBAR W/O USING PIXELS FORCEFULLY. */
 .profile-dropdown {
     margin-left: auto;
     position: relative;
@@ -53,24 +52,31 @@
 }
 
 .dropdown-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: lightblue;
-    min-width: 150px;
-    box-shadow: 0px 4px 8px (0, 0, 0, 0.1);
-    z-index: 1;
+    display: inline-block;
     flex-direction: column;
+    position: absolute; /* Allows the dropdown to appear above the other elements on the webpage. */
+    z-index: 1; /* This sets the dropdown to appear above the other elements on the webpage on the z-axis. */
+    top: 100%; /* Places dropdown right below the button */
+    right: 0; /* Aligns dropdown to right edge of button. */
+    background-color: ghostwhite;
+    border: 4px solid rgba(0, 0, 0, 0.75);
+    border-radius: 22px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .dropdown-content a {
-    padding: 10px 12px;
+    height: 44px;
+    font-size: 18px;
+    align-items: center;
+    padding-left: 15px;
+    padding-right: 15px;
+    border: 1px solid ghostwhite;
+    border-radius: 22px;
     text-decoration: none;
     color: black;
     display: block;
 }
 
-.profile-dropdown.show .dropdown-content {
-    display: flex;
+.dropdown-content a:hover {
+    background-color: lightblue;
 }
