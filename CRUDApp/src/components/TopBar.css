@@ -63,7 +63,7 @@
     background-color: ghostwhite;
     border: 4px solid rgba(0, 0, 0, 0.75);
     border-radius: 22px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.375);
 }
 
 .dropdown-content a {
