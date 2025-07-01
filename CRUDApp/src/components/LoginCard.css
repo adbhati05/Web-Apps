@@ -10,20 +10,23 @@
 
 /* As for this rule set, it ensures that the contents of the login card (input bars/sign in button), are spaced well and appear in a good centralized format). */
 .user-input-content {
-    margin: 45px;
+    margin-top: 45px;
+    margin-bottom: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: left;
 }
 
 /* This ruleset just ensures that the font above each input bar is 18 px tall and normal in weight (since login-card-content is used on the parent div and makes all text bold). */
 .user-input-label {
     font-size: 18px;
-    font-weight: normal;
+    font-weight: bold;
 }
 
 /* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
 .user-input-bar {
+    font-size: 18px;
+    font-style: italic;
     height: 40px;
     width: 40vh;
     margin-bottom: 15px;
@@ -36,7 +39,25 @@
     background-color: rgba(211, 211, 211, 0.4);
 }
 
-/* FIGURE OUT HOW TO GET RID OF BLUE BORDER WHEN THE BAR IS CLICKED ON!!!! */
+.user-input-bar:focus {
+    outline: none;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+}
+
+/* The next three rule sets are dedicated to styling the sign-up link that appears below the input bars. */
+.sign-up-link {
+    font-size: 16px;
+    color: black;
+    margin-bottom: 35px;
+}
+
+.sign-up-link:hover {
+    transform: scale(1.05)
+}
+
+.sign-up-link:active {
+    transform: scale(1.10);
+}
 
 /* The next three rule sets ensure that the sign-in button behaves similarly to all the other buttons in the website. */
 .sign-in-button {
