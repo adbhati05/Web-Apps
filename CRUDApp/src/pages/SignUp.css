@@ -1,4 +1,4 @@
-/* This rule set creates a container of width and height 60vh that will be used to contain the login card. */
+/* This rule set creates a container of width 60 vh and height 80 vh that will be used to contain the login card. */
 .sign-up-layout {
     width: 60vh;
     height: 80vh;
