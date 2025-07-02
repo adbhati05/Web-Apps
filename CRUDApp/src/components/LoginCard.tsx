@@ -7,18 +7,18 @@ function LoginCard() {
         // Below is the code for the login card component. 
         <div className='login-card-content'>Fit Log
             {/* This form is for the two bars in which the user will input their email and password. */}
-            <form className='user-input-content'>
-                <label className='user-input-label' htmlFor='Email'>Email:</label>
-                <input className='user-input-bar' type='text' id=''/>
+            <form className='login-input-content'>
+                <label className='login-input-label' htmlFor='Email'>Email:</label>
+                <input className='login-input-bar' type='text' id=''/>
 
-                <label className='user-input-label' htmlFor='Password'>Password:</label>
-                <input className='user-input-bar' type='text' id=''/>
+                <label className='login-input-label' htmlFor='Password'>Password:</label>
+                <input className='login-input-bar' type='text' id=''/>
             </form>
 
             {/* This is the link to the sign-up page. */}
             <a className='sign-up-link' href=''>Don't have an account? Sign up here.</a>
 
-            {/* This is the button that will submit the form and log the user in. */}
+            {/* This is the button that will submit the form and log the user into the home page. */}
             <button className='sign-in-button' type='submit'>Sign in</button>
         </div>
     );
