@@ -8,13 +8,13 @@ function SignUpCard() {
             {/* This form is for the four bars in which the user will input their username, email, password, and confirm password. */}
             <form className='sign-up-input-content'>
                 <label className='sign-up-input-label' htmlFor='Username'>Username:</label>
-                <input className='sign-up-input-bar' type='text' id=''/>
+                <input className='sign-up-input-bar' placeholder='Must be 12 characters max' type='text' id=''/>
 
                 <label className='sign-up-input-label' htmlFor='Email'>Email:</label>
                 <input className='sign-up-input-bar' type='text' id=''/>
 
                 <label className='sign-up-input-label' htmlFor='Password'>Password:</label>
-                <input className='sign-up-input-bar' type='password' id=''/>
+                <input className='sign-up-input-bar' placeholder='See rules below' type='password' id=''/>
 
                 <label className='sign-up-input-label' htmlFor='ConfirmPassword'>Confirm Password:</label>
                 <input className='sign-up-input-bar' type='password' id=''/>
