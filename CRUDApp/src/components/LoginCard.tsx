@@ -8,11 +8,8 @@ function LoginCard() {
         <div className='login-card-content'>Fit Log
             {/* This form is for the two bars in which the user will input their email and password. */}
             <form className='login-input-content'>
-                <label className='login-input-label' htmlFor='Email'>Email:</label>
-                <input className='login-input-bar' type='text' id=''/>
-
-                <label className='login-input-label' htmlFor='Password'>Password:</label>
-                <input className='login-input-bar' type='text' id=''/>
+                <input className='login-input-bar' type='text' placeholder='Email Address' name='email'/>
+                <input className='login-input-bar' type='password' placeholder='Password' name='password' id=''/>
             </form>
 
             {/* This is the link to the sign-up page. */}
