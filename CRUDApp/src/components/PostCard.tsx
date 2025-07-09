@@ -1,8 +1,8 @@
 import './PostCard.css';
 
-function PostCard() {
+const PostCard: React.FunctionComponent = () => {
     return (
-        <div className=''>PostCard</div>
+        <div className=''>Post Card</div>
     );
 }
 

@@ -3,7 +3,7 @@ import pfp_placeholder from '../assets/pfp_placeholder.png';
 // import test_img from '../assets/test_img.png'; // (when using an image other than the placeholder, the image gets distorted, figure out how to fix that)
 import { useState, useRef, useEffect } from 'react';
 
-function TopBar() {
+const TopBar: React.FunctionComponent = () => {
     // Creating a hook in which the state variable is a boolean indicating whether the dropdown is open (true) or closed (false) (setter function obviously updates that state whenever the user clicks on the button).
     const [open, setOpen] = useState(false);
 

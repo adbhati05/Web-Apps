@@ -1,7 +1,7 @@
 import SignUpCard from '../components/SignUpCard';
 import './SignUp.css';
 
-function SignUp() {
+const SignUp: React.FunctionComponent = () => {
     return (
         <div className='sign-up-layout'><SignUpCard /></div>
     );

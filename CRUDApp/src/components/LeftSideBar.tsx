@@ -1,6 +1,6 @@
 import './LeftSideBar.css';
 
-function LeftSideBar() {
+const LeftSideBar: React.FunctionComponent = () => {
     return (
         // Here I've set up a container for the buttons in the side bar that is a flex box that causes the buttons to stack vertically, not horizontally stretch, and be sized to their contents.
         // I've also included some horizontal lines to separate the buttons/or links to other pages. 

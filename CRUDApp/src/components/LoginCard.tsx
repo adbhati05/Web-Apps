@@ -1,6 +1,6 @@
 import './LoginCard.css';
 
-function LoginCard() {
+const LoginCard: React.FunctionComponent = () => {
     return (
         // Do research on how to do the backend stuff necessary for the log-in process via Firebase on YT.
         // Also, note that the user will input their email when logging in, but upon sign-up they will be required to create a username so that when they're in the site their username will be shown.
@@ -9,7 +9,7 @@ function LoginCard() {
             {/* This form is for the two bars in which the user will input their email and password. */}
             <form className='login-input-content'>
                 <input className='login-input-bar' type='text' placeholder='Email Address' name='email'/>
-                <input className='login-input-bar' type='password' placeholder='Password' name='password' id=''/>
+                <input className='login-input-bar' type='password' placeholder='Password' name='password'/>
             </form>
 
             {/* This is the link to the sign-up page. */}

@@ -1,6 +1,6 @@
 import './SignUpCard.css';
 
-function SignUpCard() {
+const SignUpCard: React.FunctionComponent = () => {
     return (
         // Include a username input field, an email input field, and a password/confirm password input field (in that order). Be sure to include password rules as well as a paragraph.
         // Password rules: At least 8 characters, at least one uppercase and lowercase letter, at least one number, and at least one special character.
@@ -8,16 +8,16 @@ function SignUpCard() {
             {/* This form is for the four bars in which the user will input their username, email, password, and confirm password. */}
             <form className='sign-up-input-content'>
                 <label className='sign-up-input-label' htmlFor='Username'>Username:</label>
-                <input className='sign-up-input-bar' placeholder='Must be 12 characters max' type='text' id=''/>
+                <input className='sign-up-input-bar' type='text' placeholder='Must be 12 characters max' name='username'/>
 
                 <label className='sign-up-input-label' htmlFor='Email'>Email:</label>
-                <input className='sign-up-input-bar' type='text' id=''/>
+                <input className='sign-up-input-bar' type='text' name='email'/>
 
                 <label className='sign-up-input-label' htmlFor='Password'>Password:</label>
-                <input className='sign-up-input-bar' placeholder='See rules below' type='password' id=''/>
+                <input className='sign-up-input-bar' type='password' placeholder='See rules below' name='password'/>
 
                 <label className='sign-up-input-label' htmlFor='ConfirmPassword'>Confirm Password:</label>
-                <input className='sign-up-input-bar' type='password' id=''/>
+                <input className='sign-up-input-bar' type='password' name='password'/>
             </form>
 
             {/* This is the unordered list that contains the password rules. */}

@@ -5,7 +5,7 @@ import PostFeed from '../components/PostFeed';
 import PostCard from '../components/PostCard';
 import './Home.css';
 
-function Home() {
+const Home: React.FunctionComponent = () => {
     return (
         <div>
             <TopBar />

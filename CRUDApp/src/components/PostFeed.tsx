@@ -1,8 +1,8 @@
 import './PostFeed.css';
 
-function PostFeed() {
+const PostFeed: React.FunctionComponent = () => {
     return (
-        <div className=''>PostFeed</div>
+        <div className=''>Post Feed</div>
     );
 }
 
