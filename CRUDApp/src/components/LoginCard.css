@@ -1,5 +1,5 @@
 /* This rule set is dedicated to styling the entire login card container. */
-.login-card-content {
+.login-card-container {
     margin: 60px;
     display: flex;
     flex-direction: column;
@@ -8,13 +8,21 @@
     font-weight: bold;
 }
 
-/* As for this rule set, it ensures that the contents of the login card (input bars/sign in button), are spaced well and appear in a good centralized format). */
-.login-input-content {
+/* As for this rule set, it ensures that the contents of the login form (input bars/sign in button), are spaced well and appear in a good centralized format). */
+.login-form-container {
     margin-top: 60px;
     margin-bottom: 20px;
     display: flex;
     flex-direction: column;
-    align-items: left;
+    align-items: center;
+}
+
+/* Container for each input field and its label. */
+.login-input-field-container {
+    display: flex;
+    flex-direction: column;
+    width: 40vh;
+    margin-bottom: 25px;
 }
 
 /* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
@@ -22,8 +30,7 @@
     font-size: 18px;
     font-style: italic;
     height: 40px;
-    width: 40vh;
-    margin-bottom: 25px;
+    width: 100%;
     background-color: ghostwhite;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-radius: 12px;
@@ -43,6 +50,7 @@
     font-size: 16px;
     color: black;
     margin-bottom: 45px;
+    text-align: center;
 }
 
 .sign-up-link:hover {
