@@ -45,16 +45,22 @@
     border: 2px solid rgba(0, 0, 0, 0.75);
 }
 
-/* The next three rule sets are dedicated to styling the sign-up link that appears below the input bars. */
+/* The next four rule sets are dedicated to styling the sign-up link that appears below the input bars. */
+.sign-up-link-container {
+    font-size: 16px;
+    color: black;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
 .sign-up-link {
     font-size: 16px;
     color: black;
-    margin-bottom: 45px;
-    text-align: center;
+    display: inline-block;
 }
 
 .sign-up-link:hover {
-    transform: scale(1.05)
+    transform: scale(1.05);
 }
 
 .sign-up-link:active {

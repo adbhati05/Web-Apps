@@ -12,20 +12,20 @@ const initialValue: UserLogIn = {
 
 const LoginCard = () => {
     // The following code follows the same logic as with the SignUpCard component, but obviously in the context of logging in a user instead.
-    const [userLogInInfo, setUserLogInInfo] = useState<UserLogIn>(initialValue);
+    const [userLoginInfo, setUserLoginInfo] = useState<UserLogIn>(initialValue);
     const navigate = useNavigate();
     const { logIn } = useUserAuth();
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
-        setUserLogInInfo({ ...userLogInInfo, [id]: value });
+        setUserLoginInfo({ ...userLoginInfo, [id]: value });
     };
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         try {
-            await logIn(userLogInInfo.email, userLogInInfo.password);
+            await logIn(userLoginInfo.email, userLoginInfo.password);
             navigate("/");
         } catch (error) {
             console.log("An error occurred while logging in: ", error);
@@ -39,18 +39,20 @@ const LoginCard = () => {
         <div className='login-card-container'>Fit Log
             <form className='login-form-container' onSubmit={handleSubmit}>
                 <div className='login-input-field-container'>
-                    <input className='login-input-bar' id='email' type='email' placeholder='Email Address' value={userLogInInfo.email} onChange={handleChange}/>
+                    <input className='login-input-bar' id='email' type='email' placeholder='Email Address' value={userLoginInfo.email} onChange={handleChange}/>
                 </div>
                 
                 <div className='login-input-field-container'>
-                    <input className='login-input-bar' id='password' type='password' placeholder='Password' value={userLogInInfo.password} onChange={handleChange}/>
+                    <input className='login-input-bar' id='password' type='password' placeholder='Password' value={userLoginInfo.password} onChange={handleChange}/>
                 </div>
 
                 {/* Edit this so that it's a paragraph that says "Don't have an account? Sign up " and then a link that says " here." that redirects the user to the sign-up page. */}
                 {/* Make sure that ONLY the link is styled to scale up after being hovered, NOT the entire paragraph. */}
-                <p className='sign-up-link'>
-                    Don't have an account? Sign up <Link to='/signup'>here.</Link>
-                </p>
+                <div className='sign-up-link-container'>
+                    <p>
+                        Don't have an account? Sign up <Link className='sign-up-link' to='/signup'>here.</Link>
+                    </p>
+                </div>
 
                 <button className='sign-in-button' type='submit'>Sign in</button>
             </form>

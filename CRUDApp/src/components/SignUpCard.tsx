@@ -4,6 +4,9 @@ import type { UserSignUp } from '../types';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserAuth } from '../auth/UserAuthContext';
+import { Link } from 'react-router-dom';
+
+// NOTE: Code for password rules and validation (confirm password) need to be implemented in the future. DO RESEARCH!
 
 const initialValue: UserSignUp = {
     email: '',
@@ -73,6 +76,13 @@ const SignUpCard = () => {
                 </ul>
 
                 <button className='sign-up-button' type='submit'>Sign up</button>
+
+                {/* Add CSS to make link match with rest of card. */}
+                <div className='login-link-container'>
+                    <p>
+                        Already have an account? Log in <Link className='login-link' to="/login">here.</Link>
+                    </p>
+                </div>
             </form>
         </div>
     );
