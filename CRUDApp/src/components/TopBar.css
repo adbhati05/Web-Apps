@@ -20,6 +20,7 @@
     align-items: center;
     background-color: ghostwhite;
     border: 4px solid rgba(0, 0, 0, 0.75);
+    color: black;
     border-radius: 28px;
     padding-left: 15px;
     padding-right: 15px;
@@ -29,15 +30,11 @@
 .pfp-button:hover {
     transform: scale(1.05);
     background-color: lightblue;
-    border: 4px solid rgba(0, 0, 0, 0.75);
-    color: black;
 }
 
 .pfp-button:active {
     transform: scale(1.10);
     background-color: lightblue;
-    border: 4px solid rgba(0, 0, 0, 0.75);
-    color: black;
     font-weight: bold;
 }
 
@@ -54,31 +51,40 @@
 }
 
 .dropdown-content {
-    display: inline-block;
+    display: flex;
     flex-direction: column;
     position: absolute; /* Allows the dropdown to appear above the other elements on the webpage. */
     z-index: 1; /* This sets the dropdown to appear above the other elements on the webpage on the z-axis. */
     top: 100%; /* Places dropdown right below the button */
     right: 0; /* Aligns dropdown to right edge of button. */
+    width: 120px; 
     background-color: ghostwhite;
     border: 4px solid rgba(0, 0, 0, 0.75);
     border-radius: 22px;
     box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.375);
 }
 
-.dropdown-content a {
+.dropdown-content a, .dropdown-content button {
     height: 44px;
     font-size: 18px;
+    font-weight: normal;
+    display: flex;
     align-items: center;
+    justify-content: center;
     padding-left: 15px;
     padding-right: 15px;
-    border: 1px solid ghostwhite;
-    border-radius: 22px;
+    border: none;
+    border-radius: 18px; /* Since border width of dropdown is 4px and has a radius of 22px, this should be 22 - 4 = 18px. */
     text-decoration: none;
     color: black;
-    display: block;
+    background-color: ghostwhite;
 }
 
-.dropdown-content a:hover {
+.dropdown-content a:hover, .dropdown-content button:hover {
     background-color: lightblue;
+}
+
+.dropdown-content a:active, .dropdown-content button:active {
+    background-color: lightblue;
+    font-weight: bold;
 }

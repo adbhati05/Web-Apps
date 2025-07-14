@@ -1,14 +1,23 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useUserAuth } from './UserAuthContext';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { getAuth } from 'firebase/auth';
 
 const ProtectedRoutes = () => {
-    // Setting up a boolean called isAuth to check if the user is legitimate and logged in.
-    const isAuth: boolean = true;
+    // Initializing an Auth instance to gain access to all of its functionalities (like checking user auth state, loading, error, etc).
+    const auth = getAuth();
+    const [user, loading, error] = useAuthState(auth);
 
     // This hook will give us the current location of the user in the app. It'll be used to keep track of where the user was before being redirected if they're not logged in.
     const location = useLocation();
 
+    // This helps ensure that if the user is logged in, they access and stay in (they won't be redirected if the user refreshes or goes to another protected route) the protected routes. 
+    if (loading) {
+        return <div>Loading...</div>; // Try to replace this with a loading spinner or any other loading component (style it nicely).
+    }
+     
     // If the user is logged in, then the Outlet component will be rendered, which will render the components belonging to the protected routes (like the ones for the home page, style board page, etc). If not, redirect user to login page.
-    return isAuth ? (<Outlet />) : (
+    return user ? (<Outlet />) : (
         <Navigate to='/login' state={{ from: location }} />
     );
 }
