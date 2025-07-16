@@ -9,7 +9,6 @@
 }
 
 /* This is for the left side bar (the flex: 1 statement ensures that each side bar takes up 1/5th of the entire container horizontally). */
-/* Top/bottom left corners of this bar are rounded with a radius of 10 px via the border-radius statements below. */
 .left-side-bar {
     flex: 1;
     background-color: aliceblue;

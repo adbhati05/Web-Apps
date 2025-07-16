@@ -1,7 +1,7 @@
 import LoginCard from '../components/LoginCard';
 import './Login.css';
 
-const Login: React.FunctionComponent = () => {
+const Login = () => {
     return (
         <div className='login-layout'><LoginCard /></div>
     );
