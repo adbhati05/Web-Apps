@@ -1,6 +1,6 @@
 import './RightSideBar.css';
 
-const RightSideBar: React.FunctionComponent = () => {
+const RightSideBar = () => {
     return (
         <div className=''>Right Side Bar</div>
     );

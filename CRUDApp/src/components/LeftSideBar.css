@@ -16,11 +16,11 @@
 }
 
 /* This rule set makes the actual links in the left side bar match the theme of the site. */
-.left-side-bar-nav {
+.left-side-bar-button {
     height: 44px;
     background-color: aliceblue;
     font-size: 18px;
-    border: 1px solid aliceblue;
+    border: none;
     border-radius: 22px;
     color: black;
     padding-left: 15px;
@@ -28,18 +28,14 @@
 }
 
 /* This ruleset makes it so the button will slightly increase in size when the user is hovering over it and also change color slightly. */
-.left-side-bar-nav:hover {
+.left-side-bar-button:hover {
     transform: scale(1.05);
     background-color: lightblue;
-    border-color: lightblue;
-    color: black;
 }
 
 /* This rule set makes it so the button will increase even more in size after being clicked (and the text becomes bolder). */
-.left-side-bar-nav:active {
+.left-side-bar-button:active {
     transform: scale(1.10);
     background-color: lightblue;
-    border-color: lightblue;
-    color: black;
     font-weight: bold;
 }

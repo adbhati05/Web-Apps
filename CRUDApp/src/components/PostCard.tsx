@@ -1,6 +1,6 @@
 import './PostCard.css';
 
-const PostCard: React.FunctionComponent = () => {
+const PostCard = () => {
     return (
         <div className=''>Post Card</div>
     );

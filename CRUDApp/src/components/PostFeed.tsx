@@ -1,6 +1,6 @@
 import './PostFeed.css';
 
-const PostFeed: React.FunctionComponent = () => {
+const PostFeed = () => {
     return (
         <div className=''>Post Feed</div>
     );

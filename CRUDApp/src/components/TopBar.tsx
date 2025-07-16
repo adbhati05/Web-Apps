@@ -37,7 +37,7 @@ const TopBar = () => {
     const handleLogout = async () => {
         try {
             await logOut();
-            navigate('/login'); // Redirect to login page after logging out.
+            navigate('/login'); // Redirect to login page ONLY after logOut() is successful in execution.
         } catch (error) {
             console.error("An error occurred while logging out: ", error);
         }
