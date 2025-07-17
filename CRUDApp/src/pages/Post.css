@@ -1,0 +1,26 @@
+/* These are the rule sets for the page that will be used for the user to create a new post. */
+/* They're similar to the ones used in Home.css, with the main difference being that the right side bar will not be used for this page. */
+.post-main-layout {
+    width: 80vw;
+    height: 85vh;
+    display: flex;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 12px;
+    box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.375);
+}
+
+.post-left-side-bar {
+    flex: 1;
+    background-color: aliceblue;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.post-container {
+    flex: 4;
+    background-color: aliceblue;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
