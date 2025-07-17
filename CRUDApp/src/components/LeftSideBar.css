@@ -20,11 +20,15 @@
     height: 44px;
     background-color: aliceblue;
     font-size: 18px;
+    text-decoration: none;
     border: none;
     border-radius: 22px;
     color: black;
     padding-left: 15px;
     padding-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* This ruleset makes it so the button will slightly increase in size when the user is hovering over it and also change color slightly. */
