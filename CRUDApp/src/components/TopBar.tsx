@@ -55,7 +55,8 @@ const TopBar = () => {
                 {/* Here the dropdown's content will conditionally render if open is set to true. */}
                 {open && (
                     <div className='dropdown-content'>
-                        <Link to=''>Settings</Link>
+                        <Link to='/'>Home</Link>
+                        <Link to='/settings'>Settings</Link>
                         <button onClick={handleLogout}>Log out</button>
                     </div>
                 )}
