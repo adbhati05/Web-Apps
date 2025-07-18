@@ -27,8 +27,18 @@ const LoginCard = () => {
         try {
             await logIn(userLoginInfo.email, userLoginInfo.password);
             navigate("/");
-        } catch (error) {
+        } catch (error: any) {
             console.log("An error occurred while logging in: ", error);
+
+            if (error.code === 'auth/invalid-credential') {
+                alert("Invalid email or password. Please try again.");
+            } else if (error.code === 'auth/invalid-email') {
+                alert("Please enter a valid email address.");
+            } else if (error.code === 'auth/too-many-requests') {
+                alert("Too many failed attempts. Please try again later.");
+            } else {
+                alert("An unexpected error occurred. Please try again.");
+            }
         }
     };
 
@@ -39,11 +49,11 @@ const LoginCard = () => {
         <div className='login-card-container'>Fit Log
             <form className='login-form-container' onSubmit={handleSubmit}>
                 <div className='login-input-field-container'>
-                    <input className='login-input-bar' id='email' type='email' placeholder='Email Address' value={userLoginInfo.email} onChange={handleChange}/>
+                    <input className='login-input-bar' id='email' type='email' placeholder='Email Address' value={userLoginInfo.email} onChange={handleChange} required/>
                 </div>
                 
                 <div className='login-input-field-container'>
-                    <input className='login-input-bar' id='password' type='password' placeholder='Password' value={userLoginInfo.password} onChange={handleChange}/>
+                    <input className='login-input-bar' id='password' type='password' placeholder='Password' value={userLoginInfo.password} onChange={handleChange} required/>
                 </div>
 
                 {/* Edit this so that it's a paragraph that says "Don't have an account? Sign up " and then a link that says " here." that redirects the user to the sign-up page. */}

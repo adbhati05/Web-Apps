@@ -32,8 +32,51 @@ const SignUpCard = () => {
     // Note: In future, include email verification before allowing the user to log in from sign up (look into this).
     const handleSubmit = async(e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        // First ensuring password is long enough before proceeding with other checks.
+        if (userSignUpInfo.password.length < 8) {
+            alert("Password must be at least 8 characters long.");
+            return;
+        } else {
+            // Left out `, \, /, ', ", <, and > since these speial characters can cause issues if input is not properly sanitized, leading to XSS or SQL injection attacks.
+            // Setting up a constant for special characters check.
+            const specialChars = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '-', '+', '=', '{', '}', '[', ']', ':', ';', ',', '.', '?', '~', '|'];
+            const hasSpecialChar = specialChars.some(char => userSignUpInfo.password.includes(char));
+
+            // Setting up constants for uppercase, lowercase, and number checks.
+            const hasUpperCase = /[A-Z]/.test(userSignUpInfo.password);
+            const hasLowerCase = /[a-z]/.test(userSignUpInfo.password);
+            const hasNumber = /\d/.test(userSignUpInfo.password);
+
+            if (!hasSpecialChar) {
+                alert("Password must contain at least one special character.");
+                return;
+            }
+
+            if (!hasUpperCase) {
+                alert("Password must contain at least one uppercase letter.");
+                return;
+            }
+
+            if (!hasLowerCase) {
+                alert("Password must contain at least one lowercase letter.");
+                return;
+            }
+
+            if (!hasNumber) {
+                alert("Password must contain at least one number.");
+                return;
+            }
+        }
+
+        // Ensure passwords match before proceeding with sign up.
+        if (userSignUpInfo.password !== userSignUpInfo.confirmPassword) {
+            alert("Passwords must match.");
+            return;
+        }
 
         try {
+            // Logging user info to console for debugging purposes. Will not be in production.
             console.log("The user info is: ", userSignUpInfo);
             await signUp(userSignUpInfo.email, userSignUpInfo.password);
             navigate("/");
@@ -49,22 +92,22 @@ const SignUpCard = () => {
             <form className='sign-up-form-container' onSubmit={handleSubmit}>
                 <div className='sign-up-input-field-container'>
                     <label className='sign-up-input-label' htmlFor='Username'>Username:</label>
-                    <input className='sign-up-input-bar' id='username'type='username' placeholder='Must be 12 characters max' value={userSignUpInfo.username} onChange={handleChange}/>
+                    <input className='sign-up-input-bar' id='username'type='username' placeholder='Must be 12 characters max' value={userSignUpInfo.username} onChange={handleChange} required maxLength={12}/>
                 </div>
 
                 <div className='sign-up-input-field-container'>
                     <label className='sign-up-input-label' htmlFor='Email'>Email:</label> 
-                    <input className='sign-up-input-bar' id='email'type='email' value={userSignUpInfo.email} onChange={handleChange}/>
+                    <input className='sign-up-input-bar' id='email'type='email' value={userSignUpInfo.email} onChange={handleChange} required/>
                 </div>
 
                 <div className='sign-up-input-field-container'>
                     <label className='sign-up-input-label' htmlFor='Password'>Password:</label>
-                    <input className='sign-up-input-bar' id='password' type='password' placeholder='See rules below' value={userSignUpInfo.password} onChange={handleChange}/>
+                    <input className='sign-up-input-bar' id='password' type='password' placeholder='See rules below' value={userSignUpInfo.password} onChange={handleChange} required/>
                 </div>
 
                 <div className='sign-up-input-field-container'>
                     <label className='sign-up-input-label' htmlFor='ConfirmPassword'>Confirm Password:</label>
-                    <input className='sign-up-input-bar' id='confirmPassword' type='password' value={userSignUpInfo.confirmPassword} onChange={handleChange}/>
+                    <input className='sign-up-input-bar' id='confirmPassword' type='password' value={userSignUpInfo.confirmPassword} onChange={handleChange} required/>
                 </div>
 
                 <ul className='password-rules'>
