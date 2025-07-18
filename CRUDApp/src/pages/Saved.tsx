@@ -8,7 +8,7 @@ const Saved = () => {
             <TopBar />
             <div className='saved-main-layout'>
                 <div className='saved-left-side-bar'><LeftSideBar /></div>
-                <div className='saved-container'>Saved Content (LOL IF YOU SEE THIS FUCK YOU BEN)</div>
+                <div className='saved-container'>Saved Content</div>
             </div>
         </div>
     );

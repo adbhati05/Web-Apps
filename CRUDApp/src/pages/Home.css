@@ -1,5 +1,5 @@
 /* This is the main container that will occupy the side bars and post feed for home page. Note that it's not named container since Bootstrap has its own container and that causes issues with how this renders. */
-.main-layout {
+.home-main-layout {
     width: 80vw;
     height: 85vh;
     display: flex;
@@ -9,7 +9,7 @@
 }
 
 /* This is for the left side bar (the flex: 1 statement ensures that each side bar takes up 1/5th of the entire container horizontally). */
-.left-side-bar {
+.home-left-side-bar {
     flex: 1;
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);
@@ -18,7 +18,7 @@
 }
 
 /* Same logic used here for the right side bar as above, just that the border radius statements are dedicated for the top/bottom right corners of the bar. */
-.right-side-bar {
+.home-right-side-bar {
     flex: 1;
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);

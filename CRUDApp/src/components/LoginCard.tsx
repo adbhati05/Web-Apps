@@ -30,6 +30,7 @@ const LoginCard = () => {
         } catch (error: any) {
             console.log("An error occurred while logging in: ", error);
 
+            // Throwing error messages if user enters invalid credentials, an invalid email address, takes too many attempts to sign in, or any other unexpected error occurs.
             if (error.code === 'auth/invalid-credential') {
                 alert("Invalid email or password. Please try again.");
             } else if (error.code === 'auth/invalid-email') {
