@@ -16,7 +16,7 @@ const ProtectedRoutes = () => {
         return <div>Loading...</div>; // Try to replace this with a loading spinner or any other loading component (style it nicely).
     }
      
-    // If the user is logged in, then the Outlet component will be rendered, which will render the components belonging to the protected routes (like the ones for the home page, style board page, etc). If not, redirect user to login page.
+    // If the user is logged in, then the Outlet component will be rendered (which means that ONLY components belonging to the protected routes, like the ones for home page or styleboard page, are rendered). If not, redirect user to login page.
     return user ? (<Outlet />) : (
         <Navigate to='/login' state={{ from: location }} />
     );
