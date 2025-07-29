@@ -1,11 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useUserAuth } from './UserAuthContext';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getAuth } from 'firebase/auth';
 
 const ProtectedRoutes = () => {
     // Initializing an Auth instance to gain access to all of its functionalities (like checking user auth state, loading, error, etc).
     const auth = getAuth();
+
+    // For now I'm using useAuthState to get the current user, loading state, and any potential errors, but perhaps in the future I can add a loading hook to UserAuthContext to prevent the need for UseAuthState from Firebase (do RESEARCH!!).
     const [user, loading, error] = useAuthState(auth);
 
     // This hook will give us the current location of the user in the app. It'll be used to keep track of where the user was before being redirected if they're not logged in.

@@ -16,6 +16,7 @@ interface AuthContextData {
     signUp: (                   // Rest of the data here are function signatures for auth process.
         email: string,
         password: string,
+        displayName: string,
         username: string
     ) => Promise<void>;
     signIn: (
@@ -77,9 +78,10 @@ export const UserAuthProvider = ({children}: UserAuthProviderProps) => {
     const signUp = async (
         email: string,
         password: string,
+        displayName: string,
         username: string
     ) => {
-        await authService.signUp(email, password, username);
+        await authService.signUp(email, password, displayName, username);
     };
 
     const signIn = async (

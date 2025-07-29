@@ -2,6 +2,7 @@
 export interface UserInfo {
     uid: string;
     email: string;
+    displayName: string;
     username: string;
     createdAt: string;
     profilePicURL?: string;
