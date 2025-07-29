@@ -1,20 +1,18 @@
 import './LoginCard.css';
 import { useState } from 'react';
-import type { UserLogIn } from '../types';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUserAuth } from '../auth/UserAuthContext';
 
-const initialValue: UserLogIn = {
-    email: '',
-    password: ''
-};
-
 const LoginCard = () => {
     // The following code follows the same logic as with the SignUpCard component, but obviously in the context of logging in a user instead.
-    const [userLoginInfo, setUserLoginInfo] = useState<UserLogIn>(initialValue);
+    const [userLoginInfo, setUserLoginInfo] = useState({
+        email: '',
+        password: ''
+    });
+    
     const navigate = useNavigate();
-    const { logIn } = useUserAuth();
+    const { signIn } = useUserAuth();
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
@@ -25,7 +23,7 @@ const LoginCard = () => {
         e.preventDefault();
 
         try {
-            await logIn(userLoginInfo.email, userLoginInfo.password);
+            await signIn(userLoginInfo.email, userLoginInfo.password);
             navigate("/");
         } catch (error: any) {
             console.log("An error occurred while logging in: ", error);
