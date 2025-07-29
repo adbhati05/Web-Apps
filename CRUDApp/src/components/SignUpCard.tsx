@@ -92,7 +92,9 @@ const SignUpCard = () => {
         try {
             // Logging user info to console for debugging purposes. Will not be in production.
             console.log("The user info is: ", userSignUpInfo);
-            await signUp(userSignUpInfo.email, userSignUpInfo.password, userSignUpInfo.username);
+
+            // Since both displayName and username depend on the input from the user for the Username field in the sign-up card, userSignUpInfo.username is passed as both displayName and username to signUp.
+            await signUp(userSignUpInfo.email, userSignUpInfo.password, userSignUpInfo.username, userSignUpInfo.username);
             navigate("/");
         } catch (error) {
             console.log("An error occurred while signing up: ", error);

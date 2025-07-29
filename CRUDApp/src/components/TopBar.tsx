@@ -30,18 +30,22 @@ const TopBar = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    // Setting up the log out functionality by leveraging logOut from UserAuthContext.
-    const { logOut } = useUserAuth();
+    // Setting up the log out functionality by leveraging signOut from UserAuthContext.
+    const { signOut } = useUserAuth();
     const navigate = useNavigate();
 
-    const handleLogout = async () => {
+    const handleSignOut = async () => {
         try {
-            await logOut();
+            await signOut();
             navigate('/login'); // Redirect to login page ONLY after logOut() is successful in execution.
         } catch (error) {
             console.error("An error occurred while logging out: ", error);
         }
     };
+
+    // Retrieving the current user's info to acquire their displayName and profile picture (future implementation) so that both can be displayed in the pfp dropdown button.
+    const { userInfo } = useUserAuth();
+    const displayName = userInfo?.displayName || 'User'; // Fallback to 'User' if displayName is not available (this will only occur if there's database corruption, manual database edits, etc).
 
     return (
         <div className='top-bar-content'>FitLog
@@ -49,7 +53,7 @@ const TopBar = () => {
             <div className='mt-auto profile-dropdown' ref={dropdownRef}>
                 <button className='pfp-button' onClick={() => {console.log('Dropdown toggled: ', !open); setOpen(!open);}}> {/* Setting open to false to ensure the dropdown is not expanded when the component mounts. */}
                     <img src={pfp_placeholder} alt='Profile' className='pfp' /> 
-                    <span className='username'>John Doe</span> {/* Set username character limit to 12 characters */}
+                    <span className='username'>{displayName}</span> {/* Set username character limit to 12 characters */}
                 </button>
 
                 {/* Here the dropdown's content will conditionally render if open is set to true. */}
@@ -57,7 +61,7 @@ const TopBar = () => {
                     <div className='dropdown-content'>
                         <Link to='/'>Home</Link>
                         <Link to='/settings'>Settings</Link>
-                        <button onClick={handleLogout}>Log out</button>
+                        <button onClick={handleSignOut}>Log out</button>
                     </div>
                 )}
             </div>
