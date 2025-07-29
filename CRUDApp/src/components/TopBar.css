@@ -17,7 +17,9 @@
 .pfp-button {
     height: 56px;
     font-size: 18px;
+    display: flex;
     align-items: center;
+    justify-content: center;
     background-color: ghostwhite;
     border: 4px solid rgba(0, 0, 0, 0.75);
     color: black;
@@ -48,6 +50,11 @@
 .username {
     font-size: 18px;
     color: black;
+    max-width: 100px; /* The CSS rules from here to the end of this rule set ensure that the username is truncated if it is too long. */
+    overflow: hidden; /* This ensures that the button does not end up being too wide. */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block; 
 }
 
 .dropdown-content {
