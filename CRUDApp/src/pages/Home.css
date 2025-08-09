@@ -11,6 +11,8 @@
 /* This is for the left side bar (the flex: 1 statement ensures that each side bar takes up 1/5th of the entire container horizontally). */
 .home-left-side-bar {
     flex: 1;
+    height: 100%;
+    overflow-y: auto; /* This rule ensures that if the content in the side bar exceeds the height of the container, a scroll bar will appear (this will be in used in every rule set for side bars, post feeds, and other containers). */
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-top-left-radius: 10px;
@@ -20,6 +22,8 @@
 /* Same logic used here for the right side bar as above, just that the border radius statements are dedicated for the top/bottom right corners of the bar. */
 .home-right-side-bar {
     flex: 1;
+    height: 100%;
+    overflow-y: auto;
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-top-right-radius: 10px;
@@ -29,6 +33,8 @@
 /* This is for the post feed itself (the flex: 3 statemenet ensures that the feed takes up 3/5th of the entire container horizontally). */
 .post-feed {
     flex: 3;
+    height: 100%;
+    overflow-y: auto;
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);
 }

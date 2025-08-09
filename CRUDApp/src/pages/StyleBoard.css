@@ -11,6 +11,8 @@
 
 .style-board-left-side-bar {
     flex: 1;
+    height: 100%;
+    overflow-y: auto;
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-top-left-radius: 10px;
@@ -19,6 +21,8 @@
 
 .style-board-container {
     flex: 4;
+    height: 100%;
+    overflow-y: auto;
     background-color: aliceblue;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-top-right-radius: 10px;
