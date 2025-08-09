@@ -1,0 +1,27 @@
+.post-description-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    min-height: 300px;
+    flex-shrink: 0; /* Prevents shrinking of items in post container (which is a flex container). */
+    background-color: aliceblue;
+}
+
+.post-description-label {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.post-caption-input {
+    font-size: 18px;
+    height: 150px;
+    width: 70%;
+    resize: both;
+    overflow: auto;
+    background-color: ghostwhite;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 12px;
+}

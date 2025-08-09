@@ -1,0 +1,44 @@
+.upload-photo-field {
+    display: flex;
+    width: 70%;
+    height: 250px; 
+    flex-shrink: 0; /* Prevents shrinking of items in post container (which is a flex container). */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 4px dashed rgba(180, 180, 180);
+    border-radius: 12px;
+    background-color: rgba(210, 210, 210, 0.75);
+}
+
+.upload-photo-input {
+    display: none; /* Hide the default file input button since it looks tacky. */
+}
+
+.upload-photo-label {
+    height: 44px;
+    background-color: rgba(210, 210, 210, 0.75);
+    font-size: 18px;
+    border: 2px solid rgba(180, 180, 180);
+    border-radius: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.upload-photo-label:hover {
+    transform: scale(1.05)
+}
+
+.upload-photo-label:active {
+    transform: scale(1.10);
+    font-weight: bold;
+}
+
+.upload-photo-instruction {
+    font-size: 16px;
+    margin-top: 10px;
+}
