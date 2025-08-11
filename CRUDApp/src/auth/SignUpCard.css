@@ -1,0 +1,109 @@
+/* This rule sets up the container holding all of the elements needed for the sign up card. */
+.sign-up-card-container {
+    margin: 35px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: x-large;
+    font-weight: bold;
+}
+
+/* As for this rule set, it ensures that the contents of the sign up form (input bars, password rules, create account button), are spaced well and appear in a good centralized column format). */
+.sign-up-form-container{
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Container for each input field and its label. */
+.sign-up-input-field-container {
+    display: flex;
+    flex-direction: column;
+    width: 334px;
+    margin-bottom: 15px;
+}
+
+/* This ruleset just ensures that the font above each input bar is 18 px tall and normal in weight (since sign-up-card-content is used on the parent div and makes all text bold). */
+.sign-up-input-label {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
+.sign-up-input-bar {
+    font-size: 18px;
+    font-style: italic;
+    height: 40px;
+    width: 100%;  /* This line ensures the input bar takes the full width of its container */
+    background-color: ghostwhite;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 12px;
+}
+
+.sign-up-input-bar:hover {
+    background-color: rgba(210, 210, 210, 0.5);
+}
+
+.sign-up-input-bar:focus {
+    outline: none;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+}
+
+/* The rule sets below ensure that the password rules are in a small font and spaced closely together vertically. */
+.password-rules {
+    font-size: 14px;
+    color: black;
+    font-weight: normal;
+    font-style: italic;
+    width: 350px;
+    margin-bottom: 5px;
+}
+
+.password-rules li {
+    margin: 0;
+}
+
+/* The next three rule sets ensure that the create account button behaves similarly to all the other buttons in the website. */
+.sign-up-button {
+    height: 44px;
+    background-color: lightblue;
+    font-size: 18px;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 22px;
+    color: black;
+    padding-left: 25px;
+    padding-right: 25px;
+    margin: 15px;
+}
+
+.sign-up-button:hover {
+    transform: scale(1.05);
+}
+
+.sign-up-button:active {
+    transform: scale(1.10);
+    font-weight: bold;
+}
+
+/* The next four rule sets are dedicated to styling the link that appears below the button that forwards the user back to the login page. */
+.login-link-container {
+    font-size: 16px;
+    color: black;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.login-link {
+    font-size: 16px;
+    color: black;
+    display: inline-block;
+}
+
+.login-link:hover {
+    transform: scale(1.05);
+}
+
+.login-link:active {
+    transform: scale(1.10);
+}

@@ -1,0 +1,89 @@
+/* This rule set is dedicated to styling the entire login card container. */
+.login-card-container {
+    margin: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: x-large;
+    font-weight: bold;
+}
+
+/* As for this rule set, it ensures that the contents of the login form (input bars/sign in button), are spaced well and appear in a good centralized format). */
+.login-form-container {
+    margin-top: 60px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Container for each input field and its label. */
+.login-input-field-container {
+    display: flex;
+    flex-direction: column;
+    width: 334px;
+    margin-bottom: 25px;
+}
+
+/* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
+.login-input-bar {
+    font-size: 18px;
+    font-style: italic;
+    height: 40px;
+    width: 100%;
+    background-color: ghostwhite;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 12px;
+}
+
+.login-input-bar:hover {
+    background-color: rgba(210, 210, 210, 0.5);
+}
+
+.login-input-bar:focus {
+    outline: none;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+}
+
+/* The next four rule sets are dedicated to styling the sign-up link that appears below the input bars. */
+.sign-up-link-container {
+    font-size: 16px;
+    color: black;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.sign-up-link {
+    font-size: 16px;
+    color: black;
+    display: inline-block;
+}
+
+.sign-up-link:hover {
+    transform: scale(1.05);
+}
+
+.sign-up-link:active {
+    transform: scale(1.10);
+}
+
+/* The next three rule sets ensure that the sign-in button behaves similarly to all the other buttons in the website. */
+.sign-in-button {
+    height: 44px;
+    background-color: lightblue;
+    font-size: 18px;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 22px;
+    color: black;
+    padding-left: 25px;
+    padding-right: 25px;
+}
+
+.sign-in-button:hover {
+    transform: scale(1.05);
+}
+
+.sign-in-button:active {
+    transform: scale(1.10);
+    font-weight: bold;
+}
