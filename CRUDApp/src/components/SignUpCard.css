@@ -20,7 +20,7 @@
 .sign-up-input-field-container {
     display: flex;
     flex-direction: column;
-    width: 40vh;
+    width: 334px;
     margin-bottom: 15px;
 }
 
@@ -56,7 +56,7 @@
     color: black;
     font-weight: normal;
     font-style: italic;
-    width: 42vh;
+    width: 350px;
     margin-bottom: 5px;
 }
 
@@ -67,7 +67,6 @@
 /* The next three rule sets ensure that the create account button behaves similarly to all the other buttons in the website. */
 .sign-up-button {
     height: 44px;
-    width: 15vh;
     background-color: lightblue;
     font-size: 18px;
     border: 2px solid rgba(0, 0, 0, 0.75);

@@ -1,9 +1,11 @@
-/* This rule set creates a container of width and height 60vh that will be used to contain the login card. */
+/* This rule set creates a container of a fixed width but flexible height that will be used to contain the login card. */
 .login-layout {
-    width: 60vh;
+    width: 500px;
+    min-width: 500px;
     height: 60vh; /* Note that the value for height is 60vh as well to match the width's value (to create a square). */
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
     border: 4px solid rgba(0, 0, 0, 0.75);
     border-radius: 12px;
     background-color: aliceblue;
