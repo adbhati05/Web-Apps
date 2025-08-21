@@ -1,11 +1,9 @@
 .post-description-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: self-start;
     justify-content: center;
-    gap: 20px;
-    width: 100%;
-    min-height: 300px;
+    width: 70%;
     flex-shrink: 0; /* Prevents shrinking of items in post container (which is a flex container). */
     background-color: aliceblue;
 }
@@ -13,15 +11,102 @@
 .post-description-label {
     font-size: 18px;
     font-weight: bold;
+    margin-bottom: 10px;
 }
 
 .post-caption-input {
     font-size: 18px;
     height: 150px;
-    width: 70%;
-    resize: both;
+    width: 100%;
+    resize: none;
     overflow: auto;
     background-color: ghostwhite;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-radius: 12px;
+}
+
+.post-caption-input:focus {
+    outline: none; /* Removes the default focus outline for a cleaner look. */
+}
+
+.add-piece-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    gap: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.add-piece-button {
+    height: 44px;
+    background-color: lightblue;
+    font-size: 18px;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 22px;
+    color: black;
+    padding-left: 25px;
+    padding-right: 25px;
+}
+
+.add-piece-button:hover {
+    transform: scale(1.05);
+}
+
+.add-piece-button:active {
+    transform: scale(1.10);
+    font-weight: bold;
+}
+
+.piece-input-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.piece-input-field {
+    font-size: 16px;
+    height: 40px;
+    flex: 1;
+    padding: 8px 12px;
+    background-color: ghostwhite;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 8px;
+}
+
+.remove-piece-button {
+    height: 32px;
+    width: 32px;
+    background-color: lightcoral;
+    font-size: 18px;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 16px;
+    color: black;
+}
+
+.remove-piece-button:hover {
+    transform: scale(1.05);
+}
+
+.remove-piece-button:active {
+    transform: scale(1.10);
+    font-weight: bold;
+}
+
+.details-label {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.details-checkbox {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
 }
