@@ -59,13 +59,20 @@
     font-weight: bold;
 }
 
+.piece-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    margin-top: 10px;
+}
+
 .piece-input-container {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
     width: 100%;
-    margin-top: 10px;
+    gap: 10px;
 }
 
 .piece-input-field {
@@ -76,6 +83,34 @@
     background-color: ghostwhite;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-radius: 8px;
+}
+
+.details-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 60%;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: 25px;
+    background-color: aliceblue;
+}
+
+.detail-input-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+
+.detail-input-field {
+    font-size: 12px;
+    height: 32px;
+    width: 100%;
+    padding: 6px 10px;
+    background-color: ghostwhite;
+    border: 2px solid rgba(0, 0, 0, 0.75);
+    border-radius: 6px;
 }
 
 .remove-piece-button {
