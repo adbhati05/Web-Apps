@@ -1,6 +1,6 @@
 import "./PostDescription.css";
 import { useState } from "react";
-import { BsSquare, BsCheckSquare } from "react-icons/bs";
+import { BsSquare, BsCheckSquare, BsDashCircle } from "react-icons/bs";
 
 const PostDescription = () => {
   // Declaring a state variable that holds an array of strings that will store the pieces (this data structure will follow stack logic).
@@ -115,9 +115,7 @@ const PostDescription = () => {
               onChange={(e) => handlePieceChange(index, e.target.value)} // Creating an event handler to handle populating the array with the inputted value.
             />
 
-            <button className="remove-piece-button" onClick={handleRemovePiece}>
-              -
-            </button>
+            <BsDashCircle className="remove-piece-button" onClick={handleRemovePiece} />
           </div>
 
           {/* Here 4 detail input fields (price, size, materials, date acquired) are rendered if detailsEnabled is true. */}

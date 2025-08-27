@@ -116,13 +116,9 @@
 }
 
 .remove-piece-button {
-    height: 32px;
-    width: 32px;
-    background-color: lightcoral;
-    font-size: 18px;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 16px;
-    color: black;
+    height: 30px;
+    width: 30px;
+    color: tomato;
 }
 
 .remove-piece-button:hover {
@@ -131,7 +127,6 @@
 
 .remove-piece-button:active {
     transform: scale(1.10);
-    font-weight: bold;
 }
 
 .details-label {
