@@ -1,4 +1,5 @@
 import "./UploadPhotoField.css";
+import { BsCloudArrowUpFill } from "react-icons/bs";
 
 const UploadPhotoField = () => {
   return (
@@ -9,6 +10,7 @@ const UploadPhotoField = () => {
         id="photo-upload"
         accept="image/*"
       />
+      <BsCloudArrowUpFill className="upload-photo-icon" />
       <label htmlFor="photo-upload" className="upload-photo-label">
         Choose Photo
       </label>

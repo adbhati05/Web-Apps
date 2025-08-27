@@ -42,3 +42,9 @@
     font-size: 16px;
     margin-top: 10px;
 }
+
+.upload-photo-icon {
+    width: 85px;
+    height: 85px;
+    color: rgba(180, 180, 180);
+}

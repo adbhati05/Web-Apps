@@ -1,5 +1,6 @@
 import "./PostDescription.css";
 import { useState } from "react";
+import { BsSquare, BsCheckSquare } from "react-icons/bs";
 
 const PostDescription = () => {
   // Declaring a state variable that holds an array of strings that will store the pieces (this data structure will follow stack logic).
@@ -88,18 +89,16 @@ const PostDescription = () => {
         rows={4} // Setting the number of rows to four for now.
       ></textarea>
       <div className="add-piece-container">
+        <hr className="post-description-line" />
         <button className="add-piece-button" onClick={handleAddPiece}>
           Add Piece
         </button>
-        <label className="details-label">
-          <input
-            type="checkbox"
-            className="details-checkbox"
-            checked={detailsEnabled}
-            onChange={handleDetailsToggle}
-          />
+        <label className="details-label" onClick={handleDetailsToggle}>
+          {/* Set it up so that the label is clickable and toggles the details (this ensures the bootstrap icon svgs show). */}
+          {detailsEnabled ? <BsCheckSquare /> : <BsSquare />}
           Include details about pieces
         </label>
+        <hr className="post-description-line" />
       </div>
 
       {/* Creating a dynamic list (since pieces can be added or removed) of input fields (accompanied by a remove button) via the map method. */}
@@ -120,6 +119,7 @@ const PostDescription = () => {
               -
             </button>
           </div>
+
           {/* Here 4 detail input fields (price, size, materials, date acquired) are rendered if detailsEnabled is true. */}
           {detailsEnabled && piecesDetails[index] && (
             <div className="details-container">
@@ -174,6 +174,11 @@ const PostDescription = () => {
           )}
         </div>
       ))}
+      <div className="create-post-button-container">
+        <hr className="post-description-line" />
+        <button className="create-post-button">Create Post</button>
+        <hr className="post-description-line" />
+      </div>
     </div>
   );
 };
