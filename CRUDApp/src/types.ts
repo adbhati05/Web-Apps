@@ -7,3 +7,13 @@ export interface UserInfo {
     createdAt: string;
     profilePicURL?: string;
 }
+
+export interface PostInfo {
+    uid: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+    imageURL?: string;
+    likes: number;
+    comments: number;
+}
