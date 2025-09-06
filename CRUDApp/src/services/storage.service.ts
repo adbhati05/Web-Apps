@@ -123,11 +123,20 @@ export const storageService = {
             // Taking the inputted string and converting it to a URL object.
             const urlObj = new URL(url);
             const pathname = urlObj.pathname;
-            const urlParts = pathname.split('/');
 
-        
+            // Extracting leading '/v0/b/PROJECT_ID/o/' part of image file path.
+            const encodedPath = pathname.split("/o/")[1];
 
-            
+            // Decoding the Firebase-encoded path.
+            const path = decodeURIComponent(encodedPath);
+
+            // Finally, with the decoded path, a reference can be created and the image can be deleted.
+            const imageRef = ref(storage, path);
+            await deleteObject(imageRef);
+            console.log("Image deleted successfully from storage: ", path);
+        } catch (error) {
+            console.error("Error deleting image from storage: ", error);
+            throw error;
         }
     }
 }
