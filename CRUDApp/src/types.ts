@@ -9,11 +9,13 @@ export interface UserInfo {
 }
 
 export interface PostInfo {
-    uid: string;
-    content: string;
+    id: string;
+    uid: string; // Which user this post belongs to.
+    caption: string;
+    description: string;
     createdAt: string;
-    updatedAt: string;
-    imageURL?: string;
-    likes: number;
-    comments: number;
+    updatedAt?: string;
+    imageURL: string;
+    likes?: number;
+    comments?: number;
 }
