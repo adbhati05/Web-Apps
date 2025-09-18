@@ -39,6 +39,7 @@
     background-color: ghostwhite;
     border: 2px solid rgba(0, 0, 0, 0.75);
     border-radius: 12px;
+    padding: 8px;
 }
 
 .sign-up-input-bar:hover {
