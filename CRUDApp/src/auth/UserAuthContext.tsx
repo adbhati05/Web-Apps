@@ -33,7 +33,7 @@ const UserAuthContext = createContext<AuthContextData | undefined>(undefined);
 export const UserAuthProvider = ({children}: UserAuthProviderProps) => {
     const [user, setUser] = useState<User | null>(null);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-    // TRY TO SET UP LOADING STATE HERE, DO MORE RESEARCH ON THIS AS IT COULD IMPROVE USER EXPERIENCE.
+    // TRY TO SET UP LOADING STATE HERE, DO MORE RESEARCH ON THIS AS IT COULD IMPROVE USER EXPERIENCE (FOR INSTANCE, DISPLAY NAME DOES NOT SHOW UP IMMEDIATELY AFTER SIGN-UP MOST LIKELY DUE TO FIREBASE TAKING TIME TO REGISTER THE USER'S DATA).
     // MOST LIKELY WILL NEED TO SET UP SOME UI THAT SHOWS LOADING STATE TO USER.
 
     // useEffect hook to set up authentication state listener. This runs once (via dependency array at the end) when the component mounts. Leveraging onAuthStateChanged from Firebase for this listener set up.

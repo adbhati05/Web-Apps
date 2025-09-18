@@ -1,4 +1,4 @@
-import SignUpCard from '../components/SignUpCard';
+import SignUpCard from '../auth/SignUpCard';
 import './SignUp.css';
 
 const SignUp = () => {
