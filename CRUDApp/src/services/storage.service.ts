@@ -139,4 +139,6 @@ export const storageService = {
             throw error;
         }
     }
+
+    // For the future, include file upload for files other than images (ex: videos, documents, etc).
 }
