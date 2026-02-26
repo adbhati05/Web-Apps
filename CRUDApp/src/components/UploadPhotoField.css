@@ -1,18 +1,32 @@
+.upload-photo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 70%;
+    height: 250px;
+    flex-shrink: 0;
+    /* Prevents shrinking of items in post container (which is a flex container). */
+}
+
 .upload-photo-field {
     display: flex;
-    width: 70%;
-    height: 250px; 
-    flex-shrink: 0; /* Prevents shrinking of items in post container (which is a flex container). */
+    width: 100%;
+    height: 100%;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border: 4px dashed rgba(180, 180, 180);
     border-radius: 12px;
     background-color: rgba(210, 210, 210, 0.75);
+    position: relative;
+    overflow: hidden;
 }
 
 .upload-photo-input {
-    display: none; /* Hide the default file input button since it looks tacky. */
+    display: none;
+    /* Hide the default file input button since it looks tacky. */
 }
 
 .upload-photo-label {
@@ -27,6 +41,7 @@
     text-align: center;
     padding-left: 15px;
     padding-right: 15px;
+    cursor: pointer;
 }
 
 .upload-photo-label:hover {
@@ -47,4 +62,39 @@
     width: 85px;
     height: 85px;
     color: rgba(180, 180, 180);
+}
+
+.image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-photo-button {
+    color: tomato;
+    z-index: 1000;
+    cursor: pointer;
+    border: none;
+    border-radius: 50%;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: transparent;
+}
+
+.remove-photo-button:hover {
+    transform: scale(1.05);
+}
+
+.remove-photo-button:active {
+    transform: scale(1.10);
+}
+
+.remove-photo-button svg {
+    width: 30px;
+    height: 30px;
 }

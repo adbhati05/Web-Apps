@@ -4,7 +4,8 @@
     align-items: self-start;
     justify-content: center;
     width: 70%;
-    flex-shrink: 0; /* Prevents shrinking of items in post container (which is a flex container). */
+    flex-shrink: 0;
+    /* Prevents shrinking of items in post container (which is a flex container). */
     background-color: aliceblue;
 }
 
@@ -27,7 +28,8 @@
 }
 
 .post-caption-input:focus {
-    outline: none; /* Removes the default focus outline for a cleaner look. */
+    outline: none;
+    /* Removes the default focus outline for a cleaner look. */
 }
 
 .add-piece-container {
