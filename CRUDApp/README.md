@@ -1,1 +1,3 @@
 Work in progress...
+
+Currently working on implementing the logic for the PostFeed component, so that I can display community posts on the home page.
