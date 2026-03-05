@@ -15,7 +15,6 @@ const Home = () => {
         </div>
         <div className="post-feed">
           <PostFeed />
-          <PostCard />
         </div>
         <div className="home-right-side-bar">
           <RightSideBar />

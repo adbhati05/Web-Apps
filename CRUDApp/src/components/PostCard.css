@@ -1,0 +1,35 @@
+.post-card-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 70%;
+    flex-shrink: 0;
+    /* Prevents shrinking of items in post container (which is a flex container). */
+    background-color: aliceblue;
+    border: 2px solid black;
+}
+
+.top-bar {
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.account-profile-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.account-profile-container img {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    background-color: black;
+}

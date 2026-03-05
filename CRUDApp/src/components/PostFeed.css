@@ -1,0 +1,10 @@
+.post-feed-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex-shrink: 0;
+    /* Prevents shrinking of items in post container (which is a flex container). */
+    background-color: aliceblue;
+}
