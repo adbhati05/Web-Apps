@@ -5,6 +5,7 @@ import { postService } from '../services/post.service';
 import { useState, useEffect } from 'react';
 import type { Post } from '../types';
 import type { PieceDetail } from '../types';
+import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 
 // Defining the props that will be passed into the PostCard component.
 // Essentially, this component is a skeleton for a post that will be displayed on the feed.
@@ -17,9 +18,17 @@ interface PostCardProps {
     likes: string[],
     commentsCount: number,
     pieces: PieceDetail[],
+    hasDetails: boolean,
 }
 
-const PostCard = ({ username, dateCreated, caption, imageURL, likes, commentsCount, pieces }: PostCardProps) => {
+const PostCard = ({ username, dateCreated, caption, imageURL, likes, commentsCount, pieces, hasDetails }: PostCardProps) => {
+
+    const [liked, setLiked] = useState(false);
+    const handleLike = async () => {
+        setLiked(!liked);
+
+        // TO-DO: Set it up so that if the button's liked, its state persists even if the page is refreshed.
+    };
 
     return (
         <div className='post-card-container'>
@@ -33,6 +42,13 @@ const PostCard = ({ username, dateCreated, caption, imageURL, likes, commentsCou
             <div className='post-content'>
                 <div className='post-image-container'>
                     <img src={imageURL} alt="Post" />
+                </div>
+
+                <div className='post-actions-container'>
+                    <button className='like-button' onClick={handleLike}>
+                        {liked ? <BsHeartFill className='like-button-liked' /> : <BsHeart />}
+                    </button>
+                    <button className='comment-button'><BsChatLeft /></button>
                 </div>
                 <div className='post-caption-container'>
                     <p>{caption}</p>

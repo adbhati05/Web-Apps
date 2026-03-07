@@ -14,6 +14,7 @@ const PostFeed = () => {
                 likes={[]}
                 commentsCount={0}
                 pieces={[]}
+                hasDetails={false}
             />
         </div>
     );
