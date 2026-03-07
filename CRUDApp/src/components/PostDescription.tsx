@@ -133,6 +133,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
       const post = await postService.createPost(
         caption,
         piecesInfo,
+        detailsEnabled, // Using detailsEnabled to populate the hasDetails field for each Post object.
         imagePreview, // postService.createPost expects a URL
         userInfo
       );

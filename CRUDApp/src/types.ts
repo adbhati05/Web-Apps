@@ -23,6 +23,7 @@ export interface Post {
     username: string; // Display name or username of the poster.
     caption: string;
     pieces: PieceDetail[]; // Array of details objects.
+    hasDetails: boolean; // Will be used to render different post cards whether the post has details or not.
     createdAt: string;
     updatedAt?: string;
     imageURL: string;

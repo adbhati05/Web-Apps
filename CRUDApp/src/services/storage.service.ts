@@ -1,6 +1,6 @@
 import { storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import imageCompression  from "browser-image-compression";
+import imageCompression from "browser-image-compression";
 
 export const storageService = {
     async compressImage(
@@ -26,7 +26,7 @@ export const storageService = {
             return URL.createObjectURL(compressedFile);
         } catch (error) {
             console.error("Error compressing image:", error);
-            
+
             // Returning original image URL.
             return url;
         }
@@ -68,8 +68,8 @@ export const storageService = {
 
             // Append a cache-busting query parameter to the download URL.
             downloadURL += downloadURL.includes('?')
-              ? `&t=${Date.now()}`
-              : `?t=${Date.now()}`;
+                ? `&t=${Date.now()}`
+                : `?t=${Date.now()}`;
 
             return downloadURL;
         } catch (error) {
@@ -85,9 +85,10 @@ export const storageService = {
         // Logging for debugging purposes.
         console.log("Uploading profile image for user:", userId);
 
-        // Generating a unique file name and storage path so that uploadImage can be called properly.
-        const fileName = `profile-${userId}-${Date.now()}.jpg`;
-        const storagePath = `profile/${fileName}`;
+        // Generating a hierarchical path so that rules can be applied based on the userId folder.
+        const timestamp = Date.now();
+        const fileName = `${timestamp}.jpg`;
+        const storagePath = `profile/${userId}/${fileName}`;
 
         // Constraints for profile images are: 500 px dimensions, 0.2 MB size, JPEG format.
         const options = {
@@ -105,9 +106,10 @@ export const storageService = {
     ): Promise<string> {
         // Same process as with profile image upload, but different constraints and storage path.
         console.log("Uploading post image for user:", userId);
-        const fileName = `post-${userId}-${Date.now()}.jpg`;
-        const storagePath = `posts/${fileName}`;
-        
+        const timestamp = Date.now();
+        const fileName = `${timestamp}.jpg`;
+        const storagePath = `posts/${userId}/${fileName}`;
+
         // Constraints for post images are: 1080 px dimensions, 0.6 MB size, JPEG format.
         const options = {
             maxSizeMB: 0.6,
