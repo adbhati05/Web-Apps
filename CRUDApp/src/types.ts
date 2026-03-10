@@ -1,4 +1,6 @@
 // Note that adding a question mark (?) after a prop name in an interface makes that prop optional.
+
+// This will represent each user in the database.
 export interface UserInfo {
     uid: string; // Unique identifier for each user.
     email: string;
@@ -17,6 +19,7 @@ export interface PieceDetail {
     dateAcquired?: string;
 }
 
+// This will represent each post in the database.
 export interface Post {
     id: string; // Unique identifier for each post.
     uid: string; // Which user this post belongs to.
@@ -28,5 +31,15 @@ export interface Post {
     updatedAt?: string;
     imageURL: string;
     likes?: string[]; // Array of user UIDs who liked the post.
-    commentsCount?: number;
+    comments?: Comment[]; // Array of comment objects.
+}
+
+// This will represent each comment belonging to posts.
+export interface Comment {
+    id: string; // Unique identifier for each comment, allowing users to comment multiple times.
+    postId: string; // Which post this comment belongs to.
+    uid: string; // Which user made the comment.
+    username: string;
+    comment: string;
+    createdAt: string;
 }
