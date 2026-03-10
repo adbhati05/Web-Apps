@@ -1,6 +1,6 @@
 // Include support for different sign-in methods, like via Google or socials (displayName will need to be added to UserInfo for that as well as functions in this doc supporting those sign-in options).
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import {doc, getDoc, writeBatch} from 'firebase/firestore';
+import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { UserInfo } from '../types';
 
@@ -17,17 +17,17 @@ export const authService = {
     // This is just a simple function that retrieves the current user's info (AKA that user's document).
     async getUserInfo(uid: string): Promise<UserInfo | null> {
         const userDoc = await getDoc(doc(db, "users", uid));
-        return userDoc.exists() ? ({ uid: userDoc.id, ...userDoc.data() } as UserInfo) : null;  
+        return userDoc.exists() ? ({ uid: userDoc.id, ...userDoc.data() } as UserInfo) : null;
     },
-    
+
     // This function handles user sign-up, promises a UserInfo object.
     async signUp(
-        email: string, 
-        password: string, 
-        displayName: string, 
+        email: string,
+        password: string,
+        displayName: string,
         username: string
     ): Promise<UserInfo> {
-        const { user } = await createUserWithEmailAndPassword(auth, email, password); 
+        const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
         // Updating the user's profile with displayName param.
         await updateProfile(user, { displayName });
@@ -44,7 +44,7 @@ export const authService = {
         const batch = writeBatch(db);
 
         // Setting up a separate document for the "usernames" collection to ensure no duplicate usernames.
-        batch.set(doc(db, "usernames", userInfo.username), { 
+        batch.set(doc(db, "usernames", userInfo.username), {
             uid: user.uid,
             username: username.toLowerCase(),
             createdAt: new Date().toISOString()
@@ -62,7 +62,7 @@ export const authService = {
 
     // This function handles user sign-in, checks if the user exists (has info in Firestore).
     async signIn(
-        email: string, 
+        email: string,
         password: string
     ): Promise<UserInfo> {
         const { user } = await signInWithEmailAndPassword(auth, email, password);

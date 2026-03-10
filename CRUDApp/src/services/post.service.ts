@@ -5,16 +5,18 @@ import { storageService } from './storage.service';
 import { authService } from './auth.service';
 import type { Post, PieceDetail, UserInfo } from '../types';
 
-const postCache = new Map<string, Post>();
-
-// TO-DO: Update Google Cloud to include payment details so I can set up storage bucket.
 // TO-DO: include logic for comments in the future, but for now I'll just keep a count of comments in the post document and implement comment functionality later on.
+// TO-DO: Implement a like/unlike feature for posts as well as the ability to update them.
 // TO-DO: Implement pagination (do research on this) for fetching posts in the future, especially as the number of posts grows. For now, I'll just fetch all posts and sort them by creation date.
+// TO-DO: Figure out how to make the folders in storage bucket not be random strings of characters, but instead something more organized and user-friendly (like the user's Username or UID).
+
+const postCache = new Map<string, Post>();
 
 export const postService = {
     async createPost(
         caption: string,
         pieces: PieceDetail[],
+        hasDetails: boolean,
         imageURL: string,
         userInfo: UserInfo
     ): Promise<Post> {
@@ -29,10 +31,11 @@ export const postService = {
             username: userInfo.username,
             caption,
             pieces,
+            hasDetails,
             createdAt: new Date().toISOString(),
             imageURL: uploadedImageURL,
-            likes: [],
-            commentsCount: 0
+            likes: [], // Initializing the post with an empty array (since no post will start with likes).
+            comments: [] // Initializnig the post with an empty array of comments (since no post will start with comments).
         };
 
         // Save to Firestore
@@ -57,7 +60,7 @@ export const postService = {
         postCache.set(postId, post);
         return post;
     },
- 
+
     async getPosts(): Promise<Post[]> {
         // Note: For a real app, you'd use a query with ordering and pagination. Look into this for future improvements.
         // Implementing basic fetch for now.
@@ -113,12 +116,44 @@ export const postService = {
         const post = await this.getPost(postId);
         if (!post) throw new Error("Post not found");
 
+        // Setting up the likes array and checking if the user has already liked the post
         const likes = post.likes || [];
         const isLiked = likes.includes(userId);
         const newLikes = isLiked
             ? likes.filter(uid => uid !== userId)
             : [...likes, userId];
 
+        // Update post with new likes array
         await this.updatePost(postId, { likes: newLikes });
+    },
+
+    // Adds a comment to a post (and in Firestore). Implement commenting feature in the UI later, allowing users to comment on posts.
+    async addComment(postId: string, comment: string, userInfo: UserInfo): Promise<void> {
+        const post = await this.getPost(postId);
+        if (!post) throw new Error("Post not found");
+
+        // Setting up the comments array
+        const comments = post.comments || [];
+
+        // Creating a new comment object with a unique ID and adding it to the subcollection of comments that each post will have
+        const newComments = [...comments, { id: doc(collection(db, "posts", postId, "comments")).id, postId, uid: userInfo.uid, username: userInfo.username, comment, createdAt: new Date().toISOString() }];
+
+        // Update post with new comments array
+        await this.updatePost(postId, { comments: newComments });
+    },
+
+    async deleteComment(postId: string, commentId: string): Promise<void> {
+        const post = await this.getPost(postId);
+        if (!post) throw new Error("Post not found");
+
+        // Setting up the comments array and removing the comment with the given ID
+        const comments = post.comments || [];
+        const newComments = comments.filter(comment => comment.id !== commentId);
+
+        // Removing the comment from the subcollection
+        await deleteDoc(doc(db, "posts", postId, "comments", commentId));
+
+        // Update post with new comments array
+        await this.updatePost(postId, { comments: newComments });
     }
 };
