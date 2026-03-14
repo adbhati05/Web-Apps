@@ -12,6 +12,7 @@
 
 .top-bar {
     padding: 10px 15px;
+    margin-top: 10px;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -43,7 +44,6 @@
 }
 
 .post-image-container {
-    margin-top: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -51,16 +51,18 @@
     width: 100%;
     height: 500px;
     border: 2px solid black;
+    border-radius: 8px;
 }
 
 .post-image-container img {
     height: 100%;
     width: 100%;
     object-fit: cover;
+    border-radius: 6px;
 }
 
 .post-caption-container {
-    padding: 10px 15px;
+    padding: 10px 15px 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -69,7 +71,7 @@
 }
 
 .post-pieces-container {
-    padding: 10px 15px;
+    padding: 0 15px;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -78,7 +80,7 @@
 }
 
 .post-actions-container {
-    padding: 10px 15px;
+    padding: 10px 15px 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -126,4 +128,62 @@
 .comment-button svg {
     height: 25px;
     width: 25px;
+}
+
+.post-pieces-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    padding-bottom: 20px;
+}
+
+/* Base card styles shared by both variants (note: the !important tag is used to override the default styles of the MUI components) */
+.post-piece {
+    width: 100%;
+    background-color: lightblue !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    overflow: hidden;
+    border: none !important;
+}
+
+/* Static (no details) piece */
+.post-piece-static {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    min-height: 44px;
+}
+
+/* Dynamic (has details) piece. */
+/* Ensures that the piece summary (AKA piece name) is visible when expanded and also doesn't change in height. */
+.post-piece-summary.Mui-expanded {
+    min-height: 44px !important;
+    max-height: 48px !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.75);
+}
+
+/* Removes the margin that MUI adds around the accordion when expanded */
+.post-piece.Mui-expanded {
+    margin: 0 !important;
+}
+
+/* Piece detail list inside the accordion */
+.post-piece-detail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.post-piece-detail-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 14px;
 }
