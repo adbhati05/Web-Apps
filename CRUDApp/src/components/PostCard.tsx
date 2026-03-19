@@ -6,7 +6,7 @@ import type { PieceDetail, Comment } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
 
-
+// TO-DO: Implement the like/commenting features, also figure out why accordion "bounces" when unexpanded and expanded and fix issue.
 
 // Defining the props that will be passed into the PostCard component.
 // Essentially, this component is a skeleton for a post that will be displayed on the feed.

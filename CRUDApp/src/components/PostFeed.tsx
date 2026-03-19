@@ -4,8 +4,7 @@ import { postService } from '../services/post.service';
 import { useState, useEffect } from 'react';
 import type { Post } from '../types';
 
-// For now I'll use placeholders in order to visualize how the card will look since I'm currently working on the post card's aesthetics. 
-// Eventually, this component will fetch all posts from the database and display them in the feed.
+// This component fetches all posts from the database and displays them in the feed.
 const PostFeed = () => {
     // Setting up a posts object that will hold all the posts from the Firestore collection and then be used to render each PostCard component.
     const [posts, setPosts] = useState<Post[]>([]);
@@ -30,13 +29,19 @@ const PostFeed = () => {
         fetchPosts();
     }, []);
 
+    // Formats a date string into a readable format like "March 14, 2026".
+    const formatDate = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
     return (
         <div className="post-feed-container">
             {posts.map((post) => (
                 <PostCard
                     key={post.id}
                     username={post.username}
-                    dateCreated={post.createdAt}
+                    dateCreated={formatDate(post.createdAt)}
                     caption={post.caption}
                     imageURL={post.imageURL}
                     likes={post.likes || []}

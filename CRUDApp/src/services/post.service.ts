@@ -28,7 +28,7 @@ export const postService = {
         const post: Post = {
             id: postRef.id,
             uid: userInfo.uid,
-            username: userInfo.username,
+            username: userInfo.displayName,
             caption,
             pieces,
             hasDetails,

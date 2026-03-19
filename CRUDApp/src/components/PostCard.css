@@ -20,6 +20,11 @@
     width: 100%;
 }
 
+/* Gets rid of the default margin that p tags have. */
+.top-bar p {
+    margin: 0;
+}
+
 .account-profile-container {
     display: flex;
     flex-direction: row;

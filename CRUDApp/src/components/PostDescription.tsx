@@ -5,6 +5,8 @@ import { postService } from "../services/post.service";
 import { authService } from "../services/auth.service";
 import type { UserInfo } from "../types";
 
+// TO-DO: SET UP TWO REACT COMPONENTS THAT WILL BE ERROR AND SUCCESS MESSAGES THAT WILL BE DISPLAYED WHENEVER THE USER ATTEMPTS AN OPERATION SUCH AS CREATING A POST.
+
 interface PostDescriptionProps {
   imagePreview: string | null;
   onSuccess: () => void;
