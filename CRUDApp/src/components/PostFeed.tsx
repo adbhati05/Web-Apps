@@ -40,6 +40,7 @@ const PostFeed = () => {
             {posts.map((post) => (
                 <PostCard
                     key={post.id}
+                    postId={post.id}
                     username={post.username}
                     dateCreated={formatDate(post.createdAt)}
                     caption={post.caption}

@@ -1,7 +1,8 @@
 import './PostCard.css';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
-import { useState, useEffect } from 'react';
-import { postService } from "../services/post.service"
+import { useState } from 'react';
+import { postService } from "../services/post.service";
+import { auth } from '../firebase';
 import type { PieceDetail, Comment } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
@@ -12,6 +13,7 @@ import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
 // Essentially, this component is a skeleton for a post that will be displayed on the feed.
 // PostFeed.tsx will handle the logic of fetching users' posts and passing the data into this component.
 interface PostCardProps {
+    postId: string,
     username: string,
     dateCreated: string,
     caption: string,
@@ -22,13 +24,35 @@ interface PostCardProps {
     hasDetails: boolean,
 }
 
-const PostCard = ({ username, dateCreated, caption, imageURL, likes, comments, pieces, hasDetails }: PostCardProps) => {
+const PostCard = ({ postId, username, dateCreated, caption, imageURL, likes, comments, pieces, hasDetails }: PostCardProps) => {
 
-    const [liked, setLiked] = useState(false);
+    // Retrieving current user's information.
+    const currentUserId = auth.currentUser?.uid;
+
+    // Defining a liked state variable that will track whether the current user has liked the post.
+    const [liked, setLiked] = useState(() => !!currentUserId && likes.includes(currentUserId));
+
+    // Defining a likeCount state variable that will track the number of likes on the post.
+    const [likeCount, setLikeCount] = useState(likes.length);
+
     const handleLike = async () => {
-        setLiked(!liked);
+        // User must be logged in to like a post.
+        if (!currentUserId) return;
 
-        // TO-DO: Set it up so that if the button's liked, its state persists even if the page is refreshed.
+        // Using an optimistic update to have the like button and count change immediately upon click.
+        const isLiked = liked;
+        setLiked(!isLiked);
+        setLikeCount(prev => isLiked ? prev - 1 : prev + 1); // Two options here in case user chooses to like or unlike the post.
+
+        try {
+            await postService.toggleLike(postId, currentUserId);
+        } catch (error) {
+            console.error("Failed to toggle like:", error);
+
+            // Upon error, rollback both optimistic updates.
+            setLiked(isLiked);
+            setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+        }
     };
 
     return (
@@ -46,10 +70,15 @@ const PostCard = ({ username, dateCreated, caption, imageURL, likes, comments, p
                 </div>
 
                 <div className='post-actions-container'>
-                    <button className='like-button' onClick={handleLike}>
-                        {liked ? <BsHeartFill className='like-button-liked' /> : <BsHeart />}
-                    </button>
-                    <button className='comment-button'><BsChatLeft /></button>
+                    <div className='like-container'>
+                        <button className='like-button' onClick={handleLike}>
+                            {liked ? <BsHeartFill className='like-button-liked' /> : <BsHeart />}
+                        </button>
+                        <p className='like-count'>{likeCount}</p>
+                    </div>
+                    <div className='comment-container'>
+                        <button className='comment-button'><BsChatLeft /></button>
+                    </div>
                 </div>
                 <div className='post-caption-container'>
                     <p>{caption}</p>
