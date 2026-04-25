@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { Rock, Origin } from "../lib/rocks";
 import RockCard from "./RockCard";
 import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
@@ -9,15 +9,84 @@ interface RockSliderProps {
 }
 
 export default function RockSlider({ rocks, origin }: RockSliderProps) {
+  // Setting up a useRef hook to keep track of the scroll position of the slider track.
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleScroll = (direction: "left" | "right") => {
+  // Setting up a useRef hook to keep track of the timer for the auto-play feature.
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Setting up an index to keep track of the current index in the slider array. And 
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndexRef = useRef(0);
+
+  const handleScrollEvent = () => {
     if (!scrollRef.current) return;
-    const amount = 532; // 500px card + 2rem gap
-    scrollRef.current.scrollBy({
-      left: direction === "right" ? amount : -amount,
-      behavior: "smooth",
+
+    // Setting up an array consisting of the rock cards in the slider.
+    const children = Array.from(scrollRef.current.children);
+
+    // Establishing the center of the slider track container (when the slider auto-scrolls or the user chooses to scroll, the current image will be at the center of the screen).
+    const containerCenter = scrollRef.current.scrollLeft + scrollRef.current.clientWidth / 2;
+
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    // Looping through the rock cards to establish which card is closest to the center of the slider track container.
+    children.forEach((child, index) => {
+      const childElement = child as HTMLElement;
+      const childCenter = childElement.offsetLeft + childElement.clientWidth / 2;
+      const distance = Math.abs(childCenter - containerCenter);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = index;
+      }
     });
+
+    // Updating activeIndexRef's current state to match the closest index if they're different (i.e. the slider has been scrolled to a new position).
+    if (closestIndex !== activeIndexRef.current) {
+      activeIndexRef.current = closestIndex;
+      setActiveIndex(closestIndex);
+    }
+  };
+
+  const handleScroll = useCallback((direction: "left" | "right") => {
+    if (!scrollRef.current) return;
+
+    const currentIndex = activeIndexRef.current;
+    let nextIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
+
+    if (direction === "right" && nextIndex >= rocks.length) {
+      nextIndex = 0; // loop back to start
+    } else if (direction === "left" && nextIndex < 0) {
+      return; // do nothing
+    }
+
+    const children = Array.from(scrollRef.current.children);
+    const targetChild = children[nextIndex] as HTMLElement;
+
+    if (targetChild) {
+      const scrollPosition = targetChild.offsetLeft - scrollRef.current.clientWidth / 2 + targetChild.clientWidth / 2;
+      scrollRef.current.scrollTo({ left: scrollPosition, behavior: "smooth" });
+    }
+  }, [rocks.length]);
+
+  const resetAutoPlay = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      handleScroll("right");
+    }, 10000);
+  }, [handleScroll]);
+
+  useEffect(() => {
+    resetAutoPlay();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [resetAutoPlay]);
+
+  const onManualScroll = (direction: "left" | "right") => {
+    handleScroll(direction);
+    resetAutoPlay();
   };
 
   return (
@@ -26,14 +95,14 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
         <div className="slider-controlls">
           <button
             className="slider-button"
-            onClick={() => handleScroll("left")}
+            onClick={() => onManualScroll("left")}
             aria-label="Scroll Left"
           >
             <BsChevronLeft />
           </button>
           <button
             className="slider-button"
-            onClick={() => handleScroll("right")}
+            onClick={() => onManualScroll("right")}
             aria-label="Scroll Right"
           >
             <BsChevronRight />
@@ -41,10 +110,14 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
         </div>
       </div>
 
-      <div className="slider-track-container" ref={scrollRef}>
-        <div className="slider-track">
+      <div className="slider-track-container">
+        <div
+          className="slider-track"
+          ref={scrollRef}
+          onScroll={handleScrollEvent}
+        >
           {rocks.map((rock, index) => (
-            <RockCard key={rock.name} rock={rock} index={index} />
+            <RockCard key={rock.name} rock={rock} index={index} isActive={index === activeIndex} />
           ))}
         </div>
       </div>

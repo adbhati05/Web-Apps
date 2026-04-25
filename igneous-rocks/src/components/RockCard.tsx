@@ -3,13 +3,14 @@ import { Rock } from "../lib/rocks";
 interface RockCardProps {
   rock: Rock;
   index: number;
+  isActive?: boolean;
 }
 
-export default function RockCard({ rock, index }: RockCardProps) {
+export default function RockCard({ rock, index, isActive = false }: RockCardProps) {
   const imgPath = `/${rock.origin}/${rock.name}.jpg`;
 
   return (
-    <div className="rock-card">
+    <div className={`rock-card ${isActive ? "active" : ""}`}>
       <div className="rock-image-container">
         <img
           src={imgPath}
@@ -23,13 +24,11 @@ export default function RockCard({ rock, index }: RockCardProps) {
       <div className="rock-content">
         <h3 className="rock-name">{rock.name}</h3>
         {rock.description ? (
-            <p className="rock-description">{rock.description}</p>
+          <p className="rock-description">{rock.description}</p>
         ) : (
-            <p className="rock-description" style={{ opacity: 0.5 }}>No description provided yet.</p>
+          <p className="rock-description" style={{ opacity: 0.5 }}>No description provided yet.</p>
         )}
         <div className="rock-tags">
-          <span className="rock-tag">{rock.origin}</span>
-          <span className="rock-tag">{rock.composition}</span>
           {rock.texture && <span className="rock-tag">{rock.texture}</span>}
         </div>
       </div>

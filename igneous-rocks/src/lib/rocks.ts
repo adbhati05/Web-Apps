@@ -22,68 +22,68 @@ export const rocks: Rock[] = [
         name: "Granite",
         composition: "felsic",
         origin: "intrusive",
-        description: "",
-        texture: "",
+        description: "Light-colored, felsic intrusive rock largely made up of quartz and feldspar. It's commonly found in the continental crust.",
+        texture: "Coarse-grained",
     },
     {
         name: "Diorite",
         composition: "intermediate",
         origin: "intrusive",
-        description: "",
-        texture: "",
+        description: "Intermediate intrusive rock that's composed of roughly equal parts of light and dark minerals (often described as looking like salt and pepper).",
+        texture: "Coarse-grained",
     },
     {
         name: "Gabbro",
         composition: "mafic",
         origin: "intrusive",
-        description: "",
-        texture: "",
+        description: "Dark-colored, mafic intrusive rock rich in iron and magnesium.",
+        texture: "Coarse-grained",
     },
     {
         name: "Peridotite",
         composition: "ultramafic",
         origin: "intrusive",
-        description: "",
-        texture: "",
+        description: "Ultramafic intrusive rock that's mostly olivine (a common green silicate mineral containing iron and magnesium). It's commonly found in the Earth's mantle.",
+        texture: "Coarse-grained",
     },
     {
         name: "Rhyolite",
         composition: "felsic",
         origin: "extrusive",
-        description: "",
-        texture: "",
+        description: "Light-colored, felsic extrusive rock that's rich in silica. Often considered the fine-grained, extrusive equivalent of granite.",
+        texture: "Fine-grained, sometimes bubbly",
     },
     {
         name: "Andesite",
         composition: "intermediate",
         origin: "extrusive",
-        description: "",
-        texture: "",
+        description: "Intermediate extrusive rock that's most commonly found in volcanic arcs, such as those along the Pacific Ring of Fire.",
+        texture: "Fine-grained",
     },
     {
         name: "Basalt",
         composition: "mafic",
         origin: "extrusive",
-        description: "",
-        texture: "",
+        description: "Dark, mafic extrusive rock that makes up most of the bedrock in the Earth's ocean basins and many volcanic areas.",
+        texture: "Fine-grained, sometimes bubbly",
     },
     {
         name: "Komatiite",
         composition: "ultramafic",
         origin: "extrusive",
-        description: "",
-        texture: "",
+        description: "Rare ultramfic extrusive rock that forms from extremely hot lava. Considered one of the oldest rocks on Earth, dating back to over ~3.8 billion years ago.",
+        texture: "Fine-grained, spinifex",
     },
 ];
 
 export const origins: OriginInfo[] = [
     {
         origin: "intrusive",
-        description: "Rocks that form when magma cools and solidifies beneath the Earth's surface."
+        description: "Intrusive (or Plutonic) rocks form when magma traps deep within the Earth's crust and gradually solidifies over thousands to millions of years."
     },
     {
         origin: "extrusive",
-        description: "Rocks that form when lava cools and solidifies on the Earth's surface."
+        description: "Extrusive (or Volcanic) rocks form when lava cools and solidifies on the Earth's surface."
     }
 ];
 
