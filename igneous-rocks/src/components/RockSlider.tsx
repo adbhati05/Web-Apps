@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { Rock, Origin } from "../lib/rocks";
 import RockCard from "./RockCard";
-import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
+import { BsChevronLeft, BsChevronRight, BsPause, BsPlay } from "react-icons/bs";
 
 interface RockSliderProps {
   rocks: Rock[];
@@ -56,9 +56,9 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
     let nextIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
 
     if (direction === "right" && nextIndex >= rocks.length) {
-      nextIndex = 0; // loop back to start
+      nextIndex = 0;
     } else if (direction === "left" && nextIndex < 0) {
-      return; // do nothing
+      return;
     }
 
     const children = Array.from(scrollRef.current.children);
@@ -70,12 +70,17 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
     }
   }, [rocks.length]);
 
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const autoPlayInterval = 10000;
+
   const resetAutoPlay = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      handleScroll("right");
-    }, 10000);
-  }, [handleScroll]);
+    if (isAutoPlaying) {
+      timerRef.current = setInterval(() => {
+        handleScroll("right");
+      }, autoPlayInterval);
+    }
+  }, [handleScroll, isAutoPlaying]);
 
   useEffect(() => {
     resetAutoPlay();
@@ -83,6 +88,10 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [resetAutoPlay]);
+
+  const toggleAutoPlay = () => {
+    setIsAutoPlaying((prev) => !prev);
+  };
 
   const onManualScroll = (direction: "left" | "right") => {
     handleScroll(direction);
@@ -92,7 +101,7 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
   return (
     <div className="slider-row">
       <div className="slider-header" style={{ justifyContent: "center" }}>
-        <div className="slider-controlls">
+        <div className="slider-controls">
           <button
             className="slider-button"
             onClick={() => onManualScroll("left")}
@@ -106,6 +115,13 @@ export default function RockSlider({ rocks, origin }: RockSliderProps) {
             aria-label="Scroll Right"
           >
             <BsChevronRight />
+          </button>
+          <button
+            className="slider-button"
+            aria-label={isAutoPlaying ? "Pause" : "Play"}
+            onClick={toggleAutoPlay}
+          >
+            {isAutoPlaying ? <BsPause /> : <BsPlay />}
           </button>
         </div>
       </div>

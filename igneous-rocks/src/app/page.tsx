@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { Origin, getRocksByOrigin } from "@/lib/rocks";
 import OriginSection from "@/components/OriginSection";
-import { BsArrowDown } from "react-icons/bs";
+import FactsSection from "@/components/FactsSection";
+import { BsArrowDown, BsArrowUp } from "react-icons/bs";
 
 export default function Home() {
   const [activeOrigin, setActiveOrigin] = useState<Origin | null>(null);
@@ -29,14 +30,6 @@ export default function Home() {
     <main className="page">
       {/* Landing Page  */}
       <section className="hero">
-        <div className="hero-bg" aria-hidden="true">
-          {/* The hero-grain and hero-orb classes are responsible for adding noise and texture to the background of the hero section. */}
-          <div className="hero-grain" />
-          <div className="hero-orb hero-orb-1" />
-          <div className="hero-orb hero-orb-2" />
-          <div className="hero-orb hero-orb-3" />
-        </div>
-
         <div className="hero-content">
           <p className="hero-author">Project by Aditya Bhati</p>
           <h1 className="hero-title">
@@ -58,7 +51,7 @@ export default function Home() {
                 Intrusive
               </button>
               <button
-                className={`origin-btn ${activeOrigin === "extrusive" ? "origin-btn--active" : ""}`}
+                className={`origin-btn-secondary ${activeOrigin === "extrusive" ? "origin-btn--active" : ""}`}
                 onClick={() => handleSelect("extrusive")}
               >
                 Extrusive
@@ -86,9 +79,13 @@ export default function Home() {
         sectionRef={extrusiveRef}
       />
 
+      {/* Facts Section */}
+      <FactsSection />
+
       {/* Footer */}
       <footer className="site-footer">
         <p>&copy; {new Date().getFullYear()} Aditya Bhati. All rights reserved.</p>
+        <button className="footer-button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><BsArrowUp /></button>
       </footer>
     </main>
   );

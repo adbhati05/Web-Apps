@@ -20,7 +20,6 @@ export default function OriginSection({
     <section ref={sectionRef} className="origin-section" data-origin={origin}>
       <div className="origin-header">
         <div className="origin-title-container">
-          <span className="origin-dot" data-origin={origin} />
           <h2 className="origin-title">
             {origin.charAt(0).toUpperCase() + origin.slice(1)} Rocks
           </h2>

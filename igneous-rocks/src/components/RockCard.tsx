@@ -29,7 +29,9 @@ export default function RockCard({ rock, index, isActive = false }: RockCardProp
           <p className="rock-description" style={{ opacity: 0.5 }}>No description provided yet.</p>
         )}
         <div className="rock-tags">
-          {rock.texture && <span className="rock-tag">{rock.texture}</span>}
+          {rock.texture.map((texture) => (
+            <span key={texture} className="rock-tag">{texture}</span>
+          ))}
         </div>
       </div>
     </div>
