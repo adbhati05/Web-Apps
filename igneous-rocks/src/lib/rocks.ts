@@ -86,7 +86,7 @@ export const rocks: Rock[] = [
         name: "Komatiite",
         composition: "ultramafic",
         origin: "extrusive",
-        description: "Rare ultramfic extrusive rock that forms from extremely hot lava. Considered one of the oldest rocks on Earth, dating back to over ~3.8 billion years ago.",
+        description: "Rare ultramafic extrusive rock that forms from extremely hot lava. Considered one of the oldest rocks on Earth, dating back to over ~3.8 billion years ago.",
         texture: ["fine-grained", "spinifex"],
     },
 ];
@@ -139,7 +139,7 @@ export const textures: TextureInfo[] = [
     },
     {
         texture: "bubbly",
-        description: "Bubbly texture is characterized as porous and vesicular, which is when holes are formed as a result of gases escaping from the magma as it rapdily depressurizes during eruption.",
+        description: "Bubbly texture is characterized as porous and vesicular, which is when holes are formed as a result of gases escaping from the magma as it rapidly depressurizes during eruption.",
     },
     {
         texture: "spinifex",
