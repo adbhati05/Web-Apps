@@ -2,10 +2,14 @@ import TopBar from "../components/TopBar";
 import LeftSideBar from "../components/LeftSideBar";
 import RightSideBar from "../components/RightSideBar";
 import PostFeed from "../components/PostFeed";
-import PostCard from "../components/PostCard";
+import PostOverlay from "../components/PostOverlay";
+import { useState } from "react";
+import type { Post } from "../types";
 import "./Home.css";
 
 const Home = () => {
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
   return (
     <div>
       <TopBar />
@@ -14,11 +18,14 @@ const Home = () => {
           <LeftSideBar />
         </div>
         <div className="post-feed">
-          <PostFeed />
+          <PostFeed onCommentClick={(post) => setSelectedPost(post)} />
         </div>
         <div className="home-right-side-bar">
           <RightSideBar />
         </div>
+        {selectedPost && (
+          <PostOverlay post={selectedPost} onClose={() => setSelectedPost(null)} />
+        )}
       </div>
     </div>
   );

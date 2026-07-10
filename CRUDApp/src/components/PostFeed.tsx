@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import type { Post } from '../types';
 
 // This component fetches all posts from the database and displays them in the feed.
-const PostFeed = () => {
+const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) => {
     // Setting up a posts object that will hold all the posts from the Firestore collection and then be used to render each PostCard component.
     const [posts, setPosts] = useState<Post[]>([]);
 
@@ -49,6 +49,7 @@ const PostFeed = () => {
                     comments={post.comments || []}
                     pieces={post.pieces || []}
                     hasDetails={post.hasDetails}
+                    onCommentClick={() => onCommentClick(post)}
                 />
             ))}
         </div>

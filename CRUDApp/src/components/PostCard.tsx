@@ -22,9 +22,10 @@ interface PostCardProps {
     comments: Comment[],
     pieces: PieceDetail[],
     hasDetails: boolean,
+    onCommentClick: () => void,
 }
 
-const PostCard = ({ postId, username, dateCreated, caption, imageURL, likes, comments, pieces, hasDetails }: PostCardProps) => {
+const PostCard = ({ postId, username, dateCreated, caption, imageURL, likes, comments, pieces, hasDetails, onCommentClick }: PostCardProps) => {
 
     // Retrieving current user's information.
     const currentUserId = auth.currentUser?.uid;
@@ -74,10 +75,10 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likes, com
                         <button className='like-button' onClick={handleLike}>
                             {liked ? <BsHeartFill className='like-button-liked' /> : <BsHeart />}
                         </button>
-                        <p className='like-count'>{likeCount}</p>
+                        <p className='like-count'>{likeCount ? likeCount : ''}</p>
                     </div>
                     <div className='comment-container'>
-                        <button className='comment-button'><BsChatLeft /></button>
+                        <button className='comment-button' onClick={onCommentClick}><BsChatLeft /></button>
                     </div>
                 </div>
                 <div className='post-caption-container'>
