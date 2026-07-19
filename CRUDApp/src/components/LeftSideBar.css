@@ -1,7 +1,8 @@
-/* Ensuring that the buttons are space 15 px away from the top and left borders of the side bar. */
+/* Ensuring that the buttons are spaced away from the top and side borders of the side bar. */
 .spacing {
-    margin-top: 15px;
-    margin-left: 20px;
+    margin-top: var(--space-lg);
+    margin-left: var(--space-xl);
+    margin-right: var(--space-xl);
 }
 
 /* This rule set makes the lines separating the links to other pages in the left side bar more appealing. */
@@ -10,36 +11,101 @@
     height: 4px;
     background-color: black;
     opacity: 75%;
-    width: 90%;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    width: 100%;
+    /* Matches the full-width buttons so the lines and buttons share edges. */
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+/* This rule set sizes and spaces the react-icons sitting next to each link's name. */
+/* 1em ties the icon to the button's fluid font size so the pair scale together. */
+.left-side-bar-icon {
+    font-size: 1em;
+    margin-right: var(--space-sm);
+    flex-shrink: 0;
+}
+
+/* Keeps a link's name on one line and trims it with an ellipsis if the side bar gets too narrow for it. */
+.left-side-bar-label {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* This rule set makes the actual links in the left side bar match the theme of the site. */
+/* The pill hugs its icon + name (fit-content) but can never spill out of the side bar (max-width), where the label's ellipsis takes over. */
+/* The fluid font-size tracks the viewport (and thus the flex-sized side bar) between the sm and lg tokens so the text stays fitted at in-between screen widths. */
 .left-side-bar-button {
-    height: 44px;
-    background-color: aliceblue;
-    font-size: 18px;
+    width: fit-content;
+    max-width: 100%;
+    height: var(--control-height);
+    background-color: var(--color-surface);
+    font-size: clamp(var(--font-size-sm), 1.5vw, var(--font-size-lg));
     text-decoration: none;
     border: none;
-    border-radius: 22px;
-    color: black;
-    padding-left: 15px;
-    padding-right: 15px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 /* This ruleset makes it so the button will slightly increase in size when the user is hovering over it and also change color slightly. */
 .left-side-bar-button:hover {
-    transform: scale(1.05);
-    background-color: lightblue;
+    transform: scale(var(--scale-hover));
+    background-color: var(--color-accent);
 }
 
 /* This rule set makes it so the button will increase even more in size after being clicked (and the text becomes bolder). */
 .left-side-bar-button:active {
-    transform: scale(1.10);
-    background-color: lightblue;
+    transform: scale(var(--scale-active));
+    background-color: var(--color-accent);
     font-weight: bold;
+}
+
+/* Responsive: on mobile the nav becomes a row of floating, icon-only circular buttons detached from the page content below. */
+/* The !important flags are required to override Bootstrap's d-flex utility classes (flex-column/align-items-start) applied in the TSX, which use !important themselves. */
+@media (max-width: 500px) {
+
+    /* The row is centered at 75% of the content container's width, with the buttons spread across it. */
+    .spacing {
+        width: 75%;
+        margin: 0 auto;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        row-gap: var(--space-md);
+        /* Maintains sizable gap between buttons */
+        margin-top: var(--space-md);
+        margin-bottom: var(--space-md);
+    }
+
+    .left-side-bar-line {
+        display: none;
+        /* The separator lines only make sense in the vertical layout. */
+    }
+
+    .left-side-bar-label {
+        display: none;
+        /* Icon-only buttons on mobile. */
+    }
+
+    .left-side-bar-button {
+        width: var(--control-height);
+        height: var(--control-height);
+        padding: 0;
+        border-radius: var(--radius-round);
+        border: var(--border-width) solid var(--color-border);
+        box-shadow: var(--shadow-card);
+        justify-content: center;
+    }
+
+    .left-side-bar-icon {
+        margin-right: 0;
+        font-size: var(--font-size-xl);
+    }
 }

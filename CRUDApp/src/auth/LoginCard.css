@@ -1,17 +1,17 @@
 /* This rule set is dedicated to styling the entire login card container. */
 .login-card-container {
-    margin: 60px;
+    margin: var(--space-6xl);
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: x-large;
+    font-size: var(--font-size-xl);
     font-weight: bold;
 }
 
 /* As for this rule set, it ensures that the contents of the login form (input bars/sign in button), are spaced well and appear in a good centralized format). */
 .login-form-container {
-    margin-top: 60px;
-    margin-bottom: 20px;
+    margin-top: var(--space-6xl);
+    margin-bottom: var(--space-xl);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -22,69 +22,84 @@
     display: flex;
     flex-direction: column;
     width: 334px;
-    margin-bottom: 25px;
+    margin-bottom: var(--space-2xl);
 }
 
 /* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
 .login-input-bar {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     font-style: italic;
-    height: 40px;
+    height: var(--input-height);
     width: 100%;
-    background-color: ghostwhite;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 12px;
-    padding: 8px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
 }
 
 .login-input-bar:hover {
-    background-color: rgba(210, 210, 210, 0.5);
+    background-color: var(--color-muted-bg-hover);
 }
 
 .login-input-bar:focus {
     outline: none;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    border: var(--border-width) solid var(--color-border);
 }
 
 /* The next four rule sets are dedicated to styling the sign-up link that appears below the input bars. */
 .sign-up-link-container {
-    font-size: 16px;
-    color: black;
+    font-size: var(--font-size-md);
+    color: var(--color-text);
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: var(--space-4xl);
 }
 
 .sign-up-link {
-    font-size: 16px;
-    color: black;
+    font-size: var(--font-size-md);
+    color: var(--color-text);
     display: inline-block;
 }
 
 .sign-up-link:hover {
-    transform: scale(1.05);
+    transform: scale(var(--scale-hover));
 }
 
 .sign-up-link:active {
-    transform: scale(1.10);
+    transform: scale(var(--scale-active));
 }
 
 /* The next three rule sets ensure that the sign-in button behaves similarly to all the other buttons in the website. */
 .sign-in-button {
-    height: 44px;
-    background-color: lightblue;
-    font-size: 18px;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 22px;
-    color: black;
-    padding-left: 25px;
-    padding-right: 25px;
+    height: var(--control-height);
+    background-color: var(--color-accent);
+    font-size: var(--font-size-lg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    padding-left: var(--space-2xl);
+    padding-right: var(--space-2xl);
 }
 
 .sign-in-button:hover {
-    transform: scale(1.05);
+    transform: scale(var(--scale-hover));
 }
 
 .sign-in-button:active {
-    transform: scale(1.10);
+    transform: scale(var(--scale-active));
     font-weight: bold;
+}
+
+/* Responsive: on mobile, reduce the large fixed margins and let the input fields fill the card instead of using a fixed 334px width. */
+@media (max-width: 500px) {
+    .login-card-container {
+        margin: var(--space-2xl) var(--space-lg);
+    }
+
+    .login-form-container {
+        margin-top: var(--space-3xl);
+    }
+
+    .login-input-field-container {
+        width: 100%;
+    }
 }

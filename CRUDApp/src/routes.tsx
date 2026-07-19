@@ -3,8 +3,9 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import StyleBoard from "./pages/StyleBoard";
-import Saved from "./pages/Saved";
 import Post from "./pages/Post";
+import Profile from "./pages/Profile";
+import Chat from "./pages/Chat";
 import Error from "./pages/Error";
 import Settings from "./pages/Settings";
 import ProtectedRoutes from "./auth/ProtectedRoutes";
@@ -21,18 +22,23 @@ export const router = createBrowserRouter([
         errorElement: <Error />
       },
       {
-        path: "/post",
-        element: <Post />,
-        errorElement: <Error />
-      },
-      {
         path: "/styleboard",
         element: <StyleBoard />,
         errorElement: <Error />
       },
       {
-        path: "/saved",
-        element: <Saved />,
+        path: "/post",
+        element: <Post />,
+        errorElement: <Error />
+      },
+      {
+        path: "/profile",
+        element: <Profile />,
+        errorElement: <Error />
+      },
+      {
+        path: "/chat",
+        element: <Chat />,
         errorElement: <Error />
       },
       {

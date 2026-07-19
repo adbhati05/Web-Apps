@@ -1,21 +1,23 @@
 /* This is the main container that will occupy the side bars and post feed for home page. Note that it's not named container since Bootstrap has its own container and that causes issues with how this renders. */
 .home-main-layout {
-    position: relative; /* Positioning context for the PostOverlay. */
+    position: relative;
+    /* Positioning context for the PostOverlay. */
     width: 80vw;
     height: 85vh;
     display: flex;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 12px;
-    box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.375);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
 }
 
 /* This is for the left side bar (the flex: 1 statement ensures that each side bar takes up 1/5th of the entire container horizontally). */
 .home-left-side-bar {
     flex: 1;
     height: 100%;
-    overflow-y: auto; /* This rule ensures that if the content in the side bar exceeds the height of the container, a scroll bar will appear (this will be in used in every rule set for side bars, post feeds, and other containers). */
-    background-color: aliceblue;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    overflow-y: auto;
+    /* This rule ensures that if the content in the side bar exceeds the height of the container, a scroll bar will appear (this will be in used in every rule set for side bars, post feeds, and other containers). */
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
 }
@@ -25,8 +27,8 @@
     flex: 1;
     height: 100%;
     overflow-y: auto;
-    background-color: aliceblue;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 }
@@ -36,6 +38,50 @@
     flex: 3;
     height: 100%;
     overflow-y: auto;
-    background-color: aliceblue;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+}
+
+/* Responsive: below 900px the right side bar goes away so the left side bar and feed get its space back (this kicks in before the tablet breakpoint so the nav buttons never get too cramped). */
+@media (max-width: 900px) {
+    .home-right-side-bar {
+        display: none;
+    }
+
+    .post-feed {
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+}
+
+/* Responsive: at tablet the side-by-side layout just widens to fill more of the viewport. */
+@media (max-width: 768px) {
+    .home-main-layout {
+        width: 95vw;
+    }
+}
+
+/* Responsive: on mobile the layout stacks and the nav buttons float free above the feed, so the outer frame and side bar chrome disappear and the feed carries its own fully rounded corners and shadow. */
+@media (max-width: 500px) {
+    .home-main-layout {
+        flex-direction: column;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .home-left-side-bar {
+        flex: none;
+        height: auto;
+        background-color: transparent;
+        border: none;
+        overflow: visible; /* Lets the floating buttons' hover scale and shadows render outside the strip. */
+        margin-bottom: var(--space-md);
+    }
+
+    .post-feed {
+        flex: 1;
+        border-radius: 10px;
+        box-shadow: var(--shadow-card);
+    }
 }

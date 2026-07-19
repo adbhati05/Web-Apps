@@ -1,7 +1,5 @@
-/* These are the rule sets for the page that will be used for the user to view the app settings. */
-/* The rulesets are similar to those in the Post, Saved, and StyleBoard pages, but the width of the main container is a bit less and the layout of the main content and side bar is slightly different. */
-.settings-main-layout {
-    width: 70vw;
+.chat-main-layout {
+    width: 80vw;
     height: 85vh;
     display: flex;
     border: var(--border-width) solid var(--color-border);
@@ -9,7 +7,7 @@
     box-shadow: var(--shadow-card);
 }
 
-.settings-left-side-bar {
+.chat-left-side-bar {
     flex: 1;
     height: 100%;
     overflow-y: auto;
@@ -19,8 +17,8 @@
     border-bottom-left-radius: 10px;
 }
 
-.settings-container {
-    flex: 3;
+.chat-container {
+    flex: 4;
     height: 100%;
     overflow-y: auto;
     background-color: var(--color-surface);
@@ -31,21 +29,21 @@
 
 /* Responsive: at tablet the layout stays side-by-side and just widens to fill more of the viewport. */
 @media (max-width: 768px) {
-    .settings-main-layout {
+    .chat-main-layout {
         width: 95vw;
     }
 }
 
 /* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the container carries its own fully rounded corners and shadow. */
 @media (max-width: 500px) {
-    .settings-main-layout {
+    .chat-main-layout {
         flex-direction: column;
         border: none;
         border-radius: 0;
         box-shadow: none;
     }
 
-    .settings-left-side-bar {
+    .chat-left-side-bar {
         flex: none;
         height: auto;
         background-color: transparent;
@@ -54,7 +52,7 @@
         margin-bottom: var(--space-md);
     }
 
-    .settings-container {
+    .chat-container {
         flex: 1;
         border-radius: 10px;
         box-shadow: var(--shadow-card);

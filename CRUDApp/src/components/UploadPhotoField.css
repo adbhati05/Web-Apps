@@ -3,7 +3,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: var(--space-md);
     width: 70%;
     height: 250px;
     flex-shrink: 0;
@@ -17,9 +17,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border: 4px dashed rgba(180, 180, 180);
-    border-radius: 12px;
-    background-color: rgba(210, 210, 210, 0.75);
+    border: var(--border-width-thick) dashed var(--color-muted);
+    border-radius: var(--radius-md);
+    background-color: var(--color-muted-bg);
     position: relative;
     overflow: hidden;
 }
@@ -30,38 +30,38 @@
 }
 
 .upload-photo-label {
-    height: 44px;
-    background-color: rgba(210, 210, 210, 0.75);
-    font-size: 18px;
-    border: 2px solid rgba(180, 180, 180);
-    border-radius: 22px;
+    height: var(--control-height);
+    background-color: var(--color-muted-bg);
+    font-size: var(--font-size-lg);
+    border: var(--border-width) solid var(--color-muted);
+    border-radius: var(--radius-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding-left: 15px;
-    padding-right: 15px;
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
     cursor: pointer;
 }
 
 .upload-photo-label:hover {
-    transform: scale(1.05)
+    transform: scale(var(--scale-hover))
 }
 
 .upload-photo-label:active {
-    transform: scale(1.10);
+    transform: scale(var(--scale-active));
     font-weight: bold;
 }
 
 .upload-photo-instruction {
-    font-size: 16px;
-    margin-top: 10px;
+    font-size: var(--font-size-md);
+    margin-top: var(--space-md);
 }
 
 .upload-photo-icon {
     width: 85px;
     height: 85px;
-    color: rgba(180, 180, 180);
+    color: var(--color-muted);
 }
 
 .image-preview {
@@ -71,14 +71,14 @@
 }
 
 .remove-photo-button {
-    color: tomato;
+    color: var(--color-danger);
     z-index: 1000;
     cursor: pointer;
     border: none;
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: var(--space-md);
+    right: var(--space-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -87,14 +87,28 @@
 }
 
 .remove-photo-button:hover {
-    transform: scale(1.05);
+    transform: scale(var(--scale-hover));
 }
 
 .remove-photo-button:active {
-    transform: scale(1.10);
+    transform: scale(var(--scale-active));
 }
 
 .remove-photo-button svg {
     width: 30px;
     height: 30px;
+}
+
+/* Responsive: the upload field widens as the page narrows and loses some height on mobile so the form below stays visible. */
+@media (max-width: 768px) {
+    .upload-photo-container {
+        width: 90%;
+    }
+}
+
+@media (max-width: 500px) {
+    .upload-photo-container {
+        width: 95%;
+        height: 200px;
+    }
 }

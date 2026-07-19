@@ -4,13 +4,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: x-large;
+    font-size: var(--font-size-xl);
     font-weight: bold;
 }
 
 /* As for this rule set, it ensures that the contents of the sign up form (input bars, password rules, create account button), are spaced well and appear in a good centralized column format). */
 .sign-up-form-container{
-    margin-top: 10px;
+    margin-top: var(--space-md);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -21,44 +21,44 @@
     display: flex;
     flex-direction: column;
     width: 334px;
-    margin-bottom: 15px;
+    margin-bottom: var(--space-lg);
 }
 
 /* This ruleset just ensures that the font above each input bar is 18 px tall and normal in weight (since sign-up-card-content is used on the parent div and makes all text bold). */
 .sign-up-input-label {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     font-weight: bold;
 }
 
 /* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
 .sign-up-input-bar {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
     font-style: italic;
-    height: 40px;
+    height: var(--input-height);
     width: 100%;  /* This line ensures the input bar takes the full width of its container */
-    background-color: ghostwhite;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 12px;
-    padding: 8px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm);
 }
 
 .sign-up-input-bar:hover {
-    background-color: rgba(210, 210, 210, 0.5);
+    background-color: var(--color-muted-bg-hover);
 }
 
 .sign-up-input-bar:focus {
     outline: none;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    border: var(--border-width) solid var(--color-border);
 }
 
 /* The rule sets below ensure that the password rules are in a small font and spaced closely together vertically. */
 .password-rules {
-    font-size: 14px;
-    color: black;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
     font-weight: normal;
     font-style: italic;
     width: 350px;
-    margin-bottom: 5px;
+    margin-bottom: var(--space-xs);
 }
 
 .password-rules li {
@@ -67,44 +67,59 @@
 
 /* The next three rule sets ensure that the create account button behaves similarly to all the other buttons in the website. */
 .sign-up-button {
-    height: 44px;
-    background-color: lightblue;
-    font-size: 18px;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 22px;
-    color: black;
-    padding-left: 25px;
-    padding-right: 25px;
-    margin: 15px;
+    height: var(--control-height);
+    background-color: var(--color-accent);
+    font-size: var(--font-size-lg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    padding-left: var(--space-2xl);
+    padding-right: var(--space-2xl);
+    margin: var(--space-lg);
 }
 
 .sign-up-button:hover {
-    transform: scale(1.05);
+    transform: scale(var(--scale-hover));
 }
 
 .sign-up-button:active {
-    transform: scale(1.10);
+    transform: scale(var(--scale-active));
     font-weight: bold;
 }
 
 /* The next four rule sets are dedicated to styling the link that appears below the button that forwards the user back to the login page. */
 .login-link-container {
-    font-size: 16px;
-    color: black;
+    font-size: var(--font-size-md);
+    color: var(--color-text);
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: var(--space-4xl);
 }
 
 .login-link {
-    font-size: 16px;
-    color: black;
+    font-size: var(--font-size-md);
+    color: var(--color-text);
     display: inline-block;
 }
 
 .login-link:hover {
-    transform: scale(1.05);
+    transform: scale(var(--scale-hover));
 }
 
 .login-link:active {
-    transform: scale(1.10);
+    transform: scale(var(--scale-active));
+}
+
+/* Responsive: on mobile, reduce the fixed margins and let the input fields and password rules fill the card instead of using fixed pixel widths. */
+@media (max-width: 500px) {
+    .sign-up-card-container {
+        margin: var(--space-xl) var(--space-lg);
+    }
+
+    .sign-up-input-field-container {
+        width: 100%;
+    }
+
+    .password-rules {
+        width: 100%;
+    }
 }

@@ -26,4 +26,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
+
+# Choosing to ignore prompt.txt and to-do.txt since they contain prompt/project info which is not needed to be tracked in the repo
+prompt.txt
+to-do.txt

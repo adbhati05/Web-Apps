@@ -4,7 +4,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     /* This is used to center the overlay back into place after the top and left positions are set to 50% of the screen.  */
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--color-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -39,4 +39,22 @@
     justify-content: center;
     width: 40%;
     height: 100%;
+}
+
+/* Responsive: at tablet and below, the side-by-side image/info split becomes a vertical stack (image on top, info below). */
+@media (max-width: 768px) {
+    .post-overlay-container {
+        flex-direction: column;
+        width: 95%;
+    }
+
+    .image-container {
+        width: 100%;
+        height: 55%;
+    }
+
+    .info-container {
+        width: 100%;
+        height: 45%;
+    }
 }

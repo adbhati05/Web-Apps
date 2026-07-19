@@ -4,17 +4,17 @@
     width: 80vw;
     height: 85vh;
     display: flex;
-    border: 2px solid rgba(0, 0, 0, 0.75);
-    border-radius: 12px;
-    box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.375);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
 }
 
 .post-left-side-bar {
     flex: 1;
     height: 100%;
     overflow-y: auto;
-    background-color: aliceblue;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
 }
@@ -27,11 +27,47 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 50px;
-    padding-top: 50px;
-    padding-bottom: 50px;
-    background-color: aliceblue;
-    border: 2px solid rgba(0, 0, 0, 0.75);
+    gap: var(--space-5xl);
+    padding-top: var(--space-5xl);
+    padding-bottom: var(--space-5xl);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
+}
+
+/* Responsive: at tablet the layout stays side-by-side and just widens to fill more of the viewport. */
+@media (max-width: 768px) {
+    .post-main-layout {
+        width: 95vw;
+    }
+}
+
+/* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the container carries its own fully rounded corners and shadow. */
+/* The container also tightens its vertical rhythm so the upload field and form are reachable with less scrolling. */
+@media (max-width: 500px) {
+    .post-main-layout {
+        flex-direction: column;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .post-left-side-bar {
+        flex: none;
+        height: auto;
+        background-color: transparent;
+        border: none;
+        overflow: visible; /* Lets the floating buttons' hover scale and shadows render outside the strip. */
+        margin-bottom: var(--space-md);
+    }
+
+    .post-container {
+        flex: 1;
+        border-radius: 10px;
+        box-shadow: var(--shadow-card);
+        gap: var(--space-2xl);
+        padding-top: var(--space-2xl);
+        padding-bottom: var(--space-2xl);
+    }
 }

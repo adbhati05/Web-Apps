@@ -1,3 +1,72 @@
+/* Setting up global styling variables for colors, typography, spacing, borders, and controls. */
+:root {
+  /* Colors */
+  --color-bg: ghostwhite;
+  /* Page + input backgrounds */
+  --color-surface: aliceblue;
+  /* Panels, sidebars, cards */
+  --color-accent: lightblue;
+  /* Primary buttons, hovers */
+  --color-text: black;
+  --color-danger: tomato;
+  /* Likes, remove buttons, alerts, warnings */
+  --color-border: rgba(0, 0, 0, 0.75);
+  /* Standard border */
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  /* Modal backdrop */
+  --color-shadow: rgba(0, 0, 0, 0.375);
+  --color-muted: rgb(180, 180, 180);
+  /* Upload dashed border, icon */
+  --color-muted-bg: rgba(210, 210, 210, 0.75);
+  /* Upload field bg */
+  --color-muted-bg-hover: rgba(210, 210, 210, 0.5);
+  /* Input hover bg */
+
+  /* Typography */
+  --font-family-base: Helvetica, sans-serif;
+  --font-size-xs: 12px;
+  /* Detail inputs */
+  --font-size-sm: 14px;
+  /* Fine print, detail lists */
+  --font-size-md: 16px;
+  /* Body text, links */
+  --font-size-lg: 18px;
+  /* Inputs, buttons, labels */
+  --font-size-xl: x-large;
+  /* Card headings (~24px) */
+  --font-size-2xl: xx-large;
+  /* Page headings (~32px) */
+
+  /* Spacing (matches the existing 5px rhythm) */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 5px;
+  --space-sm: 8px;
+  --space-md: 10px;
+  --space-lg: 15px;
+  --space-xl: 20px;
+  --space-2xl: 25px;
+  --space-3xl: 30px;
+  --space-4xl: 40px;
+  --space-5xl: 50px;
+  --space-6xl: 60px;
+
+  /* Borders & radii for buttons */
+  --border-width: 2px;
+  --border-width-thick: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-pill: 22px;
+  --radius-round: 50%;
+
+  /* Buttons and other controls */
+  --control-height: 44px;
+  --input-height: 40px;
+  --shadow-card: 0px 6px 6px var(--color-shadow);
+  --scale-hover: 1.05;
+  --scale-active: 1.1;
+}
+
 /* This first rule set ensures that the default margins and padding are removed for all elements. */
 /* Also, box-sizing being set to border-box here ensures that layout adjustments are predictable and no boxes overlap or overflow into each other. */
 * {
@@ -8,10 +77,19 @@
 
 /* This second rule set here ensures that the background color of the page is an off white and that the container (in each of the CSS files for each page) is centered and follows flex display formatting (elements stack horizontally). */
 body {
-  font-family: Helvetica, sans-serif;
+  font-family: var(--font-family-base);
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: ghostwhite;
+  background-color: var(--color-bg);
+}
+
+/* Responsive: on smaller screens the page content (top bar + main layout, which stacks vertically on mobile) can exceed the viewport height, so the body is allowed to grow and scroll instead of clipping the top of the page. */
+@media (max-width: 768px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    padding: var(--space-md) 0;
+  }
 }
