@@ -1,0 +1,134 @@
+rules_version = '2';
+
+// Firestore rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+  	// Small helper function that will be reused everywhere.
+  	function isSignedIn() {
+    	return request.auth != null;
+    }
+    
+    // Only the acocunt owner can read or write their own profile.
+    match /users/{userId} {
+    	allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+  	// Username read stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.
+    // Username creation is only possible for yourself (uid must match), doc id must equal the stored username (request.resource.data.username) and be lowercase (for convention), and no extra fields are published when the doc is created.
+    // Username update is hardcoded false to ensure that when a user wants to update their name, the old username doc is deleted and replaced with a doc for the new username.
+    // Username deletion is only possible when the user is authenticated and the existing document's uid field matches the caller's uid (whoever is trying to delete their username).
+    match /usernames/{username} {
+    	allow read: if true; 
+      allow create: if isSignedIn()
+      							&& request.resource.data.keys().hasOnly(['uid', 'username', 'createdAt'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.username == username
+                    && username == username.lower()
+                    && request.resource.data.createdAt is string;
+      allow update: if false;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.uid;
+    }
+    
+    // The post feed is public by design, hence read staying public.
+    // Post creation is only possible for yourself (uid must match), the data that's inputted fulfills the post fields validation, and if the like/comment counts are initialized to 0.
+    match /posts/{postId} {
+    	// This function handles field-level validation which shared by create and owner-update.
+    	// It rejects extra/or unknown fields, wrong types, oversized captions, and too many pieces to be consistent with client code.
+    	function postFieldsValid(d) {
+      	return d.keys().hasOnly(['id', 'uid', 'username', 'caption', 'pieces', 'hasDetails', 'createdAt', 'updatedAt', 'imageURL', 'likeCount', 'commentCount'])
+        	&& d.id == postId
+          && d.uid is string
+          && d.username is string
+          && d.caption is string && d.caption.size() <= 500
+          && d.pieces is list && d.pieces.size() <= 8
+          && d.hasDetails is bool
+          && d.createdAt is string
+          && d.imageURL is string
+          && d.likeCount is int
+          && d.commentCount is int;
+      }
+      
+      // This function fetches the path of the caller's own like doc for this post (since likes are subcollections).
+      function myLikePath() {
+      	return /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.id);
+      }
+      
+      // Post feed is public by design.
+      allow read: if true;
+      
+      // Create: you can only create a post as yourself (uid is validated against your auth token, closing the impersonation hole AKA unauthorized users logging into other users accounts) with valid inputs and both counters (like/comment) starting at zero.
+      allow create: if isSignedIn()
+      							&& request.resource.data.uid == request.auth.uid
+                    && postFieldsValid(request.resource.data)
+                    && request.resource.data.likeCount == 0
+                    && request.resource.data.commentCount == 0;
+                    
+      // Update case #1: post creator editing their own post's content. uid/createdAt are frozen (no reassigning posts, no backdating) and the counters cannot be tampered with in this case.
+      allow update: if isSignedIn()
+      							&& request.auth.uid == resource.data.uid
+                    && postFieldsValid(request.resource.data)
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.likeCount == resource.data.likeCount
+                    && request.resource.data.commentCount == resource.data.commentCount;
+      
+      // Update case #2: like counter, which can be manipulated by any signed-in user but ONLY in increments or decrements of 1 to the total likes on the post and ONLY when the same batched write also creates/deletes that user's own like doc (checked via exists/existsAfter) according to whether they liked/unliked the post.
+      // In simpler words, the counter physically cannot change without a matching like doc and each user can move the counter at most ONCE in each direction.
+      allow update: if isSignedIn()
+      							&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+                    && (
+                    	(request.resource.data.likeCount == resource.data.likeCount + 1 
+                      	&& !exists(myLikePath())
+                        && existsAfter(myLikePath()))
+                      ||
+                      (request.resource.data.likeCount == resource.data.likeCount - 1
+                      	&& exists(myLikePath())
+                        && !existsAfter(myLikePath()))
+                    );
+      
+      // Update case #3: comment counter, same behavior as with like counter above, count can never be negative. However, unlike likes, this can't be bound to the specific comment doc (id is client-generated, so no fixed path to check; which is what the myLikePath() function above does).
+      // A determined user could nudge the comment count without commenting, so in order to make this update scenario airtight, a Cloud Function trigger maintaining the counter server-side will need to be implemented.
+      allow update: if isSignedIn()
+      							&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+                    && (request.resource.data.commentCount == resource.data.commentCount + 1
+                    		|| request.resource.data.commentCount == resource.data.commentCount - 1)
+                  	&& request.resource.data.commentCount >= 0;
+                    
+    	// Delete: owner of post can only delete the post. 
+      allow delete: if isSignedIf() && request.auth.uid == resource.data.uid; 
+    }
+    
+    // One doc associated per liker, doc id = their uid (having doc id double as the uid is what enforces the "one like per user" rule and "only toggle your OWN like" server-side).
+    match /likes/{userId} {
+    	// This is needed so the app can check "did I like this?" across each user.
+    	allow read: if true;
+      allow create: if isSignedIn()
+      							&& request.auth.uid == userId
+                    && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                    && request.resource.data.uid == userId
+                    && request.resource.data.createdAt is string;
+      allow update: if false;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // One doc associated per comment, comments are created AS yourself (uid validated), are immutable, and can be deleted either by their author or by the post's owner (moderation).
+    match /comments/{commentId} {
+    	allow read: if true;
+      allow create: if isSignedIn()
+      							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt'])
+                    && request.resource.data.id == commentId
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.username is string
+                    && request.resource.data.comment is string
+                    && request.resource.data.comment.size() > 0
+                    && request.resource.data.comment.size() <= 500
+                    && request.resource.data.createdAt is string;
+    	allow update: if false; // No comment editing implemented for now (just delete/repost), to-do list item.
+      allow delete: if isSignedIn()
+      							&& (request.auth.uid == resource.data.uid
+                    		|| request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.uid);
+    }
+  }
+}

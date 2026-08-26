@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// Storage rules
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Only the folder owner may write to their own folder.
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Uploads must declare an image content type. (Cheap check, not deep file
+    // inspection yet, real validation of file contents would need a Cloud Function | add to TO-DO.)
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Profile pictures: public read, owner-only write, image-only, max 2MB
+    // (client targets 0.2MB; headroom covers the compression-failure fallback).
+    match /profile/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isOwner(userId)
+                            && isImage()
+                            && request.resource.size < 2 * 1024 * 1024;
+      allow delete: if isOwner(userId);
+    }
+
+    // Post photos: public read, owner-only write, image-only, max 5MB
+    // (client targets 0.6MB; same headroom reasoning as above).
+    match /posts/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isOwner(userId)
+                            && isImage()
+                            && request.resource.size < 5 * 1024 * 1024;
+      allow delete: if isOwner(userId);
+    }
+  }
+}
