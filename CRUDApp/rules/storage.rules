@@ -1,7 +1,5 @@
 rules_version = '2';
 
-// Storage rules
-
 service firebase.storage {
   match /b/{bucket}/o {
 

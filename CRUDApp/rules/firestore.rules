@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Firestore rules
+// Anything without a match block is denied by default. Subcollections are NOT covered by their parent doc's rules, so posts/{postId}/likes and posts/{postId}/comments each need their own match block nested inside the posts one below.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -52,7 +52,7 @@ service cloud.firestore {
       
       // This function fetches the path of the caller's own like doc for this post (since likes are subcollections).
       function myLikePath() {
-      	return /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.id);
+      	return /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       }
       
       // Post feed is public by design.
@@ -65,6 +65,7 @@ service cloud.firestore {
                     && request.resource.data.likeCount == 0
                     && request.resource.data.commentCount == 0;
                     
+      // The three update cases below are additive, meaning an update goes through if ANY ONE of them passes. That's why each one locks down the exact set of fields it allows to change (via diff/affectedKeys or by re-asserting the frozen values), otherwise the loosest rule would quietly cancel out the stricter ones.
       // Update case #1: post creator editing their own post's content. uid/createdAt are frozen (no reassigning posts, no backdating) and the counters cannot be tampered with in this case.
       allow update: if isSignedIn()
       							&& request.auth.uid == resource.data.uid
@@ -96,39 +97,44 @@ service cloud.firestore {
                     		|| request.resource.data.commentCount == resource.data.commentCount - 1)
                   	&& request.resource.data.commentCount >= 0;
                     
-    	// Delete: owner of post can only delete the post. 
-      allow delete: if isSignedIf() && request.auth.uid == resource.data.uid; 
-    }
-    
-    // One doc associated per liker, doc id = their uid (having doc id double as the uid is what enforces the "one like per user" rule and "only toggle your OWN like" server-side).
-    match /likes/{userId} {
-    	// This is needed so the app can check "did I like this?" across each user.
-    	allow read: if true;
-      allow create: if isSignedIn()
-      							&& request.auth.uid == userId
-                    && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
-                    && request.resource.data.uid == userId
-                    && request.resource.data.createdAt is string;
-      allow update: if false;
-      allow delete: if isSignedIn() && request.auth.uid == userId;
-    }
-    
-    // One doc associated per comment, comments are created AS yourself (uid validated), are immutable, and can be deleted either by their author or by the post's owner (moderation).
-    match /comments/{commentId} {
-    	allow read: if true;
-      allow create: if isSignedIn()
-      							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt'])
-                    && request.resource.data.id == commentId
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.username is string
-                    && request.resource.data.comment is string
-                    && request.resource.data.comment.size() > 0
-                    && request.resource.data.comment.size() <= 500
-                    && request.resource.data.createdAt is string;
-    	allow update: if false; // No comment editing implemented for now (just delete/repost), to-do list item.
-      allow delete: if isSignedIn()
-      							&& (request.auth.uid == resource.data.uid
-                    		|| request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.uid);
+    	// Delete: owner of post can only delete the post.
+      // Deleting a post does NOT delete its likes/comments subcollections (a client can't delete a whole subcollection), so those docs are orphaned until the cleanup Cloud Function on the to-do list exists.
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.uid;
+
+      // The two blocks below MUST stay nested inside this posts block, since the real paths are posts/{postId}/likes/{uid} and posts/{postId}/comments/{commentId}. Sitting outside, they'd match top-level /likes and /comments collections that don't exist, and every subcollection read/write would be denied.
+      // Being nested is also what puts postId in scope for the comments delete rule below.
+
+      // One doc associated per liker, doc id = their uid (having doc id double as the uid is what enforces the "one like per user" rule and "only toggle your OWN like" server-side).
+      match /likes/{userId} {
+      	// This is needed so the app can check "did I like this?" across each user.
+      	allow read: if true;
+        allow create: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                      && request.resource.data.uid == userId
+                      && request.resource.data.createdAt is string;
+        allow update: if false;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      // One doc associated per comment, comments are created AS yourself (uid validated), are immutable, and can be deleted either by their author or by the post's owner (moderation).
+      match /comments/{commentId} {
+      	allow read: if true;
+        allow create: if isSignedIn()
+        							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt'])
+                      && request.resource.data.id == commentId
+                      && request.resource.data.uid == request.auth.uid
+                      && request.resource.data.username is string
+                      && request.resource.data.comment is string
+                      && request.resource.data.comment.size() > 0
+                      && request.resource.data.comment.size() <= 500
+                      && request.resource.data.createdAt is string;
+      	allow update: if false; // No comment editing implemented for now (just delete/repost), to-do list item.
+        // The get() below counts as a billed document read on every delete attempt, so it only runs when the first check (author deleting their own comment) already failed.
+        allow delete: if isSignedIn()
+        							&& (request.auth.uid == resource.data.uid
+                      		|| request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.uid);
+      }
     }
   }
 }
