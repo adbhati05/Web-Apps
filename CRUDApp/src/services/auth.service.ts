@@ -27,6 +27,12 @@ export const authService = {
         displayName: string,
         username: string
     ): Promise<UserInfo> {
+        // Re-checking username availability right before creating the Auth account (the sign-up form already checks, but that could be minutes stale). This minimizes the window where an Auth account gets created and then the Firestore batch below fails, stranding a half-made account.
+        // The real uniqueness guarantee is in firestore.rules: username docs can only be CREATED, never overwritten, so if two users race for the same name the loser's whole batch fails atomically.
+        if (await this.checkUsernameExists(username)) {
+            throw new Error("That username is already taken.");
+        }
+
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
         // Updating the user's profile with displayName param.
