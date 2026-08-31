@@ -20,6 +20,9 @@ export interface PieceDetail {
 }
 
 // This will represent each post in the database.
+// Likes and comments live in subcollections (posts/{id}/likes and posts/{id}/comments) so a popular post
+// can't blow past Firestore's 1MiB document limit and the feed doesn't download every like/comment.
+// The post doc only carries denormalized counters, which the security rules keep in sync with the subcollections.
 export interface Post {
     id: string; // Unique identifier for each post.
     uid: string; // Which user this post belongs to.
@@ -30,14 +33,21 @@ export interface Post {
     createdAt: string;
     updatedAt?: string;
     imageURL: string;
-    likes?: string[]; // Array of user UIDs who liked the post.
-    comments?: Comment[]; // Array of comment objects.
+    likeCount: number; // Denormalized count of docs in the likes subcollection.
+    commentCount: number; // Denormalized count of docs in the comments subcollection.
 }
 
-// This will represent each comment belonging to posts.
+// This will represent each doc in a post's likes subcollection. The doc ID is the liker's UID,
+// which is what lets the security rules enforce one like per user, toggling your own like only.
+export interface Like {
+    uid: string; // Who liked the post (same as the doc ID).
+    createdAt: string;
+}
+
+// This will represent each doc in a post's comments subcollection.
+// (No postId field needed — the parent post is implied by the subcollection path.)
 export interface Comment {
     id: string; // Unique identifier for each comment, allowing users to comment multiple times.
-    postId: string; // Which post this comment belongs to.
     uid: string; // Which user made the comment.
     username: string;
     comment: string;
