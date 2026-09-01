@@ -52,6 +52,9 @@
     color: var(--color-text);
     padding-left: var(--space-2xl);
     padding-right: var(--space-2xl);
+    white-space: nowrap;
+    flex-shrink: 0;
+    /* Keeps the label on one line and stops the flex row from squeezing the button narrower than its own text. */
 }
 
 .add-piece-button:hover {
@@ -117,6 +120,33 @@
     border-radius: 6px;
 }
 
+/* Matching the caption field above, which already drops its focus ring, so nothing on this form picks up the browser's default blue outline. */
+.piece-input-field:focus,
+.detail-input-field:focus {
+    outline: none;
+}
+
+/* When a value is picked from the browser's saved-input dropdown the field gets tinted (light blue in Chrome, yellow in Firefox) and background-color is ignored on those pseudo-classes. */
+/* A large inset shadow is the only way to paint over that tint, and text-fill-color keeps the text from being recolored with it. */
+.piece-input-field:-webkit-autofill,
+.piece-input-field:-webkit-autofill:hover,
+.piece-input-field:-webkit-autofill:focus,
+.detail-input-field:-webkit-autofill,
+.detail-input-field:-webkit-autofill:hover,
+.detail-input-field:-webkit-autofill:focus,
+.post-caption-input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px var(--color-bg) inset;
+    box-shadow: 0 0 0 1000px var(--color-bg) inset;
+    -webkit-text-fill-color: var(--color-text);
+}
+
+/* Same override written with the standard pseudo-class, kept in its own rule set since a browser that doesn't know one selector throws out the whole list. */
+.piece-input-field:autofill,
+.detail-input-field:autofill,
+.post-caption-input:autofill {
+    box-shadow: 0 0 0 1000px var(--color-bg) inset;
+}
+
 .remove-piece-button {
     height: 30px;
     width: 30px;
@@ -167,6 +197,9 @@
     color: var(--color-text);
     padding-left: var(--space-2xl);
     padding-right: var(--space-2xl);
+    white-space: nowrap;
+    flex-shrink: 0;
+    /* Same reasoning as the add piece button above. */
 }
 
 .create-post-button:hover {
@@ -201,5 +234,18 @@
     .details-container {
         width: calc(100% - var(--space-md));
         margin-left: var(--space-md);
+    }
+
+    /* At phone widths the button, the details checkbox label and the two divider lines can't share a row without the button losing space, so the row stacks instead. */
+    .add-piece-container,
+    .create-post-button-container {
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    /* The divider lines grow along the main axis, which is now vertical, so their flex growth is turned off and they're stretched by width instead. */
+    .post-description-line {
+        flex: none;
+        width: 100%;
     }
 }

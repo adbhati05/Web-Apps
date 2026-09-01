@@ -56,6 +56,10 @@
 .upload-photo-instruction {
     font-size: var(--font-size-md);
     margin-top: var(--space-md);
+    text-align: center;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    /* Centers the text on its own, since the flex centering only centers the paragraph box and leaves wrapped lines ragged. */
 }
 
 .upload-photo-icon {
@@ -110,5 +114,10 @@
     .upload-photo-container {
         width: 95%;
         height: 200px;
+    }
+
+    /* At 16px this line runs wider than the field on a phone and wraps, so it drops a step to stay on one line. */
+    .upload-photo-instruction {
+        font-size: var(--font-size-sm);
     }
 }
