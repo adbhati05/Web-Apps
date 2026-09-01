@@ -31,10 +31,12 @@ Three layers, top to bottom:
 
 3. **Services** — all Firebase access goes through the service objects in `src/services/`; components should not call Firestore/Storage APIs directly:
    - `auth.service.ts` — sign-up/sign-in/sign-out and Firestore user docs. Sign-up writes to two collections atomically via `writeBatch`: `users/{uid}` (profile) and `usernames/{username}` (lowercased, used to enforce unique usernames).
-   - `post.service.ts` — CRUD on the `posts` collection plus likes and comments (both stored as arrays on the post document, not subcollections). Maintains an in-memory `postCache` Map — mutations must keep it in sync.
+   - `post.service.ts` — CRUD on the `posts` collection plus likes and comments, which live in `posts/{id}/likes/{uid}` and `posts/{id}/comments/{commentId}` subcollections. The post doc carries denormalized `likeCount`/`commentCount` counters; like/comment mutations write the subcollection doc and the counter in one `writeBatch` (the security rules require this pairing — see `firestore.rules`). Maintains an in-memory `postCache` Map — mutations must keep it in sync.
    - `storage.service.ts` — image upload to Firebase Storage. Always compresses via `browser-image-compression` first; paths are `posts/{uid}/{timestamp}.jpg` and `profile/{uid}/{timestamp}.jpg`, and download URLs get a `?t=` cache-busting param.
 
-Shared data shapes (`UserInfo`, `Post`, `PieceDetail`, `Comment`) live in `src/types.ts`. Timestamps are ISO strings, not Firestore Timestamps.
+Shared data shapes (`UserInfo`, `Post`, `PieceDetail`, `Like`, `Comment`) live in `src/types.ts`. Timestamps are ISO strings, not Firestore Timestamps.
+
+Security rules live in `firestore.rules` and `storage.rules` at the repo's `CRUDApp/` root. They are the source of truth and must be mirrored into the Firebase console (or deployed via the Firebase CLI) — keep them in sync with any service-layer change to data shapes or write patterns.
 
 ## Conventions
 
