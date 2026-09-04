@@ -1,6 +1,7 @@
 rules_version = '2';
 
 // Anything without a match block is denied by default. Subcollections are NOT covered by their parent doc's rules, so posts/{postId}/likes and posts/{postId}/comments each need their own match block nested inside the posts one below.
+// That applies at every depth, so a comment's own likes (posts/{postId}/comments/{commentId}/likes) need a match block nested one level deeper still, inside the comments one.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -117,23 +118,68 @@ service cloud.firestore {
         allow delete: if isSignedIn() && request.auth.uid == userId;
       }
 
-      // One doc associated per comment, comments are created AS yourself (uid validated), are immutable, and can be deleted either by their author or by the post's owner (moderation).
+      // One doc associated per comment, comments are created AS yourself (uid validated), can only be edited by their author, and can be deleted either by their author or by the post's owner (moderation).
       match /comments/{commentId} {
+      	// Same idea as myLikePath() above, just one level deeper, since a comment's likes live at posts/{postId}/comments/{commentId}/likes/{uid}.
+        // Both postId and commentId are in scope here only because this block is nested inside the posts block.
+      	function myCommentLikePath() {
+        	return /databases/$(database)/documents/posts/$(postId)/comments/$(commentId)/likes/$(request.auth.uid);
+        }
+
       	allow read: if true;
         allow create: if isSignedIn()
-        							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt'])
+        							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt', 'likeCount'])
                       && request.resource.data.id == commentId
                       && request.resource.data.uid == request.auth.uid
                       && request.resource.data.username is string
                       && request.resource.data.comment is string
                       && request.resource.data.comment.size() > 0
                       && request.resource.data.comment.size() <= 500
-                      && request.resource.data.createdAt is string;
-      	allow update: if false; // No comment editing implemented for now (just delete/repost), to-do list item.
+                      && request.resource.data.createdAt is string
+                      && request.resource.data.likeCount == 0;
+
+        // The two update cases below are additive, same as the post's update cases: an update goes through if EITHER passes, so each one pins down its own field set.
+        // Update case #1: the like counter, which behaves exactly like the post like counter above: it moves by 1 and only when the same batched write also creates/deletes the caller's own like doc.
+        // Because the like doc id is the liker's uid, this one CAN be bound to a fixed path (unlike the comment counter on the post doc), so the count can't drift.
+      	allow update: if isSignedIn()
+        							&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+                      && (
+                      	(request.resource.data.likeCount == resource.data.likeCount + 1
+                        	&& !exists(myCommentLikePath())
+                          && existsAfter(myCommentLikePath()))
+                        ||
+                        (request.resource.data.likeCount == resource.data.likeCount - 1
+                        	&& exists(myCommentLikePath())
+                          && !existsAfter(myCommentLikePath()))
+                      );
+
+        // Update case #2: the author editing their own comment's text. Only comment and editedAt can move, so everything else (id, uid, username, createdAt, likeCount) stays frozen and an edit can't be used to reassign the comment or nudge its like count.
+        // The same size limits as create apply, and editedAt has to be a string afterwards so an edited comment is always marked as such.
+        allow update: if isSignedIn()
+        							&& request.auth.uid == resource.data.uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comment', 'editedAt'])
+                      && request.resource.data.comment is string
+                      && request.resource.data.comment.size() > 0
+                      && request.resource.data.comment.size() <= 500
+                      && request.resource.data.editedAt is string;
+
         // The get() below counts as a billed document read on every delete attempt, so it only runs when the first check (author deleting their own comment) already failed.
+        // Deleting a comment orphans its likes subcollection, same caveat as deleting a post.
         allow delete: if isSignedIn()
         							&& (request.auth.uid == resource.data.uid
                       		|| request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.uid);
+
+        // Comment likes, identical in shape to the post likes block above (doc id = the liker's uid, which is what enforces one like per user and toggling your OWN like only).
+        match /likes/{userId} {
+        	allow read: if true;
+          allow create: if isSignedIn()
+          							&& request.auth.uid == userId
+                        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                        && request.resource.data.uid == userId
+                        && request.resource.data.createdAt is string;
+          allow update: if false;
+          allow delete: if isSignedIn() && request.auth.uid == userId;
+        }
       }
     }
   }
