@@ -37,10 +37,11 @@ export interface Post {
     commentCount: number; // Denormalized count of docs in the comments subcollection.
 }
 
-// This will represent each doc in a post's likes subcollection. The doc ID is the liker's UID,
+// This will represent each doc in a likes subcollection. The doc ID is the liker's UID,
 // which is what lets the security rules enforce one like per user, toggling your own like only.
+// The same shape is reused for post likes (posts/{id}/likes) and comment likes (posts/{id}/comments/{id}/likes).
 export interface Like {
-    uid: string; // Who liked the post (same as the doc ID).
+    uid: string; // Who liked the post or comment (same as the doc ID).
     createdAt: string;
 }
 
@@ -52,4 +53,6 @@ export interface Comment {
     username: string;
     comment: string;
     createdAt: string;
+    editedAt?: string; // Only set once the author edits the comment, which is what the UI uses to mark it as edited.
+    likeCount: number; // Denormalized count of docs in this comment's own likes subcollection, same pattern as the post's counters above.
 }

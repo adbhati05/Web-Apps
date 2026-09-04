@@ -170,9 +170,10 @@ export const postService = {
         const newComment: Comment = {
             id: commentRef.id,
             uid: userInfo.uid,
-            username: userInfo.username,
+            username: userInfo.displayName,
             comment,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            likeCount: 0 // Comment likes live in the comment's own likes subcollection; the rules require this to start at 0.
         };
 
         const batch = writeBatch(db);
@@ -189,7 +190,47 @@ export const postService = {
         return newComment;
     },
 
+    // Checks whether a user has liked a comment. Same existence check as hasLiked, just one level deeper (the like doc sits under the comment and its ID is the liker's UID).
+    async hasLikedComment(postId: string, commentId: string, userId: string): Promise<boolean> {
+        const likeDoc = await getDoc(doc(db, "posts", postId, "comments", commentId, "likes", userId));
+        return likeDoc.exists();
+    },
+
+    // Toggles a like on a comment and returns the NEW liked state (true = now liked). Same atomic batch pattern as toggleLike: the like doc and the comment's likeCount move together, which is what the security rules require.
+    async toggleCommentLike(postId: string, commentId: string, userId: string): Promise<boolean> {
+        const commentRef = doc(db, "posts", postId, "comments", commentId);
+        const likeRef = doc(db, "posts", postId, "comments", commentId, "likes", userId);
+
+        // Asking the server (not the cache) whether the like doc exists, so a stale UI can't double-like or double-unlike.
+        const likeDoc = await getDoc(likeRef);
+        const batch = writeBatch(db);
+        let nowLiked: boolean;
+
+        if (likeDoc.exists()) {
+            batch.delete(likeRef);
+            batch.update(commentRef, { likeCount: increment(-1) });
+            nowLiked = false;
+        } else {
+            batch.set(likeRef, { uid: userId, createdAt: new Date().toISOString() });
+            batch.update(commentRef, { likeCount: increment(1) });
+            nowLiked = true;
+        }
+
+        await batch.commit();
+
+        // Nothing to sync here, unlike toggleLike: only posts are cached, comments are fetched fresh each time the overlay opens.
+        return nowLiked;
+    },
+
+    // Edits a comment's text. The security rules only let the author do this and only let comment/editedAt change, so nothing else is sent. Returns the editedAt stamp so the UI can mark the comment as edited without refetching.
+    async editComment(postId: string, commentId: string, comment: string): Promise<string> {
+        const editedAt = new Date().toISOString();
+        await updateDoc(doc(db, "posts", postId, "comments", commentId), { comment, editedAt });
+        return editedAt;
+    },
+
     // Deletes a comment doc and decrements the counter atomically. The security rules allow this for the comment's author and for the post's owner (moderation).
+    // Note: this orphans the comment's likes subcollection docs, same caveat (and same Cloud Function fix) as deletePost above.
     async deleteComment(postId: string, commentId: string): Promise<void> {
         const postRef = doc(db, "posts", postId);
         const commentRef = doc(db, "posts", postId, "comments", commentId);
