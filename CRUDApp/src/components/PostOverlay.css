@@ -1,19 +1,36 @@
-.post-overlay-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    /* This is used to center the overlay back into place after the top and left positions are set to 50% of the screen.  */
+/* The backdrop covers the whole viewport rather than just the home layout box, so the overlay sits above the top bar too, and it carries the dim on its own. */
+/* position: fixed is what pulls it out of the page flow, so this file no longer depends on .home-main-layout being the positioning context. */
+.post-overlay-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     background-color: var(--color-overlay);
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     z-index: 1000;
+}
+
+/* The card itself is opaque now, since the dim lives on the backdrop above. */
+.post-overlay-container {
+    display: flex;
     width: 80%;
     height: 90%;
-    border-radius: 10px;
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
     overflow: hidden;
+}
 
+.post-overlay-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
 }
 
 .image-container {
@@ -23,38 +40,336 @@
     justify-content: center;
     width: 60%;
     height: 100%;
-    background-color: black;
+    background-color: var(--color-surface);
+    /* Same surface as the comments panel, so the letterbox space around the image reads as part of the card rather than a black slab. */
 }
 
 .post-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-left: var(--border-width) solid var(--color-border);
+    border-right: var(--border-width) solid var(--color-border);
+    /* The img's box is sized to the photo here, not to the container. With width/height at 100% the box always filled the container and object-fit only shrank the picture inside it, so a border landed on the container-sized box and the letterbox space ended up inside the outline. */
+    /* max-width/max-height with auto sizing shrink-wrap the box to the scaled photo instead, so the border (and any shadow or radius) hugs the picture itself. contain is kept as a safety net so the picture can never crop. */
 }
 
 .info-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
     width: 40%;
     height: 100%;
+    min-width: 0;
+    /* min-width: 0 lets long captions and comments wrap instead of forcing this column past its 40%. */
+    background-color: var(--color-surface);
+    border-left: var(--border-width) solid var(--color-border);
 }
 
-/* Responsive: at tablet and below, the side-by-side image/info split becomes a vertical stack (image on top, info below). */
+.mobile-comments-header {
+    display: none;
+}
+
+/* Poster's picture and username on the left, like count and the close button on the right. */
+.post-info-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+}
+
+.post-info-account {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    min-width: 0;
+}
+
+.post-info-pfp {
+    height: 40px;
+    width: 40px;
+    border-radius: var(--radius-round);
+    background-color: black;
+    flex-shrink: 0;
+}
+
+.username {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.post-info-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
+}
+
+/* Display only for now, so no button, no hover, and no pointer cursor to suggest otherwise. */
+.post-info-likes {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2xs);
+}
+
+.post-info-likes p {
+    margin: 0;
+    font-size: var(--font-size-md);
+}
+
+.post-info-likes svg {
+    height: 22px;
+    width: 22px;
+}
+
+.overlay-close-button {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    color: var(--color-danger);
+    cursor: pointer;
+}
+
+.overlay-close-button svg {
+    height: 25px;
+    width: 25px;
+}
+
+.overlay-close-button:hover {
+    transform: scale(var(--scale-hover));
+}
+
+.overlay-close-button:active {
+    transform: scale(var(--scale-active));
+}
+
+/* Caption on the left, date of the post pushed to the bottom right of the same block. */
+.post-info-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+    padding: 0 var(--space-lg) var(--space-md);
+    border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.post-info-bottom {
+    margin-top: var(--space-md);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.caption {
+    font-size: var(--font-size-sm);
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.date {
+    font-size: var(--font-size-xs);
+    margin: 0;
+    color: var(--color-text-muted);
+    align-self: flex-end;
+    /* The token replaces an opacity of 75% here, since opacity fades the whole element and would take any icon added alongside the date down with it. */
+}
+
+.add-comment-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.add-comment-input {
+    font-size: var(--font-size-sm);
+    height: var(--input-height);
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.add-comment-input:focus {
+    outline: none;
+    /* Matching the post form's inputs, which all drop the browser's default blue focus ring. */
+}
+
+/* Same autofill override as the post form: the saved-input tint ignores background-color, so a large inset shadow paints over it. */
+.add-comment-input:-webkit-autofill,
+.add-comment-input:-webkit-autofill:hover,
+.add-comment-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--color-bg) inset;
+    box-shadow: 0 0 0 1000px var(--color-bg) inset;
+    -webkit-text-fill-color: var(--color-text);
+}
+
+/* Kept in its own rule set since a browser that doesn't know one selector throws out the whole list. */
+.add-comment-input:autofill {
+    box-shadow: 0 0 0 1000px var(--color-bg) inset;
+}
+
+.add-comment-button {
+    height: var(--input-height);
+    background-color: var(--color-accent);
+    font-size: var(--font-size-md);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    padding: 0 var(--space-lg);
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.add-comment-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.add-comment-button:active:not(:disabled) {
+    transform: scale(var(--scale-active));
+    font-weight: bold;
+}
+
+/* Dimmed while the box is empty or a comment is mid-submit, so it's clear why clicking does nothing. */
+.add-comment-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+/* flex: 1 makes this take whatever height the blocks above it left over, and min-height: 0 is what actually lets it scroll. */
+/* Without it a flex item refuses to shrink below its content, so the list would push the card taller instead of overflowing. */
+.comment-list-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.comment-list-message {
+    font-size: var(--font-size-sm);
+    margin: 0;
+    padding: var(--space-lg);
+    color: var(--color-text-muted);
+    /* Same token as the date and the comment meta, so every bit of secondary text in this panel reads as one weight. */
+}
+
+/* Responsive: at tablet and below, the overlay becomes a comments-only sheet that rises from the bottom of the screen. */
 @media (max-width: 768px) {
+    .post-overlay-backdrop {
+        align-items: flex-end;
+    }
+
     .post-overlay-container {
         flex-direction: column;
         width: 95%;
+        height: 85vh;
+        height: 70dvh;
+        border-bottom: none;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
     }
 
     .image-container {
-        width: 100%;
-        height: 55%;
+        display: none;
     }
 
     .info-container {
         width: 100%;
-        height: 45%;
+        height: 100%;
+        flex: 1;
+        min-height: 0;
+        border-left: none;
+    }
+
+    /* The desktop post details are already visible in the feed, so only the comments and composer remain in the mobile sheet. */
+    .post-info-header,
+    .post-info-body {
+        display: none;
+    }
+
+    .mobile-comments-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
+        padding: var(--space-xs) var(--space-lg) var(--space-md);
+        border-bottom: var(--border-width) solid var(--color-border);
+    }
+
+    .mobile-comments-header p {
+        margin: 0;
+        font-size: var(--font-size-md);
+        font-weight: bold;
+    }
+
+    .mobile-overlay-close-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: transparent;
+        border: none;
+        padding: 0 var(--space-xl);
+        color: var(--color-text);
+        cursor: pointer;
+    }
+
+    .mobile-overlay-close-button svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .mobile-overlay-close-button:hover {
+        transform: scale(var(--scale-hover));
+    }
+
+    .mobile-overlay-close-button:active {
+        transform: scale(var(--scale-active));
+    }
+
+    .comment-list-container {
+        order: 2;
+    }
+
+    /* Changing the flex order keeps the composer at the bottom while the comment list uses and scrolls through the space above it. */
+    .add-comment-container {
+        order: 3;
+        flex-shrink: 0;
+        border-top: var(--border-width) solid var(--color-border);
+        border-bottom: none;
+        padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+    }
+}
+
+/* Responsive: the bottom sheet keeps matching the 95vw width used by the main home container on phone-sized screens. */
+@media (max-width: 500px) {
+    .post-overlay-container {
+        width: 95%;
+        height: 85vh;
+        height: 70dvh;
+    }
+
+    .add-comment-container {
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
     }
 }

@@ -1,7 +1,7 @@
 /* This is the main container that will occupy the side bars and post feed for home page. Note that it's not named container since Bootstrap has its own container and that causes issues with how this renders. */
 .home-main-layout {
     position: relative;
-    /* Positioning context for the PostOverlay. */
+    /* Kept as a positioning context for anything absolutely positioned inside the layout. The PostOverlay no longer needs it, since its backdrop is fixed to the viewport. */
     width: 80vw;
     height: 85vh;
     display: flex;

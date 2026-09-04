@@ -7,7 +7,7 @@ import type { PieceDetail } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
 
-// TO-DO: Implement the commenting feature, also figure out why accordion "bounces" when unexpanded and expanded and fix issue.
+// TO-DO: Figure out why accordion "bounces" when unexpanded and expanded and fix issue.
 
 // Defining the props that will be passed into the PostCard component. Essentially, this component is a skeleton for a post that will be displayed on the feed. PostFeed.tsx will handle the logic of fetching users' posts and passing the data into this component.
 // Likes (as well as comments) now live in a subcollection, so the card receives the denormalized likeCount off the post doc plus an initiallyLiked flag that PostFeed looks up from the subcollection for the current user.

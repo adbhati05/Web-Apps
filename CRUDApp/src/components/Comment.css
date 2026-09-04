@@ -1,0 +1,210 @@
+/* Every class in here is prefixed with comment- since these plain CSS files all share one global namespace, and PostCard.css already owns names like .comment-container and .like-button. */
+.comment-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-md);
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.comment-pfp {
+    height: 35px;
+    width: 35px;
+    border-radius: var(--radius-round);
+    background-color: black;
+    flex-shrink: 0;
+    /* Keeps the picture circular instead of letting a long comment squash it into an oval. */
+}
+
+.comment-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    flex: 1;
+    min-width: 0;
+    /* min-width: 0 lets a long comment wrap instead of forcing the row wider than the panel. */
+}
+
+.comment-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    width: 100%;
+}
+
+.comment-username {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.comment-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-shrink: 0;
+}
+
+.comment-like-button,
+.comment-menu-button {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.comment-like-button svg {
+    height: 18px;
+    width: 18px;
+}
+
+.comment-menu-button svg {
+    height: 22px;
+    width: 22px;
+}
+
+.comment-like-button:hover,
+.comment-menu-button:hover {
+    transform: scale(var(--scale-hover));
+}
+
+.comment-like-button:active,
+.comment-menu-button:active {
+    transform: scale(var(--scale-active));
+}
+
+.comment-like-button-liked {
+    color: var(--color-danger);
+}
+
+/* The wrapper is the positioning context for the dropdown, so the menu hangs off the button rather than the whole row. */
+.comment-menu-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* top: 100% puts the menu's top edge at the button's bottom edge, and right: 0 lines its right edge up with the button so it opens inward rather than off the panel. */
+.comment-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--space-2xs);
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    z-index: 1;
+    /* Sits above the comments below it in the list. */
+}
+
+.comment-menu-item {
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    text-align: left;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.comment-menu-item:hover {
+    background-color: var(--color-accent);
+}
+
+.comment-menu-item-danger {
+    color: var(--color-danger);
+}
+
+.comment-text {
+    font-size: var(--font-size-sm);
+    margin: 0;
+    overflow-wrap: anywhere;
+    /* Breaks an unbroken run of characters (a pasted link, for instance) rather than letting it overflow the panel. */
+}
+
+/* Edit mode swaps the text for an input with Cancel/Save under it. */
+.comment-edit-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+}
+
+.comment-edit-input {
+    font-size: var(--font-size-sm);
+    height: 32px;
+    width: 100%;
+    padding: var(--space-2xs) var(--space-sm);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.comment-edit-input:focus {
+    outline: none;
+    /* Matching every other input in the app, which all drop the browser's default blue focus ring. */
+}
+
+.comment-edit-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+}
+
+.comment-edit-button {
+    height: 28px;
+    background-color: var(--color-bg);
+    font-size: var(--font-size-xs);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    padding: 0 var(--space-md);
+    cursor: pointer;
+}
+
+.comment-edit-button-save {
+    background-color: var(--color-accent);
+}
+
+.comment-edit-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.comment-edit-button:active:not(:disabled) {
+    transform: scale(var(--scale-active));
+}
+
+/* Dimmed while there's nothing new to save or a save is mid-flight, same treatment as the Post button. */
+.comment-edit-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+.comment-meta {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    /* Same token as the post date in PostOverlay.css, so both bits of secondary text stay in step. */
+}
+
+.comment-meta-divider {
+    opacity: 50%;
+}

@@ -23,10 +23,11 @@ const Home = () => {
         <div className="home-right-side-bar">
           <RightSideBar />
         </div>
-        {selectedPost && (
-          <PostOverlay post={selectedPost} onClose={() => setSelectedPost(null)} />
-        )}
       </div>
+      {/* The overlay sits outside the layout box now, since its backdrop is fixed to the viewport and covers the top bar as well. */}
+      {selectedPost && (
+        <PostOverlay post={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
     </div>
   );
 };
