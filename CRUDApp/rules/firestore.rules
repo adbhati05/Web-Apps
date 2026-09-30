@@ -11,9 +11,73 @@ service cloud.firestore {
     	return request.auth != null;
     }
     
-    // Only the acocunt owner can read or write their own profile.
+    // User docs are the public profile: any signed-in user can read them (profile pages, follower lists, chat headers all need other people's docs).
+    // That's only safe because the doc no longer stores email. Rules can't hide individual fields, so anything on this doc is visible to every signed-in user. Firebase Auth keeps the email instead.
     match /users/{userId} {
-    	allow read, write: if isSignedIn() && request.auth.uid == userId;
+    	// This function handles field-level validation for the fields a user can set on their own profile, shared by create and the profile-edit update case.
+      // bio and profilePicURL are optional (sign-up doesn't set them), so get() with a fallback is used, since reading a missing field directly would throw and deny the request.
+    	function profileFieldsValid(d) {
+      	return d.displayName is string
+        	&& d.displayName.size() > 0
+          && d.displayName.size() <= 30
+          && d.get('bio', '') is string
+          && d.get('bio', '').size() <= 150
+          && d.get('profilePicURL', '') is string;
+      }
+
+      // This function fetches the path of the caller's own doc in this user's followers subcollection. Same idea as myLikePath() in the posts block: the follower doc's id is the follower's uid, so there's exactly one fixed path to check.
+      function myFollowerPath() {
+      	return /databases/$(database)/documents/users/$(userId)/followers/$(request.auth.uid);
+      }
+
+      allow read: if isSignedIn();
+
+      // Create: only for yourself, with a known field set, both counters starting at zero, and a username you actually own.
+      // getAfter() reads the usernames doc as it will be AFTER this batch commits, which is what ties this doc to the username claim sign-up writes in the same batch, so nobody can create a profile under a username they never claimed.
+      allow create: if isSignedIn()
+      							&& request.auth.uid == userId
+                    && request.resource.data.keys().hasOnly(['displayName', 'username', 'createdAt', 'bio', 'profilePicURL', 'followerCount', 'followingCount'])
+                    && profileFieldsValid(request.resource.data)
+                    && request.resource.data.username is string
+                    && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid
+                    && request.resource.data.createdAt is string
+                    && request.resource.data.followerCount == 0
+                    && request.resource.data.followingCount == 0;
+
+      // The three update cases below are additive, same as the post's update cases: an update goes through if ANY ONE passes, so each one pins down its own field set.
+      // Update case #1: the owner editing their profile. Only displayName, bio and profilePicURL can move, so username (which has its own claim doc), createdAt and both counters stay frozen.
+      allow update: if isSignedIn()
+      							&& request.auth.uid == userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'profilePicURL'])
+                    && profileFieldsValid(request.resource.data);
+
+      // Update case #2: follower counter, moved by the person following/unfollowing (not the owner), same shape as the post like counter.
+      // It moves by 1 and only when the same batched write also creates/deletes the caller's own doc in this user's followers subcollection, and nobody can follow themselves.
+      allow update: if isSignedIn()
+      							&& request.auth.uid != userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followerCount'])
+                    && (
+                    	(request.resource.data.followerCount == resource.data.followerCount + 1
+                      	&& !exists(myFollowerPath())
+                        && existsAfter(myFollowerPath()))
+                      ||
+                      (request.resource.data.followerCount == resource.data.followerCount - 1
+                      	&& exists(myFollowerPath())
+                        && !existsAfter(myFollowerPath()))
+                    );
+
+      // Update case #3: following counter, moved by the owner when they follow/unfollow someone.
+      // Unlike case #2 this can't be bound to a follow doc: the rules only see this user doc's path, not WHO was just followed, so there's no fixed path to check (same caveat as the post's commentCount).
+      // The worst a user can do is misreport their OWN following count, and never below zero. Once the following subcollection has rules (Phase 2 in planning/to-do.txt), its create/delete rule can require this counter to move in the same batch, which closes the other direction.
+      allow update: if isSignedIn()
+      							&& request.auth.uid == userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followingCount'])
+                    && (request.resource.data.followingCount == resource.data.followingCount + 1
+                    		|| request.resource.data.followingCount == resource.data.followingCount - 1)
+                    && request.resource.data.followingCount >= 0;
+
+      // Delete: owner only (authService.deleteUser). Like deleting a post, this orphans any subcollections underneath (followers/following once they exist).
+      allow delete: if isSignedIn() && request.auth.uid == userId;
     }
     
   	// Username read stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.

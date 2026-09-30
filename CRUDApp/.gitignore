@@ -27,6 +27,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Choosing to ignore prompt.txt and to-do.txt since they contain prompt/project info which is not needed to be tracked in the repo
-prompt.txt
-to-do.txt
+# Choosing to ignore text files for now, but this can be changed if needed.
+*.txt

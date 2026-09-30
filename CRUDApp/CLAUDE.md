@@ -13,9 +13,11 @@ npm run dev       # Start Vite dev server
 npm run build     # Type-check (tsc -b) then build with Vite
 npm run lint      # ESLint (flat config, typescript-eslint + react-hooks)
 npm run preview   # Preview production build
+npm run test:rules  # Firestore rules tests on the local emulator (eval/tests/, needs Java)
+npm run emulators   # Start just the Firestore emulator
 ```
 
-There is no test setup in this project.
+The only tests are the security rules tests in `eval/tests/`, run with Vitest against the Firebase Emulator (`firebase.json` / `.firebaserc` at the root, project ID `demo-fitlog` so it never touches production). When a rule changes, add or update the matching test. There are no component or end-to-end tests.
 
 ## Environment
 
