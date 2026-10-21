@@ -2,7 +2,7 @@
 
 A social fashion app for posting outfits, breaking down the pieces in them, and interacting with other people's fits. Built with React 19, TypeScript, Vite, and Firebase.
 
-**Status: work in progress.** Posting, the home feed, likes, and comments work end to end. Profiles, following, and chat are the next pieces (see [Currently in development](#currently-in-development)).
+**Status: work in progress.** Posting, the home feed, likes, comments, and profiles work end to end. Following and chat are the next pieces (see [Currently in development](#currently-in-development)).
 
 ---
 
@@ -15,13 +15,13 @@ A social fashion app for posting outfits, breaking down the pieces in them, and 
 - **Home feed.** Every post, newest first, in a single-column feed. Posts with piece details render them in an expandable accordion under the caption.
 - **Likes.** One like per user per post, toggled optimistically in the UI and reconciled with the server. The count is denormalized onto the post doc and kept honest by the security rules.
 - **Comments.** Clicking the comment icon on a post opens an overlay with the photo on one side and the post info, a comment box, and a scrollable comment list on the other. Comments can be liked (same mechanics as post likes), edited by their author, and deleted by their author or by the post's owner. Comments are capped at 500 characters, both in the input and in the rules.
+- **Profiles.** An Instagram-style profile page at `/profile` (yours) and `/profile/:username` (anyone's): picture, username, post/follower/following counts, display name, bio, and a three-column grid of posts that open in the comment overlay. The Edit profile button on your own profile opens Settings, where you can change your picture, display name, and bio. Every post, comment, and the top bar show the author's real picture and link to their profile.
 - **Responsive layout.** Desktop, tablet, and mobile layouts. The comment overlay switches from side-by-side to stacked below 768px and goes full-screen below 500px.
 
 ### Present but not wired to UI yet
 
 - Post editing and deletion (`postService.updatePost` / `deletePost` exist, no buttons for them).
 - Account deletion (`authService.deleteUser`, same situation).
-- Profile picture upload (`storageService.uploadProfileImage` exists, everything shows a placeholder for now).
 
 ---
 
@@ -33,10 +33,10 @@ All routes except `/login` and `/signup` sit behind `ProtectedRoutes`, which red
 |---|---|---|
 | `/` | Home: feed, comment overlay, right sidebar placeholder | Working |
 | `/post` | Create a post | Working |
-| `/profile` | Profile | Stub |
+| `/profile`, `/profile/:username` | Profile: yours, or anyone's by username | Working |
 | `/chat` | Chat | Stub, in development |
 | `/styleboard` | Style board | Stub |
-| `/settings` | Settings | Stub |
+| `/settings`, `/settings/:section` | Settings, currently with an Edit profile section | Working |
 | `/login`, `/signup` | Auth | Working |
 
 ---
@@ -70,13 +70,13 @@ CRUDApp/
 ├── firebase.json / .firebaserc   # Emulator config, points at rules/
 ├── src/
 │   ├── auth/                # UserAuthContext, ProtectedRoutes, Login/SignUp cards
-│   ├── components/          # Reusable UI: TopBar, sidebars, PostFeed, PostCard, PostOverlay, Comment, upload/description fields
+│   ├── components/          # Reusable UI: TopBar, sidebars, PostFeed, PostCard, PostOverlay, Comment, ProfileHeader, ProfilePostGrid, EditProfileForm, upload/description fields
 │   ├── pages/               # One route-level screen per file
 │   ├── services/            # All Firebase access lives here; components never call Firestore/Storage directly
 │   │   ├── auth.service.ts
 │   │   ├── post.service.ts      # Posts, likes, comments, comment likes
 │   │   ├── storage.service.ts   # Image compression + upload
-│   │   ├── profile.service.ts   # Planned (empty)
+│   │   ├── profile.service.ts   # Profile lookups (cached) and profile edits
 │   │   ├── follow.service.ts    # Planned (empty)
 │   │   └── chat.service.ts      # Planned (empty)
 │   ├── firebase.ts          # Firebase initialization from env vars
@@ -169,7 +169,7 @@ npm run emulators    # just the emulator, for running vitest in watch mode from 
 
 **Chat / direct messaging**, along with the two things it depends on: user profiles and following.
 
-The three services already exist as empty files (`profile.service.ts`, `follow.service.ts`, `chat.service.ts`), and the interfaces are defined in `src/types.ts`:
+`profile.service.ts` is built, `follow.service.ts` and `chat.service.ts` exist as empty files, and the interfaces are defined in `src/types.ts`:
 
 - `UserInfo` gains `bio`, `followerCount`, and `followingCount`.
 - `Follow` for the mirrored `users/{uid}/followers` and `users/{uid}/following` subcollections, written together in one batch like everything else.
@@ -179,7 +179,7 @@ The three services already exist as empty files (`profile.service.ts`, `follow.s
 Rough order of work:
 
 1. ~~Rework the `users` rules so other signed-in users can read profiles.~~ Done: `email` is off the user doc (Firebase Auth keeps it), user docs are readable by any signed-in user, and writes are split into create, profile-edit, and counter cases.
-2. Profile page: view and edit your own profile, view others'.
+2. ~~Profile page: view and edit your own profile, view others'.~~ Done.
 3. Follow / unfollow, with counters enforced by the rules the same way like counts are.
 4. Conversation creation, real-time messages via `onSnapshot`, and the chat UI.
 5. Later: pagination, unread indicators, blocking, and who-can-message-whom controls.
@@ -189,7 +189,6 @@ Rough order of work:
 ## Roadmap
 
 - Style board and saved posts (the `/styleboard` route).
-- Profile pictures in the top bar, on posts, and on comments (the upload path exists, nothing displays them yet).
 - Post editing and deletion UI.
 - Feed pagination and a single collection-group query for "which of these did I like" instead of one read per post.
 - Cloud Functions for the things client rules can't cover: cleaning up orphaned likes/comments when a post is deleted, full account deletion, and server-side counter integrity for comments.

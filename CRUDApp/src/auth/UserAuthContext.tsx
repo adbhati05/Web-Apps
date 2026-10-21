@@ -24,6 +24,7 @@ interface AuthContextData {
         password: string
     ) => Promise<void>;
     signOut: () => Promise<void>;
+    refreshUserInfo: () => Promise<void>; // Re-fetches the signed-in user's doc, used after a profile edit so the top bar and profile page update without a reload.
 };
 
 // Initializing UserAuthContext with undefined as it will be populated later.
@@ -95,13 +96,21 @@ export const UserAuthProvider = ({children}: UserAuthProviderProps) => {
         await authService.signOut();
     }
 
+    // onAuthStateChanged only fires on sign-in/sign-out, not when the user doc changes, so anything that edits the doc calls this afterwards to pull the new values into userInfo.
+    const refreshUserInfo = async () => {
+        if (!auth.currentUser) return;
+        const currentUserInfo = await authService.getUserInfo(auth.currentUser.uid);
+        setUserInfo(currentUserInfo);
+    };
+
     // This value object will be provided to all consuming components. It contains the current user state and all authentication functions.
     const value: AuthContextData = {
         user,
         userInfo,
         signUp,
         signIn,
-        signOut
+        signOut,
+        refreshUserInfo
     };
 
     // Returning the Provider component with the value prop and ensuring children components will have access to the authentication context.

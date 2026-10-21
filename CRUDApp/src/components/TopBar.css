@@ -15,7 +15,7 @@
 }
 
 .pfp-button {
-    height: 56px;
+    height: var(--button-height-xl);
     font-size: var(--font-size-lg);
     display: flex;
     align-items: center;
@@ -23,7 +23,7 @@
     background-color: var(--color-bg);
     border: var(--border-width-thick) solid var(--color-border);
     color: var(--color-text);
-    border-radius: 28px;
+    border-radius: var(--radius-button-xl);
     padding-left: var(--space-lg);
     padding-right: var(--space-lg);
     box-shadow: var(--shadow-card);
@@ -45,6 +45,8 @@
     height: 40px;
     border-radius: var(--radius-round);
     margin-right: var(--space-md);
+    object-fit: cover;
+    /* This was the cause of non-placeholder images looking distorted: without it an img squashes the photo to fit the 40x40 box, cover crops the overflow instead so the picture keeps its proportions. */
 }
 
 .username {
@@ -72,7 +74,7 @@
 }
 
 .dropdown-content a, .dropdown-content button {
-    height: var(--control-height);
+    height: var(--button-height-lg);
     font-size: var(--font-size-lg);
     font-weight: normal;
     display: flex;
@@ -81,7 +83,7 @@
     padding-left: var(--space-lg);
     padding-right: var(--space-lg);
     border: none;
-    border-radius: 18px; /* Since border width of dropdown is 4px and has a radius of 22px, this should be 22 - 4 = 18px. */
+    border-radius: calc(var(--radius-pill) - var(--border-width-thick)); /* The dropdown's inner corner: its radius minus its 4px border, so the item's corners sit flush inside it. */
     text-decoration: none;
     color: var(--color-text);
     background-color: var(--color-bg);
@@ -103,7 +105,6 @@
     }
 
     .pfp-button {
-        height: var(--control-height);
         padding-left: var(--space-md);
         padding-right: var(--space-md);
     }

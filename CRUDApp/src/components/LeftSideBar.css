@@ -39,12 +39,12 @@
 .left-side-bar-button {
     width: fit-content;
     max-width: 100%;
-    height: var(--control-height);
+    height: var(--button-height-lg);
     background-color: var(--color-surface);
     font-size: clamp(var(--font-size-sm), 1.5vw, var(--font-size-lg));
     text-decoration: none;
     border: none;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-button-lg);
     color: var(--color-text);
     padding-left: var(--space-lg);
     padding-right: var(--space-lg);
@@ -95,8 +95,8 @@
     }
 
     .left-side-bar-button {
-        width: var(--control-height);
-        height: var(--control-height);
+        width: var(--button-height-lg);
+        height: var(--button-height-lg);
         padding: 0;
         border-radius: var(--radius-round);
         border: var(--border-width) solid var(--color-border);

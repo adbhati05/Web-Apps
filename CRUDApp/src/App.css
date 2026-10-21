@@ -62,14 +62,26 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-pill: 22px;
+  /* Button radii: half of each button height (below), so a pill-shaped button is fully rounded at every size. */
+  --radius-button-sm: 10px;
+  --radius-button-md: 16px;
+  --radius-button-lg: 22px;
+  --radius-button-xl: 28px;
   --radius-round: 50%;
 
   /* Buttons and other controls */
-  --control-height: 44px;
+  /* Button heights. Every button in the app uses one of these three:
+     lg: main nav and form buttons (left side bar, top bar, sign in/up, add piece, create post, upload photo, settings options).
+     md: in-page action buttons and standalone icon buttons (profile header, edit profile form, posting a comment, like/comment, close/remove buttons, comment menu items).
+     sm: compact inline controls (comment like/menu buttons, comment edit/save). */
+  --button-height-sm: 20px;
+  --button-height-md: 32px;
+  --button-height-lg: 44px;
+  --button-height-xl: 56px;
   --input-height: 40px;
   --shadow-card: 0px 6px 6px var(--color-shadow);
-  --scale-hover: 1.05;
-  --scale-active: 1.1;
+  --scale-hover: 1.03;
+  --scale-active: 1.05;
 }
 
 /* This first rule set ensures that the default margins and padding are removed for all elements. */

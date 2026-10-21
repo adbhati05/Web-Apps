@@ -70,11 +70,11 @@
 
 /* The next three rule sets ensure that the sign-in button behaves similarly to all the other buttons in the website. */
 .sign-in-button {
-    height: var(--control-height);
+    height: var(--button-height-lg);
     background-color: var(--color-accent);
     font-size: var(--font-size-lg);
     border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-button-lg);
     color: var(--color-text);
     padding-left: var(--space-2xl);
     padding-right: var(--space-2xl);

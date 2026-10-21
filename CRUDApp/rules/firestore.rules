@@ -68,7 +68,7 @@ service cloud.firestore {
 
       // Update case #3: following counter, moved by the owner when they follow/unfollow someone.
       // Unlike case #2 this can't be bound to a follow doc: the rules only see this user doc's path, not WHO was just followed, so there's no fixed path to check (same caveat as the post's commentCount).
-      // The worst a user can do is misreport their OWN following count, and never below zero. Once the following subcollection has rules (Phase 2 in planning/to-do.txt), its create/delete rule can require this counter to move in the same batch, which closes the other direction.
+      // The worst a user can do is misreport their OWN following count, and never below zero. The other direction is closed: the following subcollection's create/delete rules below require this counter to move in the same batch, so a follow can't happen without it.
       allow update: if isSignedIn()
       							&& request.auth.uid == userId
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followingCount'])
@@ -76,8 +76,67 @@ service cloud.firestore {
                     		|| request.resource.data.followingCount == resource.data.followingCount - 1)
                     && request.resource.data.followingCount >= 0;
 
-      // Delete: owner only (authService.deleteUser). Like deleting a post, this orphans any subcollections underneath (followers/following once they exist).
+      // Delete: owner only (authService.deleteUser). Like deleting a post, this orphans the followers/following subcollections underneath.
       allow delete: if isSignedIn() && request.auth.uid == userId;
+
+      // The two blocks below MUST stay nested inside this users block (same reason as likes/comments inside posts), which is also what puts userId in scope.
+      // A follow is two mirrored docs plus two counters, all written in one batch by followService.toggleFollow:
+      //   users/{target}/followers/{me}   +   target's followerCount   (bound by update case #2 above)
+      //   users/{me}/following/{target}   +   my followingCount        (bound by the following block below)
+      // Each follow doc requires its mirror to exist (or be gone) after the batch and its counter to move by exactly 1, so the four writes can only happen together and the halves can't drift.
+
+      // One doc per follower, doc id = the follower's uid, so you can only add or remove YOURSELF as someone's follower, and only once.
+      match /followers/{followerUid} {
+      	function mirrorFollowingPath() {
+        	return /databases/$(database)/documents/users/$(followerUid)/following/$(userId);
+        }
+        function followerCountMoved(delta) {
+        	return getAfter(/databases/$(database)/documents/users/$(userId)).data.followerCount
+          		== get(/databases/$(database)/documents/users/$(userId)).data.followerCount + delta;
+        }
+
+      	allow read: if isSignedIn();
+        allow create: if isSignedIn()
+        							&& request.auth.uid == followerUid
+                      && followerUid != userId
+                      && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                      && request.resource.data.uid == followerUid
+                      && request.resource.data.createdAt is string
+                      && existsAfter(mirrorFollowingPath())
+                      && followerCountMoved(1);
+        // Overwriting an existing follow doc counts as an update, so this is also what stops a double follow.
+        allow update: if false;
+        allow delete: if isSignedIn()
+        							&& request.auth.uid == followerUid
+                      && !existsAfter(mirrorFollowingPath())
+                      && followerCountMoved(-1);
+      }
+
+      // One doc per followed user, doc id = their uid. Only the owner of this list can add to or remove from it.
+      match /following/{followedUid} {
+      	function mirrorFollowerPath() {
+        	return /databases/$(database)/documents/users/$(followedUid)/followers/$(userId);
+        }
+        function followingCountMoved(delta) {
+        	return getAfter(/databases/$(database)/documents/users/$(userId)).data.followingCount
+          		== get(/databases/$(database)/documents/users/$(userId)).data.followingCount + delta;
+        }
+
+      	allow read: if isSignedIn();
+        allow create: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && followedUid != userId
+                      && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                      && request.resource.data.uid == followedUid
+                      && request.resource.data.createdAt is string
+                      && existsAfter(mirrorFollowerPath())
+                      && followingCountMoved(1);
+        allow update: if false;
+        allow delete: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && !existsAfter(mirrorFollowerPath())
+                      && followingCountMoved(-1);
+      }
     }
     
   	// Username read stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.

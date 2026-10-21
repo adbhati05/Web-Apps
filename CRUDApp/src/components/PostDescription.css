@@ -44,11 +44,11 @@
 }
 
 .add-piece-button {
-    height: var(--control-height);
+    height: var(--button-height-lg);
     background-color: var(--color-accent);
     font-size: var(--font-size-lg);
     border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-button-lg);
     color: var(--color-text);
     padding-left: var(--space-2xl);
     padding-right: var(--space-2xl);
@@ -147,9 +147,10 @@
     box-shadow: 0 0 0 1000px var(--color-bg) inset;
 }
 
+/* This one is the icon itself (BsDashCircle with an onClick), not a <button>, so the height goes straight on the svg. */
 .remove-piece-button {
-    height: 30px;
-    width: 30px;
+    height: var(--button-height-md);
+    width: var(--button-height-md);
     color: var(--color-danger);
 }
 
@@ -189,11 +190,11 @@
 }
 
 .create-post-button {
-    height: var(--control-height);
+    height: var(--button-height-lg);
     background-color: var(--color-accent);
     font-size: var(--font-size-lg);
     border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-button-lg);
     color: var(--color-text);
     padding-left: var(--space-2xl);
     padding-right: var(--space-2xl);
@@ -213,8 +214,7 @@
 
 .post-description-line {
     flex: 1;
-    border-radius: 2px;
-    height: 4px;
+    height: var(--border-width);
     background-color: black;
     opacity: 75%;
 }

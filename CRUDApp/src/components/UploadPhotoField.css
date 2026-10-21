@@ -30,11 +30,11 @@
 }
 
 .upload-photo-label {
-    height: var(--control-height);
+    height: var(--button-height-lg);
     background-color: var(--color-muted-bg);
     font-size: var(--font-size-lg);
     border: var(--border-width) solid var(--color-muted);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-button-lg);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -75,6 +75,8 @@
 }
 
 .remove-photo-button {
+    width: var(--button-height-md);
+    height: var(--button-height-md);
     color: var(--color-danger);
     z-index: 1000;
     cursor: pointer;
