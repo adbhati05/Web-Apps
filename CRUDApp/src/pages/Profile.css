@@ -1,5 +1,5 @@
-/* These are the rule sets for the page that will be used for the user to view their saved posts. */
-/* The Post, Saved, and StyleBoard pages will have identical layouts, just with different content. */
+/* These are the rule sets for the profile page, which shows a user's profile header and a grid of their posts. */
+/* The layout box and side bar match the Post and StyleBoard pages, only the content inside the container differs. */
 .profile-main-layout {
     width: 80vw;
     height: 85vh;
@@ -27,6 +27,22 @@
     border: var(--border-width) solid var(--color-border);
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
+}
+
+/* The actual profile, capped at roughly Instagram's width and centered, so the header and grid don't stretch edge to edge on wide screens. */
+.profile-content {
+    width: 95%;
+    max-width: 935px;
+    margin: 0 auto;
+}
+
+/* Loading, error, and not-found messages. */
+.profile-message {
+    margin: 0;
+    padding: var(--space-4xl) var(--space-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
 }
 
 /* Responsive: at tablet the layout stays side-by-side and just widens to fill more of the viewport. */

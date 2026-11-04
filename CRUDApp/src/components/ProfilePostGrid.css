@@ -1,0 +1,111 @@
+.profile-post-grid-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* The bottom border is the line under the POSTS tab, which doubles as the top edge of the grid (see the grid's negative margin below). */
+.profile-post-grid-tabs {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    border-bottom: var(--border-width) solid var(--color-border);
+}
+
+/* The negative margin pulls the tab up over the header's bottom border, so its own darker top border reads as the "active tab" line, like Instagram's. */
+.profile-post-grid-tab {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: calc(-1 * var(--border-width));
+    padding: var(--space-md) var(--space-lg);
+    border-top: var(--border-width) solid var(--color-text);
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* repeat(3, 1fr) makes three equal-width columns, and each item's aspect-ratio below makes its height match its width, so every thumbnail is a square.
+   No gap: the thumbnails sit flush and their borders below are the only thing separating them. */
+.profile-post-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Each thumbnail only draws its right and bottom borders, so every shared edge gets exactly one line and the top row has none (the tab row's line sits above it). */
+.profile-post-grid-item {
+    position: relative;
+    /* Positioning context for the hover overlay below. */
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border: none;
+    border-right: var(--border-width) solid var(--color-border);
+    border-bottom: var(--border-width) solid var(--color-border);
+    background-color: var(--color-muted-bg);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+/* No right border when nothing sits to the right: the last column (every 3rd item), or the last post when the final row isn't full. */
+.profile-post-grid-item:nth-child(3n),
+.profile-post-grid-item:last-child {
+    border-right: none;
+}
+
+/* No bottom border when nothing sits below: an item only has a post under it if there are at least 3 more after it, so the last 3 items never do.
+   That covers the final row, plus the end of the row above it when the final row is short. */
+.profile-post-grid-item:nth-last-child(-n + 3) {
+    border-bottom: none;
+}
+
+.profile-post-grid-item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Crops each photo to fill its square instead of letterboxing it. */
+}
+
+/* inset: 0 is shorthand for top/right/bottom/left all being 0, which stretches the overlay over the whole thumbnail. */
+.profile-post-grid-item-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xl);
+    background-color: var(--color-overlay);
+    color: var(--color-bg);
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    opacity: 0;
+}
+
+.profile-post-grid-item-overlay span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.profile-post-grid-item:hover .profile-post-grid-item-overlay {
+    opacity: 1;
+}
+
+.profile-post-grid-message {
+    margin: 0;
+    padding: var(--space-4xl) var(--space-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Responsive: on mobile the hover counts get smaller, since the squares are much smaller. */
+@media (max-width: 500px) {
+    .profile-post-grid-item-overlay {
+        gap: var(--space-md);
+        font-size: var(--font-size-sm);
+    }
+}

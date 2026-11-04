@@ -2,10 +2,12 @@ import './PostOverlay.css';
 import Comment from './Comment';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
+import { profileService } from '../services/profile.service';
 import { useUserAuth } from '../auth/UserAuthContext';
 import { BsChevronDown, BsHeart, BsXCircle } from 'react-icons/bs';
-import type { Post, Comment as CommentData } from '../types';
+import type { Post, Comment as CommentData, UserInfo } from '../types';
 
 // TO-DO: The like count in the header is display only for now. Making it clickable means lifting the liked/count state out of PostCard so the card and the overlay can't disagree.
 
@@ -26,6 +28,9 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
     // Tracks which of the fetched comments the current user has liked (comment ID -> liked?), the same lookup PostFeed does for posts.
     const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
 
+    // The post author's and every commenter's profile (UID -> profile), for their pictures and profile links. Same idea as the authors lookup in PostFeed.
+    const [authors, setAuthors] = useState<Record<string, UserInfo>>({});
+
     const [newComment, setNewComment] = useState('');
     const [posting, setPosting] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -45,8 +50,12 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
                     fetched.forEach((comment, index) => { likedFlags[comment.id] = flags[index]; });
                 }
 
+                // The post's author is looked up alongside the commenters. Both come out of the profile cache when PostFeed already fetched them.
+                const fetchedAuthors = await profileService.getProfilesByUids([post.uid, ...fetched.map(comment => comment.uid)]);
+
                 setComments(fetched);
                 setLikedByMe(likedFlags);
+                setAuthors(fetchedAuthors);
             } catch (error) {
                 console.error("Failed to load comments:", error);
             }
@@ -54,7 +63,7 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
         };
 
         fetchComments();
-    }, [post.id, currentUserId]);
+    }, [post.id, post.uid, currentUserId]);
 
     // Closing on Escape, and locking the page behind the overlay so it can't scroll while the modal is open, this ensures a good user experience.
     // The function returned at the end is the cleanup, which React runs when the overlay unmounts, so neither the listener nor the scroll lock outlives it.
@@ -83,6 +92,9 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
             // addComment returns the new comment, so it can be appended straight to the list instead of refetching all of them.
             const comment = await postService.addComment(post.id, text, userInfo);
             setComments(prev => [...prev, comment]);
+
+            // You're the author of the new comment, so your own profile goes straight into the lookup instead of fetching it.
+            setAuthors(prev => ({ ...prev, [userInfo.uid]: userInfo }));
             setNewComment('');
         } catch (error) {
             console.error("Failed to add comment:", error);
@@ -106,6 +118,8 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
         }
     };
 
+    const postAuthor = authors[post.uid];
+
     return (
         // Clicking the backdrop closes the overlay. stopPropagation on the card keeps clicks inside it from bubbling up to the backdrop and closing it too.
         <div className='post-overlay-backdrop' onClick={onClose}>
@@ -124,10 +138,18 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
                     </div>
 
                     <div className='post-info-header'>
-                        <div className='post-info-account'>
-                            <img src={pfp_placeholder} alt="Profile" className='post-info-pfp' />
-                            <p className='username'>{post.username}</p>
-                        </div>
+                        {/* Links to the poster's profile once their profile has loaded, same as the post card. */}
+                        {postAuthor ? (
+                            <Link to={`/profile/${postAuthor.username}`} className='post-info-account post-info-account-link'>
+                                <img src={postAuthor.profilePicURL || pfp_placeholder} alt="Profile" className='post-info-pfp' />
+                                <p className='username'>{postAuthor.username}</p>
+                            </Link>
+                        ) : (
+                            <div className='post-info-account'>
+                                <img src={pfp_placeholder} alt="Profile" className='post-info-pfp' />
+                                <p className='username'>{post.username}</p>
+                            </div>
+                        )}
                         <div className='post-overlay-actions'>
                             <button className='overlay-close-button' onClick={onClose} aria-label="Close">
                                 <BsXCircle />
@@ -180,6 +202,7 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
                                     key={comment.id}
                                     postId={post.id}
                                     comment={comment}
+                                    author={authors[comment.uid]}
                                     initiallyLiked={likedByMe[comment.id] || false}
                                     currentUserId={currentUserId}
                                     canEdit={!!currentUserId && currentUserId === comment.uid}

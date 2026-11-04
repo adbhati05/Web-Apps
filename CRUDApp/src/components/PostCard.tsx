@@ -1,9 +1,10 @@
 import './PostCard.css';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { postService } from "../services/post.service";
 import { auth } from '../firebase';
-import type { PieceDetail } from '../types';
+import type { PieceDetail, UserInfo } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
 
@@ -21,10 +22,11 @@ interface PostCardProps {
     initiallyLiked: boolean,
     pieces: PieceDetail[],
     hasDetails: boolean,
+    author?: UserInfo, // The poster's profile, looked up by PostFeed. Optional since it can still be loading or fail to load, in which case the card falls back to the placeholder picture and no link.
     onCommentClick: () => void,
 }
 
-const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount: initialLikeCount, initiallyLiked, pieces, hasDetails, onCommentClick }: PostCardProps) => {
+const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount: initialLikeCount, initiallyLiked, pieces, hasDetails, author, onCommentClick }: PostCardProps) => {
 
     // Retrieving current user's information.
     const currentUserId = auth.currentUser?.uid;
@@ -63,10 +65,18 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
     return (
         <div className='post-card-container'>
             <div className='top-bar'>
-                <div className='account-profile-container'>
-                    <img src={pfp_placeholder} alt="Profile" />
-                    <p>{username}</p>
-                </div>
+                {/* With the author loaded, the picture and name link to their profile. The live username is shown over the one stored on the post, in case the stored one is out of date. */}
+                {author ? (
+                    <Link to={`/profile/${author.username}`} className='account-profile-container account-profile-link'>
+                        <img src={author.profilePicURL || pfp_placeholder} alt="Profile" />
+                        <p>{author.username}</p>
+                    </Link>
+                ) : (
+                    <div className='account-profile-container'>
+                        <img src={pfp_placeholder} alt="Profile" />
+                        <p>{username}</p>
+                    </div>
+                )}
                 <p>{dateCreated}</p>
             </div>
             <div className='post-content'>

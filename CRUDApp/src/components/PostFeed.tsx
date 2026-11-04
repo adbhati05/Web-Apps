@@ -1,9 +1,10 @@
 import './PostFeed.css';
 import PostCard from './PostCard';
 import { postService } from '../services/post.service';
+import { profileService } from '../services/profile.service';
 import { auth } from '../firebase';
 import { useState, useEffect } from 'react';
-import type { Post } from '../types';
+import type { Post, UserInfo } from '../types';
 
 // This component fetches all posts from the database and displays them in the feed.
 const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) => {
@@ -13,6 +14,9 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
     // Tracks which of the fetched posts the current user has liked (post ID -> liked?). Likes live in
     // each post's likes subcollection now, so this is looked up per post instead of read off the post doc.
     const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
+
+    // Each post's author profile (UID -> profile). Posts only store the author's uid and username, so this is where the profile picture and the link to their profile come from.
+    const [authors, setAuthors] = useState<Record<string, UserInfo>>({});
 
     // Setting up state variables for loading and error.
     const [loading, setLoading] = useState(true);
@@ -35,8 +39,12 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
                     posts.forEach((post, index) => { likedFlags[post.id] = flags[index]; });
                 }
 
+                // getProfilesByUids never throws (failed lookups are just skipped), so a missing profile only means that card falls back to the placeholder picture.
+                const postAuthors = await profileService.getProfilesByUids(posts.map(post => post.uid));
+
                 setPosts(posts);
                 setLikedByMe(likedFlags);
+                setAuthors(postAuthors);
                 setLoading(false);
             } catch (error) {
                 setError(error as string);
@@ -67,6 +75,7 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
                     initiallyLiked={likedByMe[post.id] || false}
                     pieces={post.pieces || []}
                     hasDetails={post.hasDetails}
+                    author={authors[post.uid]}
                     onCommentClick={() => onCommentClick(post)}
                 />
             ))}

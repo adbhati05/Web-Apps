@@ -1,5 +1,5 @@
 // This will be include all Firebase functionality necessary for post operations.
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, query, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { storageService } from './storage.service';
 import type { Post, Comment, UserInfo, PieceDetail } from '../types';
@@ -30,7 +30,7 @@ export const postService = {
         const post: Post = {
             id: postRef.id,
             uid: userInfo.uid,
-            username: userInfo.displayName,
+            username: userInfo.username, // The actual username, not displayName, since display names can be edited now and this has to keep matching the /profile/:username link.
             caption,
             pieces,
             hasDetails,
@@ -73,6 +73,27 @@ export const postService = {
             id: doc.id,
             ...doc.data()
         } as Post));
+
+        // Update cache
+        posts.forEach(post => postCache.set(post.id, post));
+
+        return posts;
+    },
+
+    // Fetches every post by one user, newest first (used by the profile page's grid).
+    // The sort happens here instead of with orderBy, since combining where() on one field with orderBy() on another needs a composite index created in the Firebase console. That's fine while a user's post count is small, revisit it alongside pagination.
+    async getPostsByUser(uid: string): Promise<Post[]> {
+        const q = query(collection(db, "posts"), where("uid", "==", uid));
+        const querySnapshot = await getDocs(q);
+
+        const posts = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as Post));
+
+        // ISO timestamps sort alphabetically in the same order as chronologically, so a plain string comparison works (b before a gives newest first).
+        // This sorting is done to ensure that when this program is called when populating the profile page, the posts are displayed in the correct order (newest first).
+        posts.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
         // Update cache
         posts.forEach(post => postCache.set(post.id, post));
@@ -170,7 +191,7 @@ export const postService = {
         const newComment: Comment = {
             id: commentRef.id,
             uid: userInfo.uid,
-            username: userInfo.displayName,
+            username: userInfo.username, // Same reasoning as in createPost.
             comment,
             createdAt: new Date().toISOString(),
             likeCount: 0 // Comment likes live in the comment's own likes subcollection; the rules require this to start at 0.

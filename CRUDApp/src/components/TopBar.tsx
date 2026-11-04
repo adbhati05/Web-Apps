@@ -1,6 +1,5 @@
 import "./TopBar.css";
 import pfp_placeholder from "../assets/pfp_placeholder.png";
-// import test_img from '../assets/test_img.png'; // (when using an image other than the placeholder, the image gets distorted, figure out how to fix that)
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useUserAuth } from "../auth/UserAuthContext";
@@ -43,7 +42,7 @@ const TopBar = () => {
     }
   };
 
-  // Retrieving the current user's info to acquire their displayName and profile picture (future implementation) so that both can be displayed in the pfp dropdown button.
+  // Retrieving the current user's info to acquire their displayName and profile picture so that both can be displayed in the pfp dropdown button.
   const { userInfo } = useUserAuth();
   const displayName = userInfo?.displayName || "User"; // Fallback to 'User' if displayName is not available (this will only occur if there's database corruption, manual database edits, etc).
 
@@ -61,7 +60,8 @@ const TopBar = () => {
         >
           {" "}
           {/* Setting open to false to ensure the dropdown is not expanded when the component mounts. */}
-          <img src={pfp_placeholder} alt="Profile" className="pfp" />
+          {/* Falls back to the placeholder until the user uploads a picture (or if they removed theirs). */}
+          <img src={userInfo?.profilePicURL || pfp_placeholder} alt="Profile" className="pfp" />
           <span className="username">{displayName}</span>{" "}
           {/* Set username character limit to 12 characters */}
         </button>
