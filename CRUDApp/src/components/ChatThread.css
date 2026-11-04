@@ -52,10 +52,6 @@
     color: var(--color-text);
 }
 
-.chat-thread-profile-link:hover .chat-thread-username {
-    text-decoration: underline;
-}
-
 .chat-thread-pfp {
     width: 40px;
     height: 40px;

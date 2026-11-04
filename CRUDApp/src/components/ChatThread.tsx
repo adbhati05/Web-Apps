@@ -287,6 +287,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
                                 <MessageBubble
                                     message={message}
                                     mine={mine}
+                                    avatarURL={mine ? undefined : otherProfile.profilePicURL || pfp_placeholder}
                                     quote={quote}
                                     groupPosition={groupPosition}
                                     // Same 15 minute window as the rules, checked when the menu renders.

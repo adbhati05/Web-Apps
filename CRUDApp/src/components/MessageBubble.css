@@ -10,6 +10,19 @@
     flex-direction: row-reverse;
 }
 
+/* The other person's picture next to each of their messages. align-self keeps it level with the bottom of the bubble, so it stays put when a reply's quote makes the message taller. */
+.message-bubble-pfp {
+    width: 28px;
+    height: 28px;
+    align-self: flex-end;
+    flex-shrink: 0;
+    margin-right: var(--space-2xs);
+    border-radius: var(--radius-round);
+    border: var(--border-width) solid var(--color-border);
+    background-color: black;
+    object-fit: cover;
+}
+
 /* The quote, bubble, and "Edited" label stacked, capped so a long message wraps instead of running across the whole chat. */
 .message-bubble-content {
     display: flex;

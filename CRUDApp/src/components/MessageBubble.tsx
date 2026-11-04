@@ -9,6 +9,7 @@ import type { Message } from '../types';
 interface MessageBubbleProps {
     message: Message,
     mine: boolean, // Yours sit on the right in the accent color, theirs on the left in white.
+    avatarURL?: string, // The other person's picture, shown next to each of their messages. Not passed for your own.
     quote: { label: string, text: string | null } | null, // The quote shown above a reply. text is null when the original was unsent. null overall when the message isn't a reply.
     canEdit: boolean, // True only for your own messages that are still inside the 15 minute edit window.
     groupPosition: 'single' | 'first' | 'middle' | 'last', // Where this message sits in a run of back-to-back messages from the same person, which decides which corner of the bubble is pointed.
@@ -19,7 +20,7 @@ interface MessageBubbleProps {
     onQuoteClick: () => void, // Scrolls to the original message.
 }
 
-const MessageBubble = ({ message, mine, quote, groupPosition, canEdit, highlighted, onReply, onEdit, onUnsend, onQuoteClick }: MessageBubbleProps) => {
+const MessageBubble = ({ message, mine, avatarURL, quote, groupPosition, canEdit, highlighted, onReply, onEdit, onUnsend, onQuoteClick }: MessageBubbleProps) => {
 
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -52,6 +53,7 @@ const MessageBubble = ({ message, mine, quote, groupPosition, canEdit, highlight
     return (
         // The id is what a quote scrolls to (see ChatThread's handleQuoteClick).
         <div id={`message-${message.id}`} className={`message-bubble-row${mine ? ' message-bubble-row-mine' : ''}`}>
+            {avatarURL && <img src={avatarURL} alt="Profile" className='message-bubble-pfp' />}
             <div className='message-bubble-content'>
                 {quote && (
                     <button className='message-bubble-quote' onClick={onQuoteClick} disabled={quote.text === null}>
