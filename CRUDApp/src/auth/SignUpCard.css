@@ -78,13 +78,19 @@
     margin: var(--space-lg);
 }
 
-.sign-up-button:hover {
+.sign-up-button:hover:not(:disabled) {
     transform: scale(var(--scale-hover));
 }
 
-.sign-up-button:active {
+.sign-up-button:active:not(:disabled) {
     transform: scale(var(--scale-active));
     font-weight: bold;
+}
+
+/* Dimmed while the request is in flight, same treatment as every other disabled button in the app. */
+.sign-up-button:disabled {
+    opacity: 50%;
+    cursor: default;
 }
 
 /* The next four rule sets are dedicated to styling the link that appears below the button that forwards the user back to the login page. */

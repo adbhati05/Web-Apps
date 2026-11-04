@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { postService } from "../services/post.service";
 import { auth } from '../firebase';
+import { useAlert } from '../alerts/AlertContext';
 import type { PieceDetail, UserInfo } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
@@ -34,6 +35,8 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
     // Defining a liked state variable that will track whether the current user has liked the post.
     const [liked, setLiked] = useState(initiallyLiked);
 
+    const { showAlert } = useAlert();
+
     // Defining a likeCount state variable that will track the number of likes on the post.
     const [likeCount, setLikeCount] = useState(initialLikeCount);
 
@@ -56,9 +59,10 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
         } catch (error) {
             console.error("Failed to toggle like:", error);
 
-            // Upon error, rollback both optimistic updates.
+            // Upon error, rollback both optimistic updates and let the user know why the heart flipped back.
             setLiked(isLiked);
             setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+            showAlert("error", "Couldn't update your like. Try again.");
         }
     };
 

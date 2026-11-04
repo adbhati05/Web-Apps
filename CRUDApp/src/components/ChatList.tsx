@@ -1,6 +1,7 @@
 import './ChatList.css';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { Link } from 'react-router-dom';
+import LoadingSpinner from './LoadingSpinner';
 import type { Chat, UserInfo } from '../types';
 
 // TO-DO: Searching for any user to message (not just people you follow) once user search exists (see the to-do list).
@@ -76,7 +77,7 @@ const ChatList = ({ myUid, chats, followingUids, profiles, activeUid, loading, e
             <h2 className='chat-list-title'>Messages</h2>
 
             {loading ? (
-                <p className='chat-list-message'>Loading chats...</p>
+                <LoadingSpinner size="sm" label="Loading chats..." />
             ) : error ? (
                 <p className='chat-list-message'>Couldn't load your chats.</p>
             ) : (

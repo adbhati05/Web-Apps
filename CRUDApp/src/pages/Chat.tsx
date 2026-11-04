@@ -2,6 +2,7 @@ import TopBar from "../components/TopBar";
 import LeftSideBar from "../components/LeftSideBar";
 import ChatList from "../components/ChatList";
 import ChatThread from "../components/ChatThread";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useUserAuth } from "../auth/UserAuthContext";
@@ -139,7 +140,7 @@ const Chat = () => {
               <p className="chat-empty-state-text">Pick someone from the list to start chatting, or use the Message button on anyone's profile.</p>
             </div>
           ) : otherLoading || !myUid ? (
-            <p className="chat-message">Loading chat...</p>
+            <LoadingSpinner label="Loading chat..." />
           ) : otherNotFound || !otherProfile ? (
             <p className="chat-message">This user doesn't exist.</p>
           ) : (

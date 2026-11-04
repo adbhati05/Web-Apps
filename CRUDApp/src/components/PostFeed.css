@@ -8,3 +8,12 @@
     /* Prevents shrinking of items in post container (which is a flex container). */
     background-color: var(--color-surface);
 }
+
+/* Error and empty-feed messages, same muted text as the loading/empty messages on every other page. */
+.post-feed-message {
+    margin: 0;
+    padding: var(--space-4xl) var(--space-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}

@@ -146,8 +146,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
       setPieces([]);
       setPiecesDetails([]);
       setDetailsEnabled(false);
-      onSuccess();
-      alert("Post created successfully!");
+      onSuccess(); // The Post page shows the "Post created!" alert.
     } catch (err: any) {
       console.error("Error creating post:", err);
       onError(err.message || "Failed to create post. Please try again.");

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { BsChevronLeft, BsX } from 'react-icons/bs';
 import MessageBubble from './MessageBubble';
+import LoadingSpinner from './LoadingSpinner';
+import { useAlert } from '../alerts/AlertContext';
 import { chatService, EDIT_WINDOW_MS } from '../services/chat.service';
 import type { Chat, Message, UserInfo } from '../types';
 
@@ -48,7 +50,9 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
 
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
-    const [actionError, setActionError] = useState<string | null>(null);
+
+    // Failed sends, edits, and unsends are reported as alerts (see AlertContext).
+    const { showAlert } = useAlert();
 
     // At most one of these is set at a time: the message being replied to, or your own message being edited. Either one shows a bar above the input saying so.
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
@@ -159,7 +163,6 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
         }
 
         setSending(true);
-        setActionError(null);
         try {
             if (editing && chat) {
                 await chatService.editMessage(chat, editing.id, trimmedDraft);
@@ -175,7 +178,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
             console.error(editing ? "Failed to edit message:" : "Failed to send message:", error);
 
             // An edit past the 15 minute window gets rejected by the rules even if the Edit option was still showing when it was picked.
-            setActionError(editing ? "Couldn't save your edit (messages can only be edited for 15 minutes)." : "Couldn't send your message. Try again.");
+            showAlert("error", editing ? "Couldn't save your edit (messages can only be edited for 15 minutes)." : "Couldn't send your message. Try again.");
         }
         setSending(false);
     };
@@ -186,12 +189,11 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
         // If the message being unsent was being replied to or edited, that bar goes away with it.
         if (replyingTo?.id === message.id || editing?.id === message.id) cancelContext();
 
-        setActionError(null);
         try {
             await chatService.unsendMessage(chat, message.id);
         } catch (error) {
             console.error("Failed to unsend message:", error);
-            setActionError("Couldn't unsend your message. Try again.");
+            showAlert("error", "Couldn't unsend your message. Try again.");
         }
     };
 
@@ -253,7 +255,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
 
             <div className='chat-thread-messages' ref={messagesRef}>
                 {loading ? (
-                    <p className='chat-thread-status'>Loading messages...</p>
+                    <LoadingSpinner size="sm" label="Loading messages..." />
                 ) : loadError ? (
                     <p className='chat-thread-status'>Couldn't load this chat.</p>
                 ) : messages.length === 0 ? (
@@ -306,8 +308,6 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
                     <p className='chat-thread-receipt'>{seen ? 'Seen' : 'Sent'}</p>
                 )}
             </div>
-
-            {actionError && <p className='chat-thread-error'>{actionError}</p>}
 
             {/* The bar above the input while replying or editing, with an X to cancel (Escape works too). */}
             {(replyingTo || editing) && (

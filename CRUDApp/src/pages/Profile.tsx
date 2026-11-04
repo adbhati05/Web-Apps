@@ -3,6 +3,8 @@ import LeftSideBar from "../components/LeftSideBar";
 import ProfileHeader from "../components/ProfileHeader";
 import ProfilePostGrid from "../components/ProfilePostGrid";
 import PostOverlay from "../components/PostOverlay";
+import LoadingSpinner from "../components/LoadingSpinner";
+import { useAlert } from "../alerts/AlertContext";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useUserAuth } from "../auth/UserAuthContext";
@@ -17,6 +19,7 @@ const Profile = () => {
   // useParams reads the :username part of the URL defined in routes.tsx. On plain /profile there's no parameter, so it comes back undefined.
   const { username } = useParams<{ username: string }>();
   const { userInfo, refreshUserInfo } = useUserAuth();
+  const { showAlert } = useAlert();
   const navigate = useNavigate();
 
   // It's your own profile either on plain /profile or when the URL happens to be your own username.
@@ -63,6 +66,9 @@ const Profile = () => {
       console.error("Failed to toggle follow:", error);
       setFollowing(wasFollowing);
       adjustFollowerCount(wasFollowing ? 1 : -1);
+
+      // The rollback above puts the button back, and the alert says why, so it doesn't just look like the click didn't register.
+      showAlert("error", wasFollowing ? "Couldn't unfollow. Try again." : "Couldn't follow. Try again.");
     }
   };
 
@@ -131,7 +137,7 @@ const Profile = () => {
         </div>
         <div className="profile-container">
           {loading ? (
-            <p className="profile-message">Loading profile...</p>
+            <LoadingSpinner label="Loading profile..." />
           ) : error ? (
             <p className="profile-message">Couldn't load this profile.</p>
           ) : notFound || !profile ? (

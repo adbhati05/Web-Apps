@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { profileService, type ProfileUpdate } from '../services/profile.service';
 import { storageService } from '../services/storage.service';
 import { useUserAuth } from '../auth/UserAuthContext';
+import { useAlert } from '../alerts/AlertContext';
 import type { UserInfo } from '../types';
 
 // These match the limits in the users rules (profileFieldsValid in firestore.rules), so the inputs stop the user before the server would reject the save.
@@ -14,6 +15,7 @@ const BIO_MAX = 150;
 const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
 
     const { refreshUserInfo } = useUserAuth();
+    const { showAlert } = useAlert();
 
     // Each field keeps its own draft, so nothing on the real profile changes until Save, and Discard just resets the drafts.
     const [displayName, setDisplayName] = useState(profile.displayName);
@@ -24,7 +26,6 @@ const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
     const [removePhoto, setRemovePhoto] = useState(false);
 
     const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Same hidden file input trick as UploadPhotoField: the real input stays invisible and the Change photo button clicks it through this ref.
@@ -82,7 +83,6 @@ const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
         if (!trimmedName || !hasChanges || saving) return;
 
         setSaving(true);
-        setSaved(false);
         setError(null);
         try {
             const updates: ProfileUpdate = { displayName: trimmedName, bio: trimmedBio };
@@ -114,7 +114,9 @@ const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
             setBio(trimmedBio);
             setPhotoPreview(null);
             setRemovePhoto(false);
-            setSaved(true);
+
+            // Updates get a success alert, same as every other change in Settings.
+            showAlert('success', "Profile saved.");
         } catch (error) {
             console.error("Failed to save profile:", error);
             setError("Couldn't save your profile. Try again.");
@@ -179,8 +181,6 @@ const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
 
             {error && <p className='edit-profile-error'>{error}</p>}
 
-            {/* Only shown until the next edit, so it never sits next to unsaved changes. */}
-            {saved && !hasChanges && <p className='edit-profile-success'>Profile saved.</p>}
 
             <div className='edit-profile-actions'>
                 <button className='edit-profile-button' onClick={handleDiscard} disabled={!hasChanges || saving}>Discard</button>

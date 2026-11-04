@@ -9,7 +9,11 @@
   /* Primary buttons, hovers */
   --color-text: black;
   --color-danger: tomato;
-  /* Likes, remove buttons, alerts, warnings */
+  /* Likes, remove buttons, error alerts */
+  --color-success: mediumseagreen;
+  /* Success alert icons */
+  --color-warning: orange;
+  /* Warning alert icons (non-blocking problems, like a slow upload) */
   --color-border: rgba(0, 0, 0, 0.75);
   /* Standard border */
   --color-overlay: rgba(0, 0, 0, 0.5);

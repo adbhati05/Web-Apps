@@ -1,5 +1,6 @@
 import './PostFeed.css';
 import PostCard from './PostCard';
+import LoadingSpinner from './LoadingSpinner';
 import { postService } from '../services/post.service';
 import { profileService } from '../services/profile.service';
 import { auth } from '../firebase';
@@ -18,9 +19,9 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
     // Each post's author profile (UID -> profile). Posts only store the author's uid and username, so this is where the profile picture and the link to their profile come from.
     const [authors, setAuthors] = useState<Record<string, UserInfo>>({});
 
-    // Setting up state variables for loading and error.
+    // Setting up state variables for loading and error. error is a simple flag, since what went wrong only matters for the console (the user just sees "Couldn't load posts").
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         // Defining and calling an async function to fetch all the posts via getPosts from postService and populate the posts state variable.
@@ -47,7 +48,9 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
                 setAuthors(postAuthors);
                 setLoading(false);
             } catch (error) {
-                setError(error as string);
+                // Before, a failed fetch looked exactly like an empty feed. Now it's logged and the feed says so.
+                console.error("Failed to load posts:", error);
+                setError(true);
                 setLoading(false);
             }
         };
@@ -60,6 +63,11 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     };
+
+    // Loading, error, and empty feeds each get their own message instead of a blank feed.
+    if (loading) return <LoadingSpinner label="Loading posts..." />;
+    if (error) return <p className="post-feed-message">Couldn't load posts. Try reloading the page.</p>;
+    if (posts.length === 0) return <p className="post-feed-message">No posts yet. Be the first to share a fit!</p>;
 
     return (
         <div className="post-feed-container">

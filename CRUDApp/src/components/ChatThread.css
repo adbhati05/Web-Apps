@@ -128,13 +128,6 @@
     color: var(--color-text-muted);
 }
 
-.chat-thread-error {
-    margin: 0;
-    padding: 0 var(--space-lg) var(--space-sm);
-    font-size: var(--font-size-sm);
-    color: var(--color-danger);
-}
-
 /* The "Replying to" / "Editing message" bar that sits right above the input, with an X to cancel. */
 .chat-thread-context-bar {
     display: flex;

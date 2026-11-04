@@ -3,6 +3,7 @@ import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
+import { useAlert } from '../alerts/AlertContext';
 import { BsHeart, BsHeartFill, BsList } from 'react-icons/bs';
 import type { Comment as CommentData, UserInfo } from '../types';
 
@@ -48,6 +49,8 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
 
     const [liked, setLiked] = useState(initiallyLiked);
 
+    const { showAlert } = useAlert();
+
     // Older comments were written before likeCount existed, so fall back to 0 rather than rendering undefined.
     const [likeCount, setLikeCount] = useState(comment.likeCount ?? 0);
 
@@ -90,9 +93,10 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
         } catch (error) {
             console.error("Failed to toggle comment like:", error);
 
-            // Upon error, rollback both optimistic updates.
+            // Upon error, rollback both optimistic updates and let the user know why the heart flipped back.
             setLiked(isLiked);
             setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+            showAlert("error", "Couldn't update your like. Try again.");
         }
     };
     
@@ -120,6 +124,7 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
         } catch (error) {
             // Staying in edit mode on failure so the draft isn't lost.
             console.error("Failed to edit comment:", error);
+            showAlert("error", "Couldn't save your edit. Try again.");
         }
         setSaving(false);
     };

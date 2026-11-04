@@ -3,6 +3,7 @@ import pfp_placeholder from "../assets/pfp_placeholder.png";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useUserAuth } from "../auth/UserAuthContext";
+import { useAlert } from "../alerts/AlertContext";
 import { useNavigate } from "react-router-dom";
 
 const TopBar = () => {
@@ -31,6 +32,7 @@ const TopBar = () => {
 
   // Setting up the log out functionality by leveraging signOut from UserAuthContext.
   const { signOut } = useUserAuth();
+  const { showAlert } = useAlert();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -39,6 +41,7 @@ const TopBar = () => {
       navigate("/login"); // Redirect to login page ONLY after logOut() is successful in execution.
     } catch (error) {
       console.error("An error occurred while logging out: ", error);
+      showAlert("error", "Couldn't log you out. Try again.");
     }
   };
 

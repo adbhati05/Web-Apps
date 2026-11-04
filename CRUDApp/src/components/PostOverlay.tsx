@@ -1,11 +1,13 @@
 import './PostOverlay.css';
 import Comment from './Comment';
+import LoadingSpinner from './LoadingSpinner';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
 import { profileService } from '../services/profile.service';
 import { useUserAuth } from '../auth/UserAuthContext';
+import { useAlert } from '../alerts/AlertContext';
 import { BsChevronDown, BsHeart, BsXCircle } from 'react-icons/bs';
 import type { Post, Comment as CommentData, UserInfo } from '../types';
 
@@ -21,6 +23,7 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
 
     // The overlay needs the full user profile (not just the UID) since addComment stores the username on the comment doc.
     const { userInfo } = useUserAuth();
+    const { showAlert } = useAlert();
     const currentUserId = userInfo?.uid;
 
     const [comments, setComments] = useState<CommentData[]>([]);
@@ -34,6 +37,7 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
     const [newComment, setNewComment] = useState('');
     const [posting, setPosting] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     // Fetching the post's comments, plus (in parallel) whether the signed-in user has already liked each one.
     useEffect(() => {
@@ -57,7 +61,9 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
                 setLikedByMe(likedFlags);
                 setAuthors(fetchedAuthors);
             } catch (error) {
+                // Shown in place of the list, so a failed load no longer looks like a post with no comments.
                 console.error("Failed to load comments:", error);
+                setLoadError(true);
             }
             setLoading(false);
         };
@@ -97,7 +103,9 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
             setAuthors(prev => ({ ...prev, [userInfo.uid]: userInfo }));
             setNewComment('');
         } catch (error) {
+            // The typed comment stays in the box, so it can just be posted again.
             console.error("Failed to add comment:", error);
+            showAlert("error", "Couldn't post your comment. Try again.");
         }
         setPosting(false);
     };
@@ -115,6 +123,7 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
             setComments(prev => prev.filter(comment => comment.id !== commentId));
         } catch (error) {
             console.error("Failed to delete comment:", error);
+            showAlert("error", "Couldn't delete that comment. Try again.");
         }
     };
 
@@ -193,7 +202,9 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
                     {/* This is the only part of the panel that scrolls, the header and comment box above it stay put. */}
                     <div className='comment-list-container'>
                         {loading ? (
-                            <p className='comment-list-message'>Loading comments...</p>
+                            <LoadingSpinner size="sm" label="Loading comments..." />
+                        ) : loadError ? (
+                            <p className='comment-list-message'>Couldn't load comments.</p>
                         ) : comments.length === 0 ? (
                             <p className='comment-list-message'>No comments yet.</p>
                         ) : (

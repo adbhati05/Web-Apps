@@ -4,6 +4,8 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "./UserAuthContext";
 import { authService } from "../services/auth.service";
+import { useAlert } from "../alerts/AlertContext";
+import { getUsernameError, getEmailError, getPasswordError, USERNAME_MIN, USERNAME_MAX } from "../utils/validation";
 import { Link } from "react-router-dom";
 
 // NOTE: More validation/error-handling code will need to be implemented. DO RESEARCH!
@@ -21,6 +23,10 @@ const SignUpCard = () => {
 
   // Importing the signUp function from UserAuthContext to handle user registration.
   const { signUp } = useUserAuth();
+  const { showAlert } = useAlert();
+
+  // True while the account is being created, which disables the button (so it can't be clicked twice) and changes its label.
+  const [submitting, setSubmitting] = useState(false);
 
   // This function uses the id attribute of the input field it's located in to update the userInfo state object with the value entered by the user via setUserInfo.
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -32,71 +38,33 @@ const SignUpCard = () => {
   // Note: In future, include email verification before allowing the user to log in from sign up (look into this).
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
 
-    // Checking if username is valid by setting up a regex that ensures it can only contain A-z, a-z, 0-9, and underscores.
-    const usernameRegex = /^[A-Za-z0-9_]+$/;
-    if (!usernameRegex.test(userSignUpInfo.username)) {
-      alert("Username can only contain letters, numbers, and underscores.");
+    // Every field is checked here, top to bottom in the same order as the form, and the first problem found is shown as an alert. The form has noValidate (see below), so these replace the browser's own "Please fill out this field" bubbles.
+    // The rules for usernames, emails, and passwords live in src/utils/validation.ts, shared with the Account info settings so both always enforce the same thing.
+    const fieldError =
+      getUsernameError(userSignUpInfo.username)
+      ?? getEmailError(userSignUpInfo.email)
+      ?? getPasswordError(userSignUpInfo.password)
+      ?? (!userSignUpInfo.confirmPassword ? "Please confirm your password." : null)
+      ?? (userSignUpInfo.password !== userSignUpInfo.confirmPassword ? "Passwords must match." : null);
+
+    if (fieldError) {
+      showAlert("error", fieldError);
       return;
     }
 
-    // Checking if username is available via checkUsernameExists from authService.
-    const isUsernameAvailable = await authService.checkUsernameExists(
+    // Checking if username is available via checkUsernameExists from authService. Done last, since it's the only check that needs a database read.
+    const isUsernameTaken = await authService.checkUsernameExists(
       userSignUpInfo.username
     );
-    if (isUsernameAvailable) {
-      alert("Username is already taken.");
+    if (isUsernameTaken) {
+      showAlert("error", "Username is already taken.");
       return;
     }
 
-    // First ensuring password is long enough before proceeding with other checks.
-    if (userSignUpInfo.password.length < 8) {
-      alert("Password must be at least 8 characters long.");
-      return;
-    } else {
-      // Left out `, \, /, ', ", <, and > since these speial characters can cause issues if input is not properly sanitized, leading to XSS or SQL injection attacks.
-      // Setting up a constant for special characters check.
-      const specialChars = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '-', '+', '=', '{', '}', '[', ']', ':', ';', ',', '.', '?', '~', '|'];
-      const hasSpecialChar = specialChars.some((char) =>
-        userSignUpInfo.password.includes(char)
-      );
-
-      // Setting up constants for uppercase, lowercase, and number checks.
-      const hasUpperCase = /[A-Z]/.test(userSignUpInfo.password);
-      const hasLowerCase = /[a-z]/.test(userSignUpInfo.password);
-      const hasNumber = /\d/.test(userSignUpInfo.password);
-
-      if (!hasSpecialChar) {
-        alert("Password must contain at least one special character.");
-        return;
-      }
-
-      if (!hasUpperCase) {
-        alert("Password must contain at least one uppercase letter.");
-        return;
-      }
-
-      if (!hasLowerCase) {
-        alert("Password must contain at least one lowercase letter.");
-        return;
-      }
-
-      if (!hasNumber) {
-        alert("Password must contain at least one number.");
-        return;
-      }
-    }
-
-    // Ensure passwords match before proceeding with sign up.
-    if (userSignUpInfo.password !== userSignUpInfo.confirmPassword) {
-      alert("Passwords must match.");
-      return;
-    }
-
+    setSubmitting(true);
     try {
-      // Logging user info to console for debugging purposes. Will not be in production.
-      console.log("The user info is: ", userSignUpInfo);
-
       // Since both displayName and username depend on the input from the user for the Username field in the sign-up card, userSignUpInfo.username is passed as both displayName and username to signUp.
       await signUp(
         userSignUpInfo.email,
@@ -105,8 +73,27 @@ const SignUpCard = () => {
         userSignUpInfo.username
       );
       navigate("/");
-    } catch (error) {
-      console.log("An error occurred while signing up: ", error);
+      showAlert("success", `Welcome to FitLog, ${userSignUpInfo.username}!`);
+    } catch (caught) {
+      console.log("An error occurred while signing up: ", caught);
+
+      // Firebase Auth errors carry a code like "auth/email-already-in-use", and authService.signUp throws a plain Error with a message for a taken username.
+      const error = caught as { code?: string, message?: string };
+
+      // Showing error alerts for the common sign-up failures. Before, these only went to the console, so the button just appeared to do nothing.
+      if (error.code === "auth/email-already-in-use") {
+        showAlert("error", "An account with that email already exists.");
+      } else if (error.code === "auth/invalid-email") {
+        showAlert("error", "Please enter a valid email address.");
+      } else if (error.message === "That username is already taken.") {
+        // authService.signUp re-checks the username right before creating the account, in case someone took it in the meantime.
+        showAlert("error", error.message);
+      } else {
+        showAlert("error", "Couldn't create your account. Please try again.");
+      }
+
+      // Only reset on failure, since on success the page navigates away.
+      setSubmitting(false);
     }
   };
 
@@ -115,7 +102,8 @@ const SignUpCard = () => {
     // Password rules: At least 8 characters, at least one uppercase and lowercase letter, at least one number, and at least one special character.
     <div className="sign-up-card-container">
       Create Account
-      <form className="sign-up-form-container" onSubmit={handleSubmit}>
+      {/* noValidate turns off the browser's built-in validation bubbles, since handleSubmit checks every field and shows the app's own alerts instead. The required/minLength/maxLength attributes stay for screen readers and to cap typing. */}
+      <form className="sign-up-form-container" onSubmit={handleSubmit} noValidate>
         <div className="sign-up-input-field-container">
           <label className="sign-up-input-label" htmlFor="Username">
             Username:
@@ -128,8 +116,8 @@ const SignUpCard = () => {
             value={userSignUpInfo.username}
             onChange={handleChange}
             required
-            minLength={3}
-            maxLength={16}
+            minLength={USERNAME_MIN}
+            maxLength={USERNAME_MAX}
           />
         </div>
 
@@ -184,8 +172,8 @@ const SignUpCard = () => {
           <li>Must contain at least one special character.</li>
         </ul>
 
-        <button className="sign-up-button" type="submit">
-          Sign up
+        <button className="sign-up-button" type="submit" disabled={submitting}>
+          {submitting ? "Creating account..." : "Sign up"}
         </button>
 
         {/* Add CSS to make link match with rest of card. */}

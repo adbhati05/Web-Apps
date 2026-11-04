@@ -1,6 +1,7 @@
 import TopBar from "../components/TopBar";
 import EditProfileForm from "../components/EditProfileForm";
 import AccountInfoForm from "../components/AccountInfoForm";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useUserAuth } from "../auth/UserAuthContext";
 import { BsPersonCircle, BsInfoCircle, BsChevronRight, BsChevronLeft } from "react-icons/bs";
@@ -55,7 +56,7 @@ const Settings = () => {
             <span>{activeLabel}</span>
           </Link>
           {!userInfo ? (
-            <p className="settings-message">Loading...</p>
+            <LoadingSpinner label="Loading settings..." />
           ) : activeSection === "account-info" ? (
             // Same key reasoning as EditProfileForm below.
             <AccountInfoForm key={userInfo.uid} profile={userInfo} />

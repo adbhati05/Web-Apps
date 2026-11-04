@@ -80,13 +80,19 @@
     padding-right: var(--space-2xl);
 }
 
-.sign-in-button:hover {
+.sign-in-button:hover:not(:disabled) {
     transform: scale(var(--scale-hover));
 }
 
-.sign-in-button:active {
+.sign-in-button:active:not(:disabled) {
     transform: scale(var(--scale-active));
     font-weight: bold;
+}
+
+/* Dimmed while the request is in flight, same treatment as every other disabled button in the app. */
+.sign-in-button:disabled {
+    opacity: 50%;
+    cursor: default;
 }
 
 /* Responsive: on mobile, reduce the large fixed margins and let the input fields fill the card instead of using a fixed 334px width. */

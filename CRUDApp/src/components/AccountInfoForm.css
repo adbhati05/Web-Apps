@@ -70,7 +70,6 @@
 }
 
 .account-info-error,
-.account-info-success,
 .account-info-confirm-message {
     margin: 0;
     font-size: var(--font-size-sm);
@@ -78,10 +77,6 @@
 
 .account-info-error {
     color: var(--color-danger);
-}
-
-.account-info-success {
-    color: var(--color-text-muted);
 }
 
 /* The confirmation box that opens after the first Delete account click. */

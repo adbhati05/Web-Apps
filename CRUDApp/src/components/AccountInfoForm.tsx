@@ -2,9 +2,10 @@ import './AccountInfoForm.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserAuth } from '../auth/UserAuthContext';
+import { useAlert } from '../alerts/AlertContext';
 import { authService } from '../services/auth.service';
 import { profileService } from '../services/profile.service';
-import { getUsernameError, getPasswordError } from '../utils/validation';
+import { getUsernameError, getPasswordError, USERNAME_MAX } from '../utils/validation';
 import type { UserInfo } from '../types';
 
 // TO-DO: More personal info fields (birthdate, gender, etc.) will go in this section as the app grows. Anything shown on the public profile belongs in EditProfileForm instead.
@@ -12,8 +13,8 @@ import type { UserInfo } from '../types';
 // This component is the Account info section of the Settings page: username, email, password, when the account was made, and deleting the account.
 // Each part saves on its own (with its own button and message), since changing the email or password needs the current password and a username change doesn't.
 
-// A message shown under one part of the form after it's saved or fails.
-type Status = { type: 'error' | 'success', message: string } | null;
+// An error shown under one part of the form when saving it fails, so it sits right next to what it's about. Successful saves are success alerts instead (see AlertContext), same as everywhere else in the app.
+type Status = { type: 'error', message: string } | null;
 
 // Which part of the form is mid-save, so only that part's button says "Saving..." and nothing can be double submitted.
 type Busy = 'username' | 'email' | 'password' | 'delete' | null;
@@ -43,6 +44,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
 
     const { user, refreshUserInfo } = useUserAuth();
+    const { showAlert } = useAlert();
     const navigate = useNavigate();
 
     const [busy, setBusy] = useState<Busy>(null);
@@ -96,7 +98,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
             await profileService.getProfileByUid(profile.uid, true);
 
             setUsername(trimmedUsername.toLowerCase());
-            setUsernameStatus({ type: 'success', message: "Username updated." });
+            showAlert('success', "Username updated.");
         } catch (error) {
             console.error("Failed to change username:", error);
             setUsernameStatus({ type: 'error', message: getErrorMessage(error, "Couldn't change your username. Try again.") });
@@ -119,7 +121,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
             await authService.changeEmail(trimmedEmail, emailPassword);
 
             // The email doesn't actually change until the link is clicked (see changeEmail in auth.service), so the message says what happens next.
-            setEmailStatus({ type: 'success', message: `We sent a link to ${trimmedEmail}. Your email will change once you click it, and you may need to log in again afterwards.` });
+            showAlert('success', `We sent a link to ${trimmedEmail}. Your email will change once you click it, and you may need to log in again afterwards.`);
             setNewEmail('');
             setEmailPassword('');
         } catch (error) {
@@ -147,7 +149,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
         setPasswordStatus(null);
         try {
             await authService.changePassword(currentPassword, newPassword);
-            setPasswordStatus({ type: 'success', message: "Password updated." });
+            showAlert('success', "Password updated.");
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -175,6 +177,9 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
 
             // The account is gone, so the auth listener in UserAuthContext signs the user out on its own. Navigating to the login page just makes it immediate.
             navigate('/login', { replace: true });
+
+            // AlertProvider sits outside the router, so this alert carries over to the login page.
+            showAlert('success', "Your account was deleted.");
         } catch (error) {
             console.error("Failed to delete account:", error);
             setDeleteStatus({ type: 'error', message: getErrorMessage(error, "Couldn't delete your account. Try again.") });
@@ -182,9 +187,9 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
         }
     };
 
-    // Renders a part's status message, if it has one.
+    // Renders a part's error message, if it has one.
     const renderStatus = (status: Status) => status && (
-        <p className={status.type === 'error' ? 'account-info-error' : 'account-info-success'}>{status.message}</p>
+        <p className='account-info-error'>{status.message}</p>
     );
 
     return (
@@ -199,6 +204,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
                     type="text"
                     autoComplete="username"
                     aria-label="Username"
+                    maxLength={USERNAME_MAX}
                     value={username}
                     onChange={(e) => { setUsername(e.target.value); setUsernameStatus(null); }}
                 />

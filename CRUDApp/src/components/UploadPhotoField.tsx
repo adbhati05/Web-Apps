@@ -26,8 +26,9 @@ const UploadPhotoField = ({
     // Extracting the file from the event.
     const file = e.target.files?.[0];
     if (file) {
+      // Reported through onError, which the Post page shows as an alert.
       if (file.size > 5 * 1024 * 1024) {
-        alert("File size too large");
+        onError("That photo is too large (max 5MB).");
         return;
       }
 
