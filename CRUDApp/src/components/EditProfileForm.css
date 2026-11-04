@@ -1,0 +1,190 @@
+/* A single column capped at a readable width, like Instagram's edit profile page, rather than stretching across the whole settings panel. */
+.edit-profile-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--space-3xl) var(--space-xl);
+}
+
+.edit-profile-title {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    margin: 0;
+}
+
+/* The picture row sits in its own bordered box, like the one at the top of Instagram's edit profile page, with the photo buttons pushed to the right.
+   Same box as each field below (and each section in Account info): the panel's bluish color with a border. */
+.edit-profile-photo-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.edit-profile-pfp {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-round);
+    background-color: black;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.edit-profile-photo-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    /* flex: 1 pushes the buttons to the right edge, and min-width: 0 lets a long name wrap instead of overflowing. */
+}
+
+.edit-profile-username {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.edit-profile-display-name {
+    font-size: var(--font-size-sm);
+    margin: 0;
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.edit-profile-photo-actions {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-xs);
+}
+
+/* Name and Bio share one bordered box, same as the picture row above (and each section in Account info), so the white inputs inside stand out the same way. */
+.edit-profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.edit-profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+}
+
+.edit-profile-label {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+}
+
+.edit-profile-input,
+.edit-profile-textarea {
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.edit-profile-input {
+    height: var(--input-height);
+}
+
+.edit-profile-textarea {
+    min-height: 90px;
+    resize: vertical;
+    /* Only lets the box be dragged taller, so it can't be pulled wider than the form. */
+    font-family: inherit;
+    /* Textareas don't inherit the page font by default. */
+}
+
+.edit-profile-input:focus,
+.edit-profile-textarea:focus {
+    outline: none;
+    /* Matching every other input in the app, which all drop the browser's default blue focus ring. */
+}
+
+.edit-profile-char-count {
+    align-self: flex-end;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.edit-profile-error,
+.edit-profile-success {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+
+.edit-profile-error {
+    color: var(--color-danger);
+}
+
+.edit-profile-success {
+    color: var(--color-text-muted);
+}
+
+.edit-profile-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+.edit-profile-button {
+    height: var(--button-height-md);
+    background-color: var(--color-bg);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+    color: var(--color-text);
+    padding: 0 var(--space-lg);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.edit-profile-button-save {
+    background-color: var(--color-accent);
+}
+
+.edit-profile-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.edit-profile-button:active:not(:disabled) {
+    transform: scale(var(--scale-active));
+}
+
+/* Dimmed while there's nothing to save or a save is mid-flight, same treatment as the comment Post button. */
+.edit-profile-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+/* Responsive: on mobile the padding tightens and the photo buttons drop onto their own line under the picture. */
+@media (max-width: 500px) {
+    /* The Settings page's back link above the form already says "Edit profile" on mobile, so the heading would just repeat it. */
+    .edit-profile-title {
+        display: none;
+    }
+
+    .edit-profile-container {
+        gap: var(--space-lg);
+        padding: var(--space-lg) var(--space-md);
+    }
+
+    .edit-profile-photo-actions {
+        width: 100%;
+    }
+}

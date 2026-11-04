@@ -1,0 +1,150 @@
+/* Same single readable-width column as the Edit profile form, so the two settings sections line up when switching between them. */
+.account-info-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--space-3xl) var(--space-xl);
+}
+
+.account-info-title {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    margin: 0;
+}
+
+/* Each part of the form (username, email, password, etc.) is a group of fields with its own save button, since each one saves separately.
+   Each group gets a bordered box in the panel's own bluish color, so the white inputs inside still stand out like they do in Edit profile. */
+.account-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+/* One step up from the field labels, so a group with several fields (Password, for instance) still reads as one section. */
+.account-info-section-title {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    margin: 0;
+}
+
+/* A label and its input, same structure and spacing as Edit profile's edit-profile-field. */
+.account-info-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+}
+
+/* Same as edit-profile-label. */
+.account-info-label {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+}
+
+.account-info-detail {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.account-info-input {
+    height: var(--input-height);
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    /* White, same as Edit profile's inputs. */
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.account-info-input:focus {
+    outline: none;
+    /* Matching every other input in the app, which all drop the browser's default blue focus ring. */
+}
+
+.account-info-error,
+.account-info-success,
+.account-info-confirm-message {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+
+.account-info-error {
+    color: var(--color-danger);
+}
+
+.account-info-success {
+    color: var(--color-text-muted);
+}
+
+/* The confirmation box that opens after the first Delete account click. */
+.account-info-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.account-info-confirm-message {
+    font-weight: bold;
+}
+
+.account-info-actions {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: var(--space-sm);
+}
+
+/* Same button as Edit profile's, medium height. */
+.account-info-button {
+    height: var(--button-height-md);
+    background-color: var(--color-bg);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+    color: var(--color-text);
+    padding: 0 var(--space-lg);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.account-info-button-save {
+    background-color: var(--color-accent);
+}
+
+.account-info-button-danger {
+    background-color: var(--color-danger);
+}
+
+.account-info-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.account-info-button:active:not(:disabled) {
+    transform: scale(var(--scale-active));
+}
+
+/* Dimmed while there's nothing to save or a save is mid-flight, same treatment as the Edit profile buttons. */
+.account-info-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+/* Responsive: on mobile the padding tightens, and the heading is hidden since the Settings page's back link above the form already says "Account info". */
+@media (max-width: 500px) {
+    .account-info-title {
+        display: none;
+    }
+
+    .account-info-container {
+        gap: var(--space-lg);
+        padding: var(--space-lg) var(--space-md);
+    }
+}

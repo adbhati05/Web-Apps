@@ -1,9 +1,10 @@
 import './Comment.css';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
 import { BsHeart, BsHeartFill, BsList } from 'react-icons/bs';
-import type { Comment as CommentData } from '../types';
+import type { Comment as CommentData, UserInfo } from '../types';
 
 // The Comment interface from types.ts is renamed to CommentData on import above, since this component already takes the name Comment.
 
@@ -12,6 +13,7 @@ import type { Comment as CommentData } from '../types';
 interface CommentProps {
     postId: string,
     comment: CommentData,
+    author?: UserInfo, // The commenter's profile, looked up by PostOverlay. Optional for the same reason as PostCard's author prop.
     initiallyLiked: boolean, // Whether the signed-in user already has a doc in this comment's likes subcollection (looked up by PostOverlay).
     currentUserId?: string,
     canEdit: boolean, // True only for the comment's author, matching what the security rules permit.
@@ -42,7 +44,7 @@ const formatAge = (dateStr: string): string => {
     return 'Just now';
 };
 
-const Comment = ({ postId, comment, initiallyLiked, currentUserId, canEdit, canDelete, onEdit, onDelete }: CommentProps) => {
+const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEdit, canDelete, onEdit, onDelete }: CommentProps) => {
 
     const [liked, setLiked] = useState(initiallyLiked);
 
@@ -133,11 +135,15 @@ const Comment = ({ postId, comment, initiallyLiked, currentUserId, canEdit, canD
 
     return (
         <div className='comment-row'>
-            <img src={pfp_placeholder} alt="Profile" className='comment-pfp' />
+            <img src={author?.profilePicURL || pfp_placeholder} alt="Profile" className='comment-pfp' />
 
             <div className='comment-body'>
                 <div className='comment-header'>
-                    <p className='comment-username'>{comment.username}</p>
+                    {author ? (
+                        <Link to={`/profile/${author.username}`} className='comment-username comment-username-link'>{author.username}</Link>
+                    ) : (
+                        <p className='comment-username'>{comment.username}</p>
+                    )}
                     <div className='comment-actions'>
                         <button className='comment-like-button' onClick={handleLike}>
                             {liked ? <BsHeartFill className='comment-like-button-liked' /> : <BsHeart />}
