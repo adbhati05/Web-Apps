@@ -1,0 +1,90 @@
+/* These are the rule sets for the error page. The card uses the same frame as the login and sign-up cards (thick border, bluish surface, shadow), so an error still looks like part of the app. */
+.error-layout {
+    width: 500px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    border: var(--border-width-thick) solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.error-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-5xl) var(--space-3xl);
+    text-align: center;
+}
+
+/* The big "404" (or "Oops") at the top, in the muted text color so the title under it is still what reads first. */
+.error-code {
+    margin: 0;
+    font-size: 64px;
+    font-weight: bold;
+    line-height: 1;
+    color: var(--color-text-muted);
+}
+
+.error-title {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+}
+
+.error-text {
+    margin: 0;
+    max-width: 340px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.error-actions {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+/* Large buttons, same as the sign-in button. "Go home" is a Link styled as a button, so it also resets Bootstrap's link color and underline. */
+.error-button {
+    height: var(--button-height-lg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-2xl);
+    background-color: var(--color-bg);
+    font-size: var(--font-size-md);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-lg);
+    color: var(--color-text);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.error-button-primary {
+    background-color: var(--color-accent);
+}
+
+.error-button:hover {
+    color: var(--color-text);
+    transform: scale(var(--scale-hover));
+}
+
+.error-button:active {
+    transform: scale(var(--scale-active));
+    font-weight: bold;
+}
+
+/* Responsive: on mobile the padding tightens and the code shrinks. */
+@media (max-width: 500px) {
+    .error-card {
+        padding: var(--space-4xl) var(--space-xl);
+    }
+
+    .error-code {
+        font-size: 48px;
+    }
+}

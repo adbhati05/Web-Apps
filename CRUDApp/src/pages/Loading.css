@@ -1,0 +1,33 @@
+/* The full-screen loading page: the app name with the spinner under it, centered in the viewport on the same off-white background as every other page. */
+.loading-page {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-bg);
+    opacity: 0;
+    animation: loading-page-fade-in 0.3s ease 0.3s forwards;
+    /* Starts invisible and only fades in if loading takes longer than 0.3s, so quick loads skip it entirely instead of flashing. */
+}
+
+/* Same size and weight as the top bar's FitLog title. */
+.loading-page-title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: bold;
+}
+
+@keyframes loading-page-fade-in {
+    to {
+        opacity: 1;
+    }
+}
+
+/* For users who've asked their device for less motion, the page just appears after the delay instead of fading. */
+@media (prefers-reduced-motion: reduce) {
+    .loading-page {
+        animation-duration: 0s;
+    }
+}

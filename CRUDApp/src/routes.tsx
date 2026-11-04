@@ -76,6 +76,12 @@ export const router = createBrowserRouter([
     element: <SignUp />,
     errorElement: <Error />
   },
+  // Catch-all: "*" matches any URL that none of the routes above do, so a mistyped or outdated link shows the 404 version of the Error page instead of React Router's default error screen.
+  // It sits outside ProtectedRoutes so signed-out visitors get the 404 too, rather than being sent to the login page for a page that doesn't exist.
+  {
+    path: "*",
+    element: <Error />
+  },
 ]);
 
 export default router;

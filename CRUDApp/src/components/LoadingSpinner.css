@@ -1,0 +1,95 @@
+/* The spinner and its label stacked and centered, with some room around them so it doesn't sit flush against whatever's loading. */
+.loading-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-4xl) var(--space-lg);
+}
+
+.loading-spinner-sm {
+    gap: var(--space-sm);
+    padding: var(--space-xl) var(--space-lg);
+}
+
+/* The three dots in a row. */
+.loading-spinner {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-sm);
+}
+
+.loading-spinner-sm .loading-spinner {
+    gap: var(--space-xs);
+}
+
+/* Each dot is the accent color with the app's usual border, same as the unread dot in the chat list. They pulse one after another (the delays below), which is the whole animation. */
+.loading-spinner-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-round);
+    background-color: var(--color-accent);
+    border: var(--border-width) solid var(--color-border);
+    animation: loading-spinner-pulse 1.2s ease-in-out infinite;
+}
+
+.loading-spinner-sm .loading-spinner-dot {
+    width: 8px;
+    height: 8px;
+}
+
+.loading-spinner-dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.loading-spinner-dot:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+/* Each dot grows slightly and fades back, so the motion stays small and calm. */
+@keyframes loading-spinner-pulse {
+    0%, 80%, 100% {
+        opacity: 0.35;
+        transform: scale(0.85);
+    }
+
+    40% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Same muted text as every other loading/empty message in the app. */
+.loading-spinner-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* When there's no label, screen readers still get "Loading" without it showing on screen. */
+.loading-spinner-hidden-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+/* For users who've asked their device for less motion, the dots only fade (no growing), and more slowly. */
+@media (prefers-reduced-motion: reduce) {
+    .loading-spinner-dot {
+        animation-name: loading-spinner-fade;
+        animation-duration: 2s;
+    }
+}
+
+@keyframes loading-spinner-fade {
+    0%, 80%, 100% {
+        opacity: 0.35;
+    }
+
+    40% {
+        opacity: 1;
+    }
+}

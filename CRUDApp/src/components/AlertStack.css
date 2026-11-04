@@ -1,0 +1,124 @@
+/* The stack sits fixed at the top center of the screen, above everything else (including the post overlay, which is at z-index 1000).
+   pointer-events: none lets clicks pass through the empty space around the alerts, and each alert turns them back on for itself. */
+.alert-stack {
+    position: fixed;
+    top: var(--space-xl);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(420px, calc(100vw - 2 * var(--space-lg)));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    z-index: 2000;
+    pointer-events: none;
+}
+
+/* One alert, in the same card style as the rest of the app: off-white background, the usual border and shadow, and rounded corners. */
+.alert-stack-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    pointer-events: auto;
+    animation: alert-stack-enter 0.2s ease-out;
+}
+
+/* Slides down into place and fades in when it appears, and does the reverse (faster) on its way out. */
+.alert-stack-item-leaving {
+    animation: alert-stack-leave 0.15s ease-in forwards;
+}
+
+@keyframes alert-stack-enter {
+    from {
+        opacity: 0;
+        transform: translateY(calc(-1 * var(--space-sm)));
+    }
+}
+
+@keyframes alert-stack-leave {
+    to {
+        opacity: 0;
+        transform: translateY(calc(-1 * var(--space-sm)));
+    }
+}
+
+/* The icon's color is the only thing that changes between alert types. */
+.alert-stack-icon {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.alert-stack-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.alert-stack-item-success .alert-stack-icon {
+    color: var(--color-success);
+}
+
+.alert-stack-item-error .alert-stack-icon {
+    color: var(--color-danger);
+}
+
+.alert-stack-item-warning .alert-stack-icon {
+    color: var(--color-warning);
+}
+
+.alert-stack-item-info .alert-stack-icon {
+    color: var(--color-text-muted);
+}
+
+.alert-stack-message {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    overflow-wrap: anywhere;
+}
+
+/* Same small round icon button as the chat's cancel-reply X. */
+.alert-stack-close {
+    width: var(--button-height-md);
+    height: var(--button-height-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-round);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.alert-stack-close svg {
+    width: 22px;
+    height: 22px;
+}
+
+.alert-stack-close:hover {
+    background-color: var(--color-muted-bg);
+}
+
+/* For users who've asked their device for less motion, alerts just appear and disappear without sliding. */
+@media (prefers-reduced-motion: reduce) {
+    .alert-stack-item,
+    .alert-stack-item-leaving {
+        animation-duration: 0s;
+    }
+}
+
+/* Responsive: on mobile the stack sits a little closer to the top edge. */
+@media (max-width: 500px) {
+    .alert-stack {
+        top: var(--space-md);
+    }
+}
