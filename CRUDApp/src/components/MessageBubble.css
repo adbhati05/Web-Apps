@@ -1,0 +1,235 @@
+/* One message: the bubble (plus its quote and "Edited" label) next to the hover actions. Theirs read left to right (bubble, then actions), and yours are flipped with row-reverse so your bubble hugs the right edge with its actions to its left. */
+.message-bubble-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2xs);
+}
+
+.message-bubble-row-mine {
+    flex-direction: row-reverse;
+}
+
+/* The quote, bubble, and "Edited" label stacked, capped so a long message wraps instead of running across the whole chat. */
+.message-bubble-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 70%;
+    min-width: 0;
+}
+
+.message-bubble-row-mine .message-bubble-content {
+    align-items: flex-end;
+}
+
+/* The bubbles: yours in the accent color, theirs in white, both with the app's usual border.
+   pre-wrap keeps any line breaks, and overflow-wrap stops a long link or word from pushing the bubble wider than the chat. */
+.message-bubble {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    transition: box-shadow 0.3s ease;
+}
+
+.message-bubble-mine {
+    background-color: var(--color-accent);
+}
+
+.message-bubble-theirs {
+    background-color: var(--color-bg);
+}
+
+/* The pointed corner, always on the sender's side (right for yours, left for theirs), which is how chat apps show whose bubble is whose at a glance.
+   A message on its own and the first message of a run point at the bottom, the last message of a run points at the top, and the ones in between stay fully rounded,
+   so a run of back-to-back messages reads as one connected block. */
+.message-bubble-mine.message-bubble-single,
+.message-bubble-mine.message-bubble-first {
+    border-bottom-right-radius: var(--space-2xs);
+}
+
+.message-bubble-mine.message-bubble-last {
+    border-top-right-radius: var(--space-2xs);
+}
+
+.message-bubble-theirs.message-bubble-single,
+.message-bubble-theirs.message-bubble-first {
+    border-bottom-left-radius: var(--space-2xs);
+}
+
+.message-bubble-theirs.message-bubble-last {
+    border-top-left-radius: var(--space-2xs);
+}
+
+/* The brief glow on the original after clicking a reply's quote. */
+.message-bubble-highlighted {
+    box-shadow: 0 0 0 var(--border-width-thick) var(--color-accent), var(--shadow-card);
+}
+
+/* The quote above a reply: a smaller, muted bubble, like Instagram's reply previews. Clicking it jumps to the original.
+   The quote and the reply under it are treated as a run of their own: the quote is the first bubble (pointed at the bottom on the sender's side), and the reply takes the next position (see ChatThread's groupPosition). */
+.message-bubble-quote {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3xs);
+    max-width: 100%;
+    margin-bottom: var(--space-3xs);
+    /* Same gap as between back-to-back messages, so the quote and the reply read as one run. */
+    padding: var(--space-xs) var(--space-md);
+    background-color: var(--color-muted-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    border-bottom-left-radius: var(--space-2xs);
+    color: var(--color-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+/* On your own replies the quote sits on the right, so its pointed corner flips to the right with it. */
+.message-bubble-row-mine .message-bubble-quote {
+    align-items: flex-end;
+    text-align: right;
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--space-2xs);
+}
+
+.message-bubble-quote:hover:not(:disabled) {
+    background-color: var(--color-muted-bg-hover);
+}
+
+/* An unsent original has nothing to jump to. */
+.message-bubble-quote:disabled {
+    cursor: default;
+}
+
+.message-bubble-quote-label {
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    color: var(--color-text-muted);
+}
+
+/* Cut off after two lines with "...", so a reply to a long message doesn't take over the chat. */
+.message-bubble-quote-text {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* The quote's text goes italic when the original was unsent, so it reads as a status rather than a message. */
+.message-bubble-quote:disabled .message-bubble-quote-text {
+    font-style: italic;
+}
+
+.message-bubble-edited {
+    margin-top: var(--space-3xs);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* The hover actions. Hidden (but still taking up their space, so the bubble doesn't shift) until the row is hovered, focused with the keyboard, or the menu is open. */
+.message-bubble-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3xs);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.message-bubble-row:hover .message-bubble-actions,
+.message-bubble-actions:focus-within,
+.message-bubble-actions-open {
+    opacity: 1;
+}
+
+/* Small round icon buttons, same muted look as the comment like/menu buttons. */
+.message-bubble-action-button {
+    width: var(--button-height-md);
+    height: var(--button-height-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-round);
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.message-bubble-action-button svg {
+    width: 18px;
+    height: 18px;
+}
+
+.message-bubble-action-button:hover {
+    background-color: var(--color-muted-bg);
+    color: var(--color-text);
+}
+
+/* The wrapper is the positioning context for the dropdown, so the menu hangs off the 3 dots button rather than the whole row. */
+.message-bubble-menu-container {
+    position: relative;
+}
+
+/* Same dropdown as the comment menu. right: 0 lines its right edge up with the 3 dots, so it opens toward the middle of the chat instead of over the bubble. */
+.message-bubble-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--space-2xs);
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    z-index: 1;
+    /* Sits above the messages below it in the list. */
+}
+
+.message-bubble-menu-item {
+    height: var(--button-height-md);
+    background-color: transparent;
+    border: none;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    text-align: left;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.message-bubble-menu-item:hover {
+    background-color: var(--color-accent);
+}
+
+.message-bubble-menu-item-danger {
+    color: var(--color-danger);
+}
+
+/* Responsive: touch screens can't hover, so the actions always show there (faded, so they don't compete with the messages). A long-press menu would be the nicer fix later (see the to-do list). */
+@media (hover: none) {
+    .message-bubble-actions {
+        opacity: 0.6;
+    }
+}
+
+/* Responsive: on mobile bubbles can use more of the narrower width. */
+@media (max-width: 500px) {
+    .message-bubble-content {
+        max-width: 80%;
+    }
+}

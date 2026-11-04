@@ -1,0 +1,119 @@
+/* The list of people to message, in the Chat page's right side bar. */
+.chat-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    padding: 0 var(--space-md) var(--space-md);
+}
+
+/* Same heading as the Settings page's side bar title. */
+.chat-list-title {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    margin: 0;
+    padding: var(--space-xl) var(--space-xs) var(--space-md);
+}
+
+/* Small label above the people you follow but haven't messaged, same style as the POSTS tab on the profile page. */
+.chat-list-section-title {
+    margin: 0;
+    padding: var(--space-lg) var(--space-xs) var(--space-2xs);
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-text-muted);
+}
+
+/* One person in the list. Bootstrap colors and underlines every link globally, so each row resets both (same as the Settings options). */
+.chat-list-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    text-decoration: none;
+    min-width: 0;
+}
+
+.chat-list-row:hover {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+}
+
+/* The open chat keeps the hover color, so it's clear whose chat you're in. */
+.chat-list-row-active {
+    background-color: var(--color-accent);
+}
+
+.chat-list-pfp {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-round);
+    border: var(--border-width) solid var(--color-border);
+    background-color: black;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* min-width: 0 is what lets a long preview get cut off with "..." instead of pushing the row wider than the side bar. */
+.chat-list-row-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-list-username {
+    font-size: var(--font-size-sm);
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-list-preview {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* An unread chat's preview goes dark and bold, on top of the dot below, like Instagram. */
+.chat-list-row-unread .chat-list-preview {
+    color: var(--color-text);
+    font-weight: bold;
+}
+
+.chat-list-row-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2xs);
+    flex-shrink: 0;
+}
+
+.chat-list-time {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* The border keeps the dot visible on a highlighted row, where its accent color would otherwise blend into the background. */
+.chat-list-unread-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-round);
+    background-color: var(--color-accent);
+    border: var(--border-width) solid var(--color-border);
+}
+
+/* Loading, error, and empty messages. */
+.chat-list-message {
+    margin: 0;
+    padding: var(--space-md) var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}

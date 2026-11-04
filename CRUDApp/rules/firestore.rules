@@ -10,6 +10,17 @@ service cloud.firestore {
   	function isSignedIn() {
     	return request.auth != null;
     }
+
+    // This function turns one of the app's ISO timestamp strings (like "2026-11-04T15:30:45.123Z", what new Date().toISOString() produces) into a rules timestamp, so it can be compared against request.time.
+    // Rules have no built-in way to read a date string, so it's split into its parts by hand. A string in any other format fails to parse and the request is denied, which doubles as a format check.
+    // Used by the chat messages block below for the 15 minute edit window.
+    function isoToTimestamp(s) {
+    	let parts = s.split('T');
+      let date = parts[0].split('-');
+      let time = parts[1].split(':');
+      return timestamp.date(int(date[0]), int(date[1]), int(date[2]))
+      	+ duration.value(int(time[0]) * 3600 + int(time[1]) * 60 + int(time[2].split('[.]')[0]), 's');
+    }
     
     // User docs are the public profile: any signed-in user can read them (profile pages, follower lists, chat headers all need other people's docs).
     // That's only safe because the doc no longer stores email. Rules can't hide individual fields, so anything on this doc is visible to every signed-in user. Firebase Auth keeps the email instead.
@@ -320,6 +331,160 @@ service cloud.firestore {
           allow update: if false;
           allow delete: if isSignedIn() && request.auth.uid == userId;
         }
+      }
+    }
+
+    // One doc per one-to-one chat. The doc id is the two participants' UIDs sorted and joined with an underscore (uidA_uidB), so the same two people can never end up with two chats, and the id alone says who's in it.
+    // Anyone signed in can start a chat with any other user for now (D1 in planning/brainstorming.txt). Blocking/privacy controls would add a gate to the create rule later.
+    match /chats/{chatId} {
+    	// This function checks whether the caller is one of the two people in this chat, read straight off the doc id. The create rule below forces the id to match participantIds, so the id can be trusted.
+      // Reading it off the id (instead of the doc) is also what lets the get rule work on a chat that doesn't exist yet, which the app checks before the first message is sent.
+    	function isParticipant() {
+      	return request.auth.uid in chatId.split('_');
+      }
+
+      // This function handles field-level validation for the latest-message preview of a NEW message, shared by create (the first message) and update case #1 (every message after).
+      // messageId is which message the preview is a copy of, which is what lets the edit/unsend rules below keep the two in sync.
+      function previewValid(p) {
+      	return p.keys().hasOnly(['messageId', 'senderId', 'text', 'createdAt'])
+        	&& p.messageId is string
+        	&& p.senderId == request.auth.uid
+          && p.text is string
+          && p.text.size() > 0
+          && p.text.size() <= 1000
+          && p.createdAt is string;
+      }
+
+      // This function fetches the path of the message the current preview is a copy of (used by update case #3).
+      function previewMessagePath() {
+      	return /databases/$(database)/documents/chats/$(chatId)/messages/$(resource.data.lastMessage.messageId);
+      }
+
+      // Get: only the two participants. List: the chat list query (participantIds array-contains my UID) only ever asks for chats you're in, which is what lets the rules allow it.
+      allow get: if isSignedIn() && isParticipant();
+      allow list: if isSignedIn() && request.auth.uid in resource.data.participantIds;
+
+      // Create: happens in the same batch as the first message (chatService.sendMessage). participantIds has to be exactly two different, sorted UIDs, one of them the caller's, and both real users.
+      // The id has to be those two UIDs joined, and lastRead can only hold the participants' own keys. Sorting with < also rules out starting a chat with yourself, since a UID isn't less than itself.
+      allow create: if isSignedIn()
+      							&& request.resource.data.keys().hasOnly(['participantIds', 'createdAt', 'updatedAt', 'lastMessage', 'lastRead'])
+                    && request.resource.data.participantIds is list
+                    && request.resource.data.participantIds.size() == 2
+                    && request.resource.data.participantIds[0] < request.resource.data.participantIds[1]
+                    && request.auth.uid in request.resource.data.participantIds
+                    && chatId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1]
+                    && exists(/databases/$(database)/documents/users/$(request.resource.data.participantIds[0]))
+                    && exists(/databases/$(database)/documents/users/$(request.resource.data.participantIds[1]))
+                    && request.resource.data.createdAt is string
+                    && request.resource.data.updatedAt is string
+                    && previewValid(request.resource.data.lastMessage)
+                    && request.resource.data.lastRead is map
+                    && request.resource.data.lastRead.keys().hasOnly(request.resource.data.participantIds);
+
+      // The three update cases below are additive, same as the post's update cases: an update goes through if ANY ONE passes, so each one pins down its own field set.
+      // Update case #1: a participant sending a message moves the latest-message preview and updatedAt, which has to match the preview's timestamp so the chat list stays in order.
+      // The preview can't be bound to the message doc from this side (the message id is client-generated, same caveat as the post's commentCount), but the message create rule below closes the other direction: a message can't be sent without the preview moving with it.
+      allow update: if isSignedIn()
+      							&& isParticipant()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'updatedAt'])
+                    && previewValid(request.resource.data.lastMessage)
+                    && request.resource.data.updatedAt == request.resource.data.lastMessage.createdAt;
+
+      // Update case #2: a participant marking the chat as read (chatService.markRead). Only lastRead can move, and inside it only the caller's own key, so nobody can mark a chat read (or unread) on someone else's behalf.
+      allow update: if isSignedIn()
+      							&& isParticipant()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastRead'])
+                    && request.resource.data.lastRead.diff(resource.data.lastRead).affectedKeys().hasOnly([request.auth.uid])
+                    && request.resource.data.lastRead[request.auth.uid] is string;
+
+      // Update case #3: the sender of the latest message keeping the preview in sync when they edit or unsend that message (chatService.editMessage / unsendMessage). Only lastMessage can move, it has to stay a preview of the same message, and updatedAt stays put so editing doesn't bump the chat to the top of the list.
+      // Edit: the preview's text and editedAt have to match the message doc as it will be AFTER the batch. Unsend: the message doc has to be gone after the batch, and the preview is emptied and marked unsent so the list never shows unsent text.
+      // The unsend check comes first, since getAfter() on a deleted message has nothing to read.
+      allow update: if isSignedIn()
+      							&& isParticipant()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage'])
+                    && resource.data.lastMessage.senderId == request.auth.uid
+                    && request.resource.data.lastMessage.messageId == resource.data.lastMessage.messageId
+                    && request.resource.data.lastMessage.senderId == resource.data.lastMessage.senderId
+                    && request.resource.data.lastMessage.createdAt == resource.data.lastMessage.createdAt
+                    && (
+                    	(request.resource.data.lastMessage.keys().hasOnly(['messageId', 'senderId', 'text', 'createdAt', 'unsent'])
+                      	&& request.resource.data.lastMessage.text == ''
+                        && request.resource.data.lastMessage.unsent == true
+                        && !existsAfter(previewMessagePath()))
+                      ||
+                      (request.resource.data.lastMessage.keys().hasOnly(['messageId', 'senderId', 'text', 'createdAt', 'editedAt'])
+                      	&& existsAfter(previewMessagePath())
+                        && request.resource.data.lastMessage.text == getAfter(previewMessagePath()).data.text
+                        && request.resource.data.lastMessage.editedAt == getAfter(previewMessagePath()).data.editedAt)
+                    );
+
+      // Delete: off for now. Deleting a chat would orphan its messages subcollection (same as posts), and "delete for me" vs "delete for both" still needs deciding.
+      allow delete: if false;
+
+      // MUST stay nested inside the chats block (same reason as likes/comments inside posts), which is also what puts chatId in scope.
+      // One doc per message. Messages can be sent, edited by their sender for 15 minutes, and unsent (deleted) by their sender at any time.
+      match /messages/{messageId} {
+      	// This function fetches the path of the parent chat doc, which every write below checks with getAfter() to keep the chat's preview in sync.
+      	function chatPath() {
+        	return /databases/$(database)/documents/chats/$(chatId);
+        }
+
+        // This function checks whether this message is the one the chat's preview is a copy of, AFTER the batch. get() with a fallback covers a preview that has no messageId.
+        function isPreviewedAfter() {
+        	return getAfter(chatPath()).data.lastMessage.get('messageId', '') == messageId;
+        }
+
+        // This function handles validation for an optional reply. A reply only stores which message it's replying to and who sent that one, never a copy of its text, so editing or unsending the original can't leave a stale or unsent quote behind.
+        // get() on the original is what proves it exists in this same chat (a missing doc fails the request), and its senderId has to match.
+        function replyValid(d) {
+        	return !('replyTo' in d)
+          	|| (d.replyTo is map
+            	&& d.replyTo.keys().hasOnly(['messageId', 'senderId'])
+              && d.replyTo.messageId is string
+              && d.replyTo.senderId == get(/databases/$(database)/documents/chats/$(chatId)/messages/$(d.replyTo.messageId)).data.senderId);
+        }
+
+      	// Same participant check as the chat itself. Since it only needs the path, the messages query works without a billed get() on the chat doc for every read.
+      	allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
+
+        // Create: as yourself only, with a known field set, 1-1000 characters of text, and an optional valid reply.
+        // createdAt can't be more than 5 minutes ahead of the server's clock, so a fake future timestamp can't stretch the edit window below (or jump to the top of the chat).
+        // getAfter() reads the chat doc as it will be AFTER the batch commits, which ties the message to its preview: the chat has to exist (or be created in the same batch) with this exact message as its lastMessage.
+        allow create: if isSignedIn()
+        							&& request.auth.uid in chatId.split('_')
+                      && request.resource.data.keys().hasOnly(['senderId', 'text', 'createdAt', 'replyTo'])
+                      && request.resource.data.senderId == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 1000
+                      && request.resource.data.createdAt is string
+                      && isoToTimestamp(request.resource.data.createdAt) < request.time + duration.value(5, 'm')
+                      && replyValid(request.resource.data)
+                      && isPreviewedAfter()
+                      && getAfter(chatPath()).data.lastMessage.senderId == request.resource.data.senderId
+                      && getAfter(chatPath()).data.lastMessage.text == request.resource.data.text
+                      && getAfter(chatPath()).data.lastMessage.createdAt == request.resource.data.createdAt;
+
+        // Update (edit): the sender only, within 15 minutes of sending, and only text + editedAt can move (so an edit can't change who sent it, when, or what it replies to).
+        // If this is the chat's latest message, the preview has to carry the same new text and editedAt after the batch (update case #3 on the chat), so the chat list never shows the old text.
+        allow update: if isSignedIn()
+        							&& request.auth.uid == resource.data.senderId
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 1000
+                      && request.resource.data.editedAt is string
+                      && request.time < isoToTimestamp(resource.data.createdAt) + duration.value(15, 'm')
+                      && (!isPreviewedAfter()
+                      		|| (getAfter(chatPath()).data.lastMessage.text == request.resource.data.text
+                          		&& getAfter(chatPath()).data.lastMessage.get('editedAt', '') == request.resource.data.editedAt));
+
+        // Delete (unsend): the sender only, at any time. If this is the chat's latest message, the preview has to be marked unsent in the same batch (update case #3 on the chat), so its text disappears from the chat list too.
+        // Replies to an unsent message are left as they are: they only point at it by id, so they just show it as unsent.
+        allow delete: if isSignedIn()
+        							&& request.auth.uid == resource.data.senderId
+                      && (!isPreviewedAfter() || getAfter(chatPath()).data.lastMessage.get('unsent', false) == true);
       }
     }
   }

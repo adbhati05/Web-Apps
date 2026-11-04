@@ -146,8 +146,8 @@ const Profile = () => {
                 onStyleBoardClick={() => navigate("/styleboard")}
                 isFollowing={following}
                 onFollowClick={handleFollow}
-                // TO-DO (Phase 3): open the conversation with this user (chatService.getOrCreateConversation, then /chat/:conversationId). For now it just goes to the chat page.
-                onMessageClick={() => navigate("/chat")}
+                // Opens your chat with this user. Nothing is written until the first message is sent, so just looking at the chat doesn't add an empty one to their list.
+                onMessageClick={() => navigate(`/chat/${profile.username}`)}
               />
               <ProfilePostGrid posts={posts} onPostClick={(post) => setSelectedPost(post)} />
             </div>

@@ -47,6 +47,12 @@ export const router = createBrowserRouter([
         element: <Chat />,
         errorElement: <Error />
       },
+      // Same URL parameter idea as /profile/:username. :username is who the open chat is with, so the Message button on a profile (and each row in the chat list) can link straight to it.
+      {
+        path: "/chat/:username",
+        element: <Chat />,
+        errorElement: <Error />
+      },
       {
         path: "/settings",
         element: <Settings />,

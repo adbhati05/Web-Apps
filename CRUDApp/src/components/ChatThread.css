@@ -1,0 +1,272 @@
+/* The open chat fills the middle of the page as a column: header on top, the messages (the only part that scrolls) in the middle, and the input bar pinned to the bottom. */
+.chat-thread-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.chat-thread-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: var(--border-width) solid var(--color-border);
+    flex-shrink: 0;
+}
+
+/* Hidden by default, only shown below 900px where the chat list is hidden while a chat is open (see the media query below). */
+.chat-thread-back-button {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: var(--button-height-md);
+    height: var(--button-height-md);
+    flex-shrink: 0;
+    color: var(--color-text);
+}
+
+.chat-thread-back-button svg {
+    width: 22px;
+    height: 22px;
+}
+
+.chat-thread-back-button:hover {
+    color: var(--color-text);
+    transform: scale(var(--scale-hover));
+}
+
+/* The picture and names link to the other person's profile. Bootstrap colors and underlines every link globally, so this resets both. */
+.chat-thread-profile-link {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    min-width: 0;
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.chat-thread-profile-link:hover {
+    color: var(--color-text);
+}
+
+.chat-thread-profile-link:hover .chat-thread-username {
+    text-decoration: underline;
+}
+
+.chat-thread-pfp {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-round);
+    border: var(--border-width) solid var(--color-border);
+    background-color: black;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.chat-thread-names {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.chat-thread-username {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.chat-thread-display-name {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+}
+
+/* flex: 1 plus min-height: 0 is what lets the message list take up the leftover height and scroll on its own, instead of stretching the whole page. */
+.chat-thread-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-lg);
+}
+
+/* Each message row. Back-to-back messages from the same person sit close together, and a new group gets more room above it. */
+.chat-thread-row {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--space-3xs);
+}
+
+.chat-thread-row-group-start {
+    margin-top: var(--space-md);
+}
+
+/* The small centered timestamp shown when there's a gap in the conversation. */
+.chat-thread-time-label {
+    align-self: center;
+    margin: var(--space-sm) 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* The bubbles themselves (and their hover actions) are styled in MessageBubble.css. */
+
+/* "Seen" / "Sent" under your latest message. */
+.chat-thread-receipt {
+    align-self: flex-end;
+    margin: var(--space-2xs) 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* Loading, error, and "no messages yet" text. margin: auto centers it in the empty message list. */
+.chat-thread-status {
+    margin: auto;
+    padding: var(--space-xl);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.chat-thread-error {
+    margin: 0;
+    padding: 0 var(--space-lg) var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+}
+
+/* The "Replying to" / "Editing message" bar that sits right above the input, with an X to cancel. */
+.chat-thread-context-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
+    border-top: var(--border-width) solid var(--color-border);
+    background-color: var(--color-muted-bg);
+    flex-shrink: 0;
+}
+
+/* min-width: 0 lets a long replied-to message get cut off with "..." instead of pushing the X off the edge. */
+.chat-thread-context-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-thread-context-label {
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+}
+
+.chat-thread-context-preview {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-thread-context-cancel {
+    width: var(--button-height-md);
+    height: var(--button-height-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-round);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.chat-thread-context-cancel svg {
+    width: 22px;
+    height: 22px;
+}
+
+.chat-thread-context-cancel:hover {
+    background-color: var(--color-muted-bg-hover);
+}
+
+/* The input bar at the bottom, same input and button as the comment bar in PostOverlay. */
+.chat-thread-input-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    border-top: var(--border-width) solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.chat-thread-input {
+    flex: 1;
+    min-width: 0;
+    height: var(--input-height);
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.chat-thread-input:focus {
+    outline: none;
+    /* Matching every other input in the app, which all drop the browser's default blue focus ring. */
+}
+
+.chat-thread-send-button {
+    height: var(--button-height-md);
+    background-color: var(--color-accent);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+    color: var(--color-text);
+    padding: 0 var(--space-lg);
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.chat-thread-send-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.chat-thread-send-button:active:not(:disabled) {
+    transform: scale(var(--scale-active));
+    font-weight: bold;
+}
+
+/* Dimmed while the input is empty or a message is mid-send, same treatment as the comment Post button. */
+.chat-thread-send-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+/* Responsive: below 900px the chat list is hidden while a chat is open (see Chat.css), so the back button shows to get back to it. */
+@media (max-width: 900px) {
+    .chat-thread-back-button {
+        display: flex;
+    }
+}
+
+/* Responsive: on mobile the padding tightens. */
+@media (max-width: 500px) {
+    .chat-thread-header,
+    .chat-thread-context-bar,
+    .chat-thread-input-bar {
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    .chat-thread-messages {
+        padding: var(--space-md);
+    }
+}

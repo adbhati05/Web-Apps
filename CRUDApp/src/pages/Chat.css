@@ -1,3 +1,5 @@
+/* These are the rule sets for the chat page, which has the nav on the left, the open chat in the middle, and the list of people to message on the right. */
+/* The layout box and side bars match the Home page (1/5 nav, 3/5 middle, 1/5 right side bar), only the content inside differs. */
 .chat-main-layout {
     width: 80vw;
     height: 85vh;
@@ -17,9 +19,23 @@
     border-bottom-left-radius: 10px;
 }
 
+/* The middle doesn't scroll as a whole: the open chat scrolls only its message list, so the header and the input bar stay put (see ChatThread.css). */
 .chat-container {
-    flex: 4;
+    flex: 3;
     height: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+}
+
+/* Same logic as the Home page's right side bar, the border radius statements are dedicated for the top/bottom right corners of the bar. */
+.chat-right-side-bar {
+    flex: 1;
+    height: 100%;
+    min-width: 0;
     overflow-y: auto;
     background-color: var(--color-surface);
     border: var(--border-width) solid var(--color-border);
@@ -27,14 +43,65 @@
     border-bottom-right-radius: 10px;
 }
 
-/* Responsive: at tablet the layout stays side-by-side and just widens to fill more of the viewport. */
+/* What the middle shows on plain /chat, before a chat is picked. */
+.chat-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    height: 100%;
+    padding: var(--space-xl);
+    text-align: center;
+}
+
+.chat-empty-state-title {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    margin: 0;
+}
+
+.chat-empty-state-text {
+    margin: 0;
+    max-width: 320px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Loading and not-found messages in the middle. */
+.chat-message {
+    margin: 0;
+    padding: var(--space-4xl) var(--space-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Responsive: below 900px (same point the Home page drops its right side bar) the chat and the list can't both fit next to the nav, so only one shows, like Instagram's DMs on a phone.
+   Plain /chat shows the list, and /chat/:username shows the chat with a back button to the list. chat-thread-open (set in Chat.tsx) decides which. */
+@media (max-width: 900px) {
+    .chat-main-layout:not(.chat-thread-open) .chat-container,
+    .chat-thread-open .chat-right-side-bar {
+        display: none;
+    }
+
+    /* Whichever pane is showing takes over the space of both, and the right-hand corners. */
+    .chat-container,
+    .chat-right-side-bar {
+        flex: 4;
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+}
+
+/* Responsive: at tablet the side-by-side layout just widens to fill more of the viewport. */
 @media (max-width: 768px) {
     .chat-main-layout {
         width: 95vw;
     }
 }
 
-/* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the container carries its own fully rounded corners and shadow. */
+/* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the pane that's showing carries its own fully rounded corners and shadow. */
 @media (max-width: 500px) {
     .chat-main-layout {
         flex-direction: column;
@@ -52,8 +119,10 @@
         margin-bottom: var(--space-md);
     }
 
-    .chat-container {
+    .chat-container,
+    .chat-right-side-bar {
         flex: 1;
+        min-height: 0;
         border-radius: 10px;
         box-shadow: var(--shadow-card);
     }
