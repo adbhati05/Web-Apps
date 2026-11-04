@@ -36,6 +36,12 @@ export const router = createBrowserRouter([
         element: <Profile />,
         errorElement: <Error />
       },
+      // The :username part is a URL parameter, so /profile/alice and /profile/bob both render Profile, which reads the name back out with useParams(). Plain /profile (above) stays as your own profile.
+      {
+        path: "/profile/:username",
+        element: <Profile />,
+        errorElement: <Error />
+      },
       {
         path: "/chat",
         element: <Chat />,
@@ -43,6 +49,12 @@ export const router = createBrowserRouter([
       },
       {
         path: "/settings",
+        element: <Settings />,
+        errorElement: <Error />
+      },
+      // Same URL parameter idea as /profile/:username. :section picks which part of the settings page is open (/settings/edit-profile, for instance).
+      {
+        path: "/settings/:section",
         element: <Settings />,
         errorElement: <Error />
       }

@@ -1,5 +1,5 @@
 // Include support for different sign-in methods, like via Google or socials (displayName will need to be added to UserInfo for that as well as functions in this doc supporting those sign-in options).
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail, updatePassword, deleteUser as deleteAuthUser } from 'firebase/auth';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { UserInfo } from '../types';
@@ -98,6 +98,62 @@ export const authService = {
         batch.delete(doc(db, "users", uid));
         batch.delete(doc(db, "usernames", userInfo.username));
         await batch.commit();
+    },
+
+    // Firebase Auth only allows sensitive changes (email, password, deleting the account) if the user signed in recently, otherwise it throws auth/requires-recent-login.
+    // Asking for the current password and re-signing in with it right before the change satisfies that check every time, and doubles as proof that it's really the account owner at the keyboard.
+    async reauthenticate(currentPassword: string): Promise<void> {
+        const user = auth.currentUser;
+        if (!user || !user.email) throw new Error("No signed-in user.");
+
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        await reauthenticateWithCredential(user, credential);
+    },
+
+    // This function starts an email change. Rather than switching the email right away, verifyBeforeUpdateEmail sends a link to the NEW address and only swaps it once that link is clicked, so a typo can't lock the user out of their account.
+    // (The older updateEmail function switches it immediately, but Firebase blocks it on projects with email enumeration protection on, which is the default now.)
+    async changeEmail(newEmail: string, currentPassword: string): Promise<void> {
+        await this.reauthenticate(currentPassword);
+        await verifyBeforeUpdateEmail(auth.currentUser!, newEmail);
+    },
+
+    // This function changes the signed-in user's password after confirming the current one.
+    async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        await this.reauthenticate(currentPassword);
+        await updatePassword(auth.currentUser!, newPassword);
+    },
+
+    // This function renames a user. Usernames live in two places (the user doc and its claim doc in "usernames"), so all three writes go in one atomic batch:
+    // claim the new name, give up the old one, and point the user doc at the new one. The security rules (users update case #4) only accept the username change as part of this exact batch.
+    // Posts and comments still store the old username, but the UI shows each author's live username from their user doc, so they update on their own.
+    async changeUsername(uid: string, oldUsername: string, newUsername: string): Promise<void> {
+        const username = newUsername.toLowerCase();
+
+        // Same pre-check as signUp. The real guarantee is still the rules: a claim doc can only be created, never overwritten, so if someone grabs the name first this whole batch fails.
+        if (await this.checkUsernameExists(username)) {
+            throw new Error("That username is already taken.");
+        }
+
+        const batch = writeBatch(db);
+        batch.set(doc(db, "usernames", username), {
+            uid,
+            username,
+            createdAt: new Date().toISOString()
+        });
+        batch.delete(doc(db, "usernames", oldUsername));
+        batch.update(doc(db, "users", uid), { username });
+        await batch.commit();
+    },
+
+    // This function permanently deletes the signed-in user's account: first their Firestore docs (via deleteUser above), then the Firebase Auth account itself.
+    // The order matters, since the Firestore rules need the user to still be signed in to delete their own docs. Re-authenticating first is what keeps the Auth deletion from failing afterwards with requires-recent-login.
+    // NOTE: their posts, comments, likes, follow docs, and Storage images are NOT removed here (a client can't clean all of that up safely). That's the account deletion Cloud Function on the to-do list.
+    async deleteAccount(currentPassword: string): Promise<void> {
+        await this.reauthenticate(currentPassword);
+
+        const user = auth.currentUser!;
+        await this.deleteUser(user.uid);
+        await deleteAuthUser(user);
     },
 
     // As its name suggests, this function returns a boolean indicating a username's existence in the "usernames" collection.

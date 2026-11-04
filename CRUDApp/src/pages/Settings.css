@@ -29,6 +29,66 @@
     border-bottom-right-radius: 10px;
 }
 
+.settings-title {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    margin: 0;
+    padding: var(--space-xl) var(--space-lg) var(--space-md);
+}
+
+/* The list of settings sections in the left side bar. */
+.settings-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    padding: 0 var(--space-md) var(--space-md);
+}
+
+/* Bootstrap colors and underlines every link globally, so each option resets both. */
+.settings-option {
+    height: var(--button-height-lg);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-md);
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.settings-option svg {
+    height: 20px;
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.settings-option:hover {
+    background-color: var(--color-accent);
+    color: var(--color-text);
+}
+
+/* The open section keeps the hover color and goes bold, so it's clear which one you're in. */
+.settings-option-active {
+    background-color: var(--color-accent);
+    font-weight: bold;
+}
+
+/* The chevron on each option and the back link above an open section are mobile-only (see the 500px block below). */
+.settings-option-chevron,
+.settings-back-link {
+    display: none;
+}
+
+.settings-message {
+    margin: 0;
+    padding: var(--space-4xl) var(--space-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
 /* Responsive: at tablet the layout stays side-by-side and just widens to fill more of the viewport. */
 @media (max-width: 768px) {
     .settings-main-layout {
@@ -36,7 +96,8 @@
     }
 }
 
-/* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the container carries its own fully rounded corners and shadow. */
+/* Responsive: on mobile the page works like Instagram's settings. Plain /settings shows only the list of options as full-width rows with a chevron, and tapping one goes to /settings/:section, which shows only that section with a back link to the list.
+   settings-section-open (set in Settings.tsx when the URL has a section) decides which of the two panes is hidden. */
 @media (max-width: 500px) {
     .settings-main-layout {
         flex-direction: column;
@@ -45,18 +106,62 @@
         box-shadow: none;
     }
 
+    /* The list of options becomes its own card, same frame as the container. */
     .settings-left-side-bar {
-        flex: none;
-        height: auto;
+        flex: 1;
+        border-radius: 10px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .settings-options {
+        gap: 0;
+        padding: 0;
+    }
+
+    /* Each option is a full-width row with a line between it and the next, and no highlight, since nothing is "open" while the list is showing. */
+    .settings-option,
+    .settings-option-active {
+        border-radius: 0;
+        border-top: var(--border-width) solid var(--color-border);
         background-color: transparent;
-        border: none;
-        overflow: visible; /* Lets the floating buttons' hover scale and shadows render outside the strip. */
-        margin-bottom: var(--space-md);
+        font-weight: normal;
+    }
+
+    .settings-option-chevron {
+        display: block;
+        margin-left: auto;
+        /* Pushes the chevron to the right end of the row. */
     }
 
     .settings-container {
         flex: 1;
         border-radius: 10px;
         box-shadow: var(--shadow-card);
+    }
+
+    /* Only one pane at a time: the list on plain /settings, the section once one is picked. */
+    .settings-main-layout:not(.settings-section-open) .settings-container,
+    .settings-section-open .settings-left-side-bar {
+        display: none;
+    }
+
+    /* The back link sits at the top of an open section, styled like a row from the list. Bootstrap colors and underlines every link globally, so it resets both like the options do. */
+    .settings-back-link {
+        height: var(--button-height-lg);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-md);
+        padding: 0 var(--space-lg);
+        border-bottom: var(--border-width) solid var(--color-border);
+        font-size: var(--font-size-md);
+        font-weight: bold;
+        color: var(--color-text);
+        text-decoration: none;
+    }
+
+    .settings-back-link:hover {
+        background-color: var(--color-accent);
+        color: var(--color-text);
     }
 }
