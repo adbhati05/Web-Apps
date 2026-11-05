@@ -106,10 +106,6 @@
     text-decoration: none;
 }
 
-.post-info-account-link:hover .username {
-    text-decoration: underline;
-}
-
 .username {
     font-size: var(--font-size-md);
     font-weight: bold;
