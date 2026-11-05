@@ -99,7 +99,9 @@ describe('fits', () => {
         assertSucceeds(setDoc(doc(as('alice'), 'users/alice/fits/f1'), fit())));
 
     it('the name is optional', () => {
-        const { name: _name, ...unnamed } = fit();
+        // Same fit with the name left out entirely (fitService.createFit skips the field when there's no name).
+        const unnamed: Record<string, unknown> = fit();
+        delete unnamed.name;
         return assertSucceeds(setDoc(doc(as('alice'), 'users/alice/fits/f1'), unnamed));
     });
 

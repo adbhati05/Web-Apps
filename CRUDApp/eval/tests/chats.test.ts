@@ -1,7 +1,7 @@
 // Rules for chats/{chatId} and chats/{chatId}/messages/{messageId}.
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch, type Firestore, type DocumentData } from 'firebase/firestore';
 import { startEnv, clearAll, stopEnv, as, seed, now } from './helpers';
 
 beforeAll(startEnv);
@@ -35,7 +35,7 @@ function firstMessageBatch(db: Firestore, chatId: string, sender: string, partic
 }
 
 // Mirrors chatService.sendMessage for an existing chat: the preview update and the message doc in one batch.
-function nextMessageBatch(db: Firestore, chatId: string, messageId: string, msg: Msg, preview: Record<string, unknown> = { lastMessage: previewOf(messageId, msg), updatedAt: msg.createdAt }) {
+function nextMessageBatch(db: Firestore, chatId: string, messageId: string, msg: Msg, preview: DocumentData = { lastMessage: previewOf(messageId, msg), updatedAt: msg.createdAt }) {
     const batch = writeBatch(db);
     batch.update(doc(db, 'chats', chatId), preview);
     batch.set(doc(db, 'chats', chatId, 'messages', messageId), msg);
@@ -205,7 +205,7 @@ describe('unsending messages', () => {
     beforeEach(() => seedChat(60));
 
     // Mirrors chatService.unsendMessage. m2 is the latest message, so the preview is emptied and marked unsent with it.
-    const unsendLatest = (db: Firestore, preview: Record<string, unknown> = { 'lastMessage.text': '', 'lastMessage.unsent': true }) => {
+    const unsendLatest = (db: Firestore, preview: DocumentData = { 'lastMessage.text': '', 'lastMessage.unsent': true }) => {
         const batch = writeBatch(db);
         batch.delete(doc(db, 'chats/alice_bob/messages/m2'));
         batch.update(doc(db, 'chats/alice_bob'), preview);
