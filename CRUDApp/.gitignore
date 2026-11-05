@@ -27,5 +27,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Choosing to ignore text files for now, but this can be changed if needed.
-*.txt
+# Choosing to ignore planning folder for now, as it is not part of the main app and is used to store notes/future ideas.
+planning/
+
+# Choosing to ignore the info folder for now, as it is strictly for internal use and codebase analytics.
+info/

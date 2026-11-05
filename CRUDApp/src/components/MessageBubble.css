@@ -218,7 +218,7 @@
     height: var(--button-height-md);
     background-color: transparent;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-menu-item);
     padding: var(--space-sm) var(--space-md);
     font-size: var(--font-size-sm);
     text-align: left;

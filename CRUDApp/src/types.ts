@@ -57,6 +57,14 @@ export interface Comment {
     createdAt: string;
     editedAt?: string; // Only set once the author edits the comment, which is what the UI uses to mark it as edited.
     likeCount: number; // Denormalized count of docs in this comment's own likes subcollection, same pattern as the post's counters above.
+    piece?: CommentPiece; // Only set when the comment is about one specific piece of the post (picked with a piece's Comment option).
+}
+
+// A copy of the post's piece that a comment is about, shown above the comment in the same shape as the piece on the post.
+// pieceIndex is which of the post's pieces it is, which is what the rules check the copy against. Comments can't be edited to change it.
+export interface CommentPiece extends PieceDetail {
+    pieceIndex: number;
+    hasDetails: boolean; // Copied from the post, so the comment shows the piece as an expandable one only if the post did.
 }
 
 // This will represent each doc in a user's followers or following subcollection (users/{uid}/followers/{followerUid} and users/{uid}/following/{followedUid}).
@@ -104,4 +112,39 @@ export interface Message {
     createdAt: string; // ISO string like everything else for now; see the timestamps decision in planning/brainstorming.txt.
     editedAt?: string; // Only set once the sender edits the message (allowed for 15 minutes after sending), which is what the UI uses to mark it as edited.
     replyTo?: MessageReply; // Only set when the message is a reply to another one.
+}
+
+// This will represent each doc in a user's archive (users/{uid}/archive/{pieceId}), the list of pieces in the right side bar of their style board.
+// A piece gets there two ways: favoriting it from someone's post (source "favorite"), or adding one of your own (source "own").
+// It's a copy of the piece rather than a link to the post, so the archive doesn't break if the post changes or is deleted.
+// A favorite's doc ID is postId_pieceIndex, which is what stops the same piece from being favorited twice. Your own pieces get an auto-generated ID.
+export interface ArchivedPiece extends PieceDetail {
+    id: string; // The doc ID. Not stored as a field, it's filled in from the doc when reading.
+    hasDetails: boolean; // Whether the piece came with details (price, size, etc.), which decides whether it's shown as an expandable piece.
+    source: 'favorite' | 'own';
+    fromUid: string; // Who the piece is from: the post's owner for a favorite, yourself for your own.
+    fromUsername: string; // Their username when the piece was added, shown under the piece's name.
+    postId?: string; // Favorites only: which post (and which of its pieces) this came from.
+    pieceIndex?: number;
+    createdAt: string;
+}
+
+// The five parts of an outfit, in the order the fit form and fit cards show them.
+export type FitSection = 'headwear' | 'tops' | 'bottoms' | 'footwear' | 'accessories';
+
+// A piece inside a planned fit: a copy of the archived piece it was picked from, so removing that piece from the archive later doesn't change fits that already use it.
+export interface FitPiece extends PieceDetail {
+    archiveId: string; // Which archived piece it was picked from, so the fit form can tell which pieces are already in a section.
+    hasDetails: boolean;
+    fromUsername: string;
+}
+
+// This will represent each doc in a user's fits (users/{uid}/fits/{fitId}), the planned outfits on their style board.
+// Each section holds any number of pieces (up to 10, enforced by the rules), so layered tops or several accessories both work.
+export interface Fit {
+    id: string; // The doc ID. Not stored as a field, it's filled in from the doc when reading.
+    name?: string; // Optional. A fit without one is shown as "Fit #" plus its position on the board.
+    sections: Record<FitSection, FitPiece[]>;
+    createdAt: string;
+    updatedAt?: string; // Only set once the fit is edited.
 }

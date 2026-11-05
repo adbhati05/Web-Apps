@@ -1,0 +1,185 @@
+/* One piece: the same accent-colored block the post cards have always used for pieces, now with the name as a button and the details below it when expanded. */
+.piece-item {
+    position: relative;
+    width: 100%;
+    background-color: var(--color-accent);
+    border-radius: var(--radius-sm);
+    transition: transform 0.15s ease;
+}
+
+/* The whole piece grows slightly when its name is hovered or clicked, same as the app's other buttons. :has() lets the piece react to its own name button, so the chevron keeps its own separate hover. */
+.piece-item:has(.piece-item-name-button:hover) {
+    transform: scale(1.02);
+}
+
+.piece-item:has(.piece-item-name-button:active) {
+    transform: scale(1.04);
+}
+
+/* While the menu is open the piece sits above the pieces below it, so the menu isn't hidden underneath them. */
+.piece-item-menu-open {
+    z-index: 2;
+}
+
+/* The name on the left and the chevron on the right, at the large button height. */
+.piece-item-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-height: var(--button-height-lg);
+}
+
+/* The wrapper is the positioning context for the menu, so it opens right under the name. */
+.piece-item-name-container {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
+    display: flex;
+}
+
+/* The name button covers the whole left side of the piece, so the click target is the piece itself rather than just its text. It resets the browser's button look (and Bootstrap's underlines) so it reads as part of the piece. */
+.piece-item-name-button,
+.piece-item-name-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--space-3xs);
+    padding: var(--space-sm) var(--space-lg);
+    background-color: transparent;
+    border: none;
+    color: var(--color-text);
+    text-align: left;
+    text-decoration: none;
+}
+
+.piece-item-name-button {
+    cursor: pointer;
+}
+
+.piece-item-name {
+    font-size: var(--font-size-md);
+    overflow-wrap: anywhere;
+}
+
+/* The smaller line under the name, like "from bob" in the archive. */
+.piece-item-subtitle {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* The chevron that shows and hides the details. It's its own button, separate from the name: hovering or clicking it grows the chevron itself (no background), same as the app's other icon buttons.
+   It rotates to point up while the details are open, so the open rules keep that rotation while scaling. */
+.piece-item-expand-button {
+    width: var(--button-height-md);
+    height: var(--button-height-md);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: var(--space-sm);
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.piece-item-expand-button svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.15s ease;
+}
+
+.piece-item-expand-button:hover svg {
+    transform: scale(var(--scale-icon-sm-hover));
+}
+
+.piece-item-expand-button:active svg {
+    transform: scale(var(--scale-icon-sm-active));
+}
+
+.piece-item-expand-button-open svg {
+    transform: rotate(180deg);
+}
+
+.piece-item-expand-button-open:hover svg {
+    transform: rotate(180deg) scale(var(--scale-icon-sm-hover));
+}
+
+.piece-item-expand-button-open:active svg {
+    transform: rotate(180deg) scale(var(--scale-icon-sm-active));
+}
+
+/* The details, under a line that separates them from the name (same as the old accordion's expanded look). */
+.piece-item-detail-list {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-sm) var(--space-lg) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    border-top: var(--border-width) solid var(--color-border);
+}
+
+.piece-item-detail-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-md);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+}
+
+/* Same dropdown as the comment and message menus, opening under the name. */
+.piece-item-menu {
+    position: absolute;
+    top: 100%;
+    left: var(--space-md);
+    margin-top: var(--space-2xs);
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    z-index: 2;
+}
+
+.piece-item-menu-item {
+    height: var(--button-height-md);
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-menu-item);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    text-align: left;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.piece-item-menu-item:hover {
+    background-color: var(--color-accent);
+}
+
+.piece-item-menu-item-danger {
+    color: var(--color-danger);
+}
+
+/* For users who've asked their device for less motion, pieces don't grow and the chevron flips without turning. */
+@media (prefers-reduced-motion: reduce) {
+    .piece-item,
+    .piece-item-expand-button svg {
+        transition: none;
+    }
+
+    .piece-item:has(.piece-item-name-button:hover),
+    .piece-item:has(.piece-item-name-button:active) {
+        transform: none;
+    }
+}

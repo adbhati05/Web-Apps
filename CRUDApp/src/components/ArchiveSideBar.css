@@ -1,0 +1,71 @@
+/* The archive list in the style board's right side bar. */
+.archive-side-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: 0 var(--space-md) var(--space-md);
+}
+
+/* Same heading as the Settings and chat side bars. */
+.archive-side-bar-title {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    margin: 0;
+    padding: var(--space-xl) var(--space-xs) var(--space-2xs);
+}
+
+/* The Add piece button stretches across the side bar at the large button height (same as the post form's Add Piece button), in the accent color like the app's other primary buttons. */
+.archive-side-bar-add-button {
+    height: var(--button-height-lg);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3xs);
+    background-color: var(--color-accent);
+    font-size: var(--font-size-md);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-lg);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.archive-side-bar-add-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+.archive-side-bar-add-button:hover {
+    transform: scale(var(--scale-hover));
+}
+
+.archive-side-bar-add-button:active {
+    transform: scale(var(--scale-active));
+}
+
+/* The pieces, spaced a little more than on post cards so each one (with its "from" line) reads separately. */
+.archive-side-bar-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-top: var(--space-2xs);
+}
+
+/* In the archive, pieces start out plain and only take the accent color on hover (or while their menu is open), same as the people in the chat side bar.
+   This only changes the archive. Pieces on post cards and comments keep their accent color, which is what makes them read as part of the post. */
+.archive-side-bar-list .piece-item {
+    background-color: transparent;
+}
+
+.archive-side-bar-list .piece-item:hover,
+.archive-side-bar-list .piece-item-menu-open {
+    background-color: var(--color-accent);
+}
+
+/* Loading, error, and empty messages. */
+.archive-side-bar-message {
+    margin: 0;
+    padding: var(--space-md) var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}

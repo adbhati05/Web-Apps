@@ -1,0 +1,198 @@
+/* The fit form inside the modal: the name, then one box per part of the outfit. */
+.fit-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.fit-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+}
+
+/* Same bold labels as the settings forms. */
+.fit-form-label {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+}
+
+.fit-form-optional {
+    font-weight: normal;
+    color: var(--color-text-muted);
+}
+
+.fit-form-input {
+    height: var(--input-height);
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.fit-form-input:focus {
+    outline: none;
+    /* Matching every other input in the app, which all drop the browser's default blue focus ring. */
+}
+
+.fit-form-hint {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Each part of the outfit gets the same bordered box as the settings sections, with the white chips inside standing out against it. */
+.fit-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.fit-form-section-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* The section's Add button, small since there are five of them. */
+.fit-form-add-button {
+    height: var(--button-height-md);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3xs);
+    padding: 0 var(--space-md) 0 var(--space-sm);
+    background-color: var(--color-accent);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.fit-form-add-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+.fit-form-add-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.fit-form-add-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+/* The picked pieces, as accent pills that wrap onto new lines. */
+.fit-form-chips {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+}
+
+.fit-form-chip {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3xs);
+    max-width: 100%;
+    padding: var(--space-3xs) var(--space-3xs) var(--space-3xs) var(--space-md);
+    background-color: var(--color-accent);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+    font-size: var(--font-size-sm);
+}
+
+.fit-form-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fit-form-chip-remove {
+    width: var(--button-height-sm);
+    height: var(--button-height-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+/* The X itself grows on hover and click (no background), sized by the icon like every other icon button (see --scale-icon-* in App.css). */
+.fit-form-chip-remove svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.15s ease;
+}
+
+.fit-form-chip-remove:hover svg {
+    transform: scale(var(--scale-icon-sm-hover));
+}
+
+.fit-form-chip-remove:active svg {
+    transform: scale(var(--scale-icon-sm-active));
+}
+
+.fit-form-empty {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* The list of archive pieces to pick from: a white box that scrolls on its own once it's long, so a big archive doesn't push the rest of the form away. */
+.fit-form-picker {
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+/* Each row is a whole-width button: the piece name with who it's from under it. */
+.fit-form-picker-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3xs);
+    padding: var(--space-sm) var(--space-md);
+    background-color: transparent;
+    border: none;
+    border-bottom: var(--border-width) solid var(--color-muted-bg);
+    border-radius: var(--radius-menu-item);
+    color: var(--color-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+.fit-form-picker-item:last-child {
+    border-bottom: none;
+}
+
+.fit-form-picker-item:hover {
+    background-color: var(--color-accent);
+}
+
+.fit-form-picker-name {
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+}
+
+.fit-form-picker-from {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}

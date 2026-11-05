@@ -1,0 +1,156 @@
+/* The board: 3 columns of square cells, with the plus button in the first one and fits filling the rest left to right, then down (more rows get added as more fits are planned). */
+.fit-board-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+}
+
+/* The big plus button: the same dashed gray box as the photo upload field on the Post page. Like the upload field, the box and its label stay still, and only the gray + grows, and only while the pointer is on the + itself (the same way the upload field's button only grows when it's the thing being hovered). The whole box is still clickable. */
+.fit-board-add-button {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    background-color: var(--color-muted-bg);
+    border: var(--border-width-thick) dashed var(--color-muted);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+/* Same gray as the upload field's cloud icon. */
+.fit-board-add-button svg {
+    width: 48px;
+    height: 48px;
+    color: var(--color-muted);
+    transition: transform 0.15s ease;
+}
+
+.fit-board-add-button svg:hover {
+    transform: scale(var(--scale-icon-lg-hover));
+}
+
+.fit-board-add-button svg:active {
+    transform: scale(var(--scale-icon-lg-active));
+}
+
+.fit-board-add-label {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+}
+
+/* One planned fit: a square card in the app's usual card style. Its piece list scrolls inside the card if it's long, so every card stays the same size. */
+.fit-board-card {
+    aspect-ratio: 1 / 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    color: var(--color-text);
+    text-align: left;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.fit-board-card:hover {
+    transform: scale(1.02);
+}
+
+.fit-board-card:active {
+    transform: scale(1.04);
+}
+
+.fit-board-card-title {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    padding-bottom: var(--space-xs);
+    border-bottom: var(--border-width) solid var(--color-border);
+    overflow-wrap: anywhere;
+}
+
+.fit-board-card-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.fit-board-card-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+}
+
+/* Same small uppercase label as the POSTS tab on profiles. */
+.fit-board-card-section-label {
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-text-muted);
+}
+
+.fit-board-card-section-pieces {
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+}
+
+.fit-board-message {
+    margin: 0;
+    padding: var(--space-4xl) var(--space-lg);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* For users who've asked their device for less motion, the + and the cards don't grow. */
+@media (prefers-reduced-motion: reduce) {
+    .fit-board-add-button svg,
+    .fit-board-card {
+        transition: none;
+    }
+
+    .fit-board-add-button svg:hover,
+    .fit-board-add-button svg:active,
+    .fit-board-card:hover,
+    .fit-board-card:active {
+        transform: none;
+    }
+}
+
+/* Responsive: at tablet the board drops to 2 columns so each square stays big enough to read. */
+@media (max-width: 768px) {
+    .fit-board-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+        padding: var(--space-lg);
+    }
+
+    .fit-board-add-button svg {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* Responsive: on mobile it stays at 2 columns (fits are small enough to compare side by side), just with tighter spacing. */
+@media (max-width: 500px) {
+    .fit-board-grid {
+        gap: var(--space-sm);
+        padding: var(--space-md);
+    }
+
+    .fit-board-card {
+        padding: var(--space-sm) var(--space-md);
+    }
+}

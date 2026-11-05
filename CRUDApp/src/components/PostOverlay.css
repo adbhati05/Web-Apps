@@ -156,11 +156,11 @@
 }
 
 .overlay-close-button:hover {
-    transform: scale(var(--scale-hover));
+    transform: scale(var(--scale-icon-md-hover));
 }
 
 .overlay-close-button:active {
-    transform: scale(var(--scale-active));
+    transform: scale(var(--scale-icon-md-active));
 }
 
 /* Caption on the left, date of the post pushed to the bottom right of the same block. */
@@ -205,15 +205,91 @@
     border-bottom: var(--border-width) solid var(--color-border);
 }
 
-.add-comment-input {
-    font-size: var(--font-size-sm);
-    height: var(--input-height);
+/* The label for the piece a comment is about, inside the comment box before the text. Same accent color as the pieces themselves, so it's clear which piece it is.
+   Its height is the box's height minus a little room (28px inside the 40px box), so it never touches the box's border. */
+.add-comment-piece {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3xs);
+    max-width: 50%;
+    height: calc(var(--input-height) - 3 * var(--space-2xs));
+    flex-shrink: 0;
+    padding: 0 var(--space-3xs) 0 var(--space-sm);
+    cursor: default;
+    background-color: var(--color-accent);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+}
+
+/* A long piece name is cut off with "..." so the label never crowds out the text box. */
+.add-comment-piece-label {
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.add-comment-piece-remove {
+    width: var(--button-height-sm);
+    height: var(--button-height-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+/* The X itself grows on hover and click (no background), sized by the icon like every other icon button (see --scale-icon-* in App.css). */
+.add-comment-piece-remove svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.15s ease;
+}
+
+.add-comment-piece-remove:hover svg {
+    transform: scale(var(--scale-icon-sm-hover));
+}
+
+.add-comment-piece-remove:active svg {
+    transform: scale(var(--scale-icon-sm-active));
+}
+
+/* The visible comment box: the same white bordered box the comment input used to draw itself, now drawn by this wrapper so the piece label can sit inside it next to the text field. */
+.add-comment-field {
     flex: 1;
     min-width: 0;
-    padding: var(--space-sm) var(--space-md);
+    height: var(--input-height);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 0 var(--space-md);
     background-color: var(--color-bg);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-sm);
+    cursor: text;
+}
+
+/* With a piece label in the box, the left padding shrinks so the label sits close to the box's edge, like a tag inside a search bar. */
+.add-comment-field:has(.add-comment-piece) {
+    padding-left: var(--space-2xs);
+}
+
+/* The text field itself is borderless and transparent, filling whatever space the label leaves, so the wrapper above is the only box you see. */
+.add-comment-input {
+    font-size: var(--font-size-sm);
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    background-color: transparent;
+    border: none;
 }
 
 .add-comment-input:focus {
@@ -349,11 +425,11 @@
     }
 
     .mobile-overlay-close-button:hover {
-        transform: scale(var(--scale-hover));
+        transform: scale(var(--scale-icon-md-hover));
     }
 
     .mobile-overlay-close-button:active {
-        transform: scale(var(--scale-active));
+        transform: scale(var(--scale-icon-md-active));
     }
 
     .comment-list-container {

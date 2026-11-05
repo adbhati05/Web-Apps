@@ -1,0 +1,144 @@
+/* The dimmed backdrop over the whole viewport, same as the post overlay's (and at the same layer, so the alerts still sit above it). */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    background-color: var(--color-overlay);
+    z-index: 1000;
+}
+
+/* The card itself, in the same frame as the app's panels: bluish surface, the usual border, rounded corners, and a shadow. */
+.modal-card {
+    width: 560px;
+    max-width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: var(--border-width) solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+}
+
+/* Same red close button as the post overlay's. */
+.modal-close-button {
+    width: var(--button-height-md);
+    height: var(--button-height-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    color: var(--color-danger);
+    cursor: pointer;
+}
+
+.modal-close-button svg {
+    width: 25px;
+    height: 25px;
+}
+
+.modal-close-button:hover {
+    transform: scale(var(--scale-icon-md-hover));
+}
+
+.modal-close-button:active {
+    transform: scale(var(--scale-icon-md-active));
+}
+
+/* min-height: 0 is what lets the content scroll inside the card instead of stretching it past the screen. */
+.modal-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-lg);
+}
+
+.modal-footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    border-top: var(--border-width) solid var(--color-border);
+    flex-shrink: 0;
+}
+
+/* The buttons that go in a modal's footer, shared by every modal: medium height, same as the settings buttons. Primary is the accent color (Save, Add), danger is red (Delete). */
+.modal-button {
+    height: var(--button-height-md);
+    background-color: var(--color-bg);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-md);
+    color: var(--color-text);
+    padding: 0 var(--space-lg);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.modal-button-primary {
+    background-color: var(--color-accent);
+}
+
+.modal-button-danger {
+    background-color: var(--color-danger);
+}
+
+/* margin-right: auto pushes a danger button (like Delete fit) to the far left of the footer, away from Save. */
+.modal-button-left {
+    margin-right: auto;
+}
+
+.modal-button:hover:not(:disabled) {
+    transform: scale(var(--scale-hover));
+}
+
+.modal-button:active:not(:disabled) {
+    transform: scale(var(--scale-active));
+}
+
+/* Dimmed while there's nothing to save or a save is mid-flight, same as every other disabled button in the app. */
+.modal-button:disabled {
+    opacity: 50%;
+    cursor: default;
+}
+
+/* Responsive: on mobile the card fills the width and the padding tightens. */
+@media (max-width: 500px) {
+    .modal-backdrop {
+        padding: var(--space-sm);
+    }
+
+    .modal-content {
+        padding: var(--space-md);
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding: var(--space-sm) var(--space-md);
+    }
+}

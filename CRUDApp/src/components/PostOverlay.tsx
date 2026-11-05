@@ -2,14 +2,15 @@ import './PostOverlay.css';
 import Comment from './Comment';
 import LoadingSpinner from './LoadingSpinner';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
 import { profileService } from '../services/profile.service';
+import { copyPiece } from '../utils/pieces';
 import { useUserAuth } from '../auth/UserAuthContext';
 import { useAlert } from '../alerts/AlertContext';
-import { BsChevronDown, BsHeart, BsXCircle } from 'react-icons/bs';
-import type { Post, Comment as CommentData, UserInfo } from '../types';
+import { BsChevronDown, BsHeart, BsXCircle, BsX } from 'react-icons/bs';
+import type { Post, Comment as CommentData, CommentPiece, UserInfo } from '../types';
 
 // TO-DO: The like count in the header is display only for now. Making it clickable means lifting the liked/count state out of PostCard so the card and the overlay can't disagree.
 
@@ -19,7 +20,14 @@ const formatDate = (dateStr: string): string => {
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 };
 
-const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => {
+// initialPieceIndex is set when the overlay was opened from a piece's Comment option, so the comment box starts with that piece attached.
+interface PostOverlayProps {
+    post: Post,
+    onClose: () => void,
+    initialPieceIndex?: number,
+}
+
+const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => {
 
     // The overlay needs the full user profile (not just the UID) since addComment stores the username on the comment doc.
     const { userInfo } = useUserAuth();
@@ -27,6 +35,13 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
     const currentUserId = userInfo?.uid;
 
     const [comments, setComments] = useState<CommentData[]>([]);
+
+    // Which of the post's pieces the next comment is about (shown as a small label above the comment box with an X to remove it), or null for a regular comment.
+    const [attachedPieceIndex, setAttachedPieceIndex] = useState<number | null>(initialPieceIndex ?? null);
+    const attachedPiece = attachedPieceIndex !== null ? post.pieces[attachedPieceIndex] : undefined;
+
+    // The comment input, so clicking anywhere in the comment box (including on the piece label) puts the cursor in it.
+    const commentInputRef = useRef<HTMLInputElement>(null);
 
     // Tracks which of the fetched comments the current user has liked (comment ID -> liked?), the same lookup PostFeed does for posts.
     const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
@@ -96,12 +111,22 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
         setPosting(true);
         try {
             // addComment returns the new comment, so it can be appended straight to the list instead of refetching all of them.
-            const comment = await postService.addComment(post.id, text, userInfo);
+            // A comment about a piece carries a copy of that piece, which the rules check against the post. It's shown above the comment the same way the piece looks on the post.
+            const piece: CommentPiece | undefined = attachedPiece && {
+                pieceIndex: attachedPieceIndex!,
+                ...copyPiece(attachedPiece, post.hasDetails),
+                hasDetails: post.hasDetails
+            };
+
+            const comment = await postService.addComment(post.id, text, userInfo, piece);
             setComments(prev => [...prev, comment]);
 
             // You're the author of the new comment, so your own profile goes straight into the lookup instead of fetching it.
             setAuthors(prev => ({ ...prev, [userInfo.uid]: userInfo }));
             setNewComment('');
+
+            // The piece only applies to the comment it was attached for, so the next one starts as a regular comment.
+            setAttachedPieceIndex(null);
         } catch (error) {
             // The typed comment stays in the box, so it can just be posted again.
             console.error("Failed to add comment:", error);
@@ -181,15 +206,29 @@ const PostOverlay = ({ post, onClose }: { post: Post; onClose: () => void }) => 
                     </div>
 
                     <div className='add-comment-container'>
-                        <input
-                            className='add-comment-input'
-                            type="text"
-                            placeholder="Add a comment..."
-                            value={newComment}
-                            maxLength={500} // Matching the cap the security rules enforce, so an over-long comment is stopped here instead of being rejected by the server.
-                            onChange={(e) => setNewComment(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-                        />
+                        {/* The visible comment box. It holds the piece the next comment is about (when there is one) and the text field side by side, so the piece's label sits inside the box, before the text.
+                            Clicking anywhere in the box puts the cursor in the text field, so it behaves like one input. */}
+                        <div className='add-comment-field' onClick={() => commentInputRef.current?.focus()}>
+                            {attachedPiece && (
+                                <div className='add-comment-piece'>
+                                    <span className='add-comment-piece-label'>{attachedPiece.name}</span>
+                                    {/* stopPropagation keeps the X's click from also focusing the text field through the box's onClick. */}
+                                    <button className='add-comment-piece-remove' onClick={(e) => { e.stopPropagation(); setAttachedPieceIndex(null); }} aria-label="Remove piece">
+                                        <BsX />
+                                    </button>
+                                </div>
+                            )}
+                            <input
+                                ref={commentInputRef}
+                                className='add-comment-input'
+                                type="text"
+                                placeholder={attachedPiece ? "Comment on this piece..." : "Add a comment..."}
+                                value={newComment}
+                                maxLength={500} // Matching the cap the security rules enforce, so an over-long comment is stopped here instead of being rejected by the server.
+                                onChange={(e) => setNewComment(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+                            />
+                        </div>
                         <button
                             className='add-comment-button'
                             onClick={handleAddComment}

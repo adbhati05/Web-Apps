@@ -10,6 +10,14 @@ import "./Home.css";
 const Home = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
+  // Which of the selected post's pieces the comment box starts attached to, when the overlay was opened from a piece's Comment option. undefined for a regular comment.
+  const [selectedPieceIndex, setSelectedPieceIndex] = useState<number | undefined>(undefined);
+
+  const openOverlay = (post: Post, pieceIndex?: number) => {
+    setSelectedPost(post);
+    setSelectedPieceIndex(pieceIndex);
+  };
+
   return (
     <div>
       <TopBar />
@@ -18,7 +26,7 @@ const Home = () => {
           <LeftSideBar />
         </div>
         <div className="post-feed">
-          <PostFeed onCommentClick={(post) => setSelectedPost(post)} />
+          <PostFeed onCommentClick={(post) => openOverlay(post)} onPieceCommentClick={(post, pieceIndex) => openOverlay(post, pieceIndex)} />
         </div>
         <div className="home-right-side-bar">
           <RightSideBar />
@@ -26,7 +34,7 @@ const Home = () => {
       </div>
       {/* The overlay sits outside the layout box now, since its backdrop is fixed to the viewport and covers the top bar as well. */}
       {selectedPost && (
-        <PostOverlay post={selectedPost} onClose={() => setSelectedPost(null)} />
+        <PostOverlay post={selectedPost} initialPieceIndex={selectedPieceIndex} onClose={() => setSelectedPost(null)} />
       )}
     </div>
   );

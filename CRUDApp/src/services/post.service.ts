@@ -2,7 +2,7 @@
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { storageService } from './storage.service';
-import type { Post, Comment, UserInfo, PieceDetail } from '../types';
+import type { Post, Comment, CommentPiece, UserInfo, PieceDetail } from '../types';
 
 // TO-DO: Implement pagination (do research on this) for fetching posts in the future, especially as the number of posts grows. For now, I'll just fetch all posts and sort them by creation date.
 // TO-DO: Figure out how to make the folders in storage bucket not be random strings of characters, but instead something more organized and user-friendly (like the user's Username or UID).
@@ -184,7 +184,8 @@ export const postService = {
     },
 
     // Adds a comment doc to the post's comments subcollection and bumps the denormalized counter in the same atomic batch. Returns the new comment so the UI can append it without refetching.
-    async addComment(postId: string, comment: string, userInfo: UserInfo): Promise<Comment> {
+    // piece is set when the comment is about one specific piece of the post (see CommentPiece in types.ts). The rules check it against the post's real piece.
+    async addComment(postId: string, comment: string, userInfo: UserInfo, piece?: CommentPiece): Promise<Comment> {
         const postRef = doc(db, "posts", postId);
         const commentRef = doc(collection(db, "posts", postId, "comments")); // Auto-generated ID.
 
@@ -194,7 +195,8 @@ export const postService = {
             username: userInfo.username, // Same reasoning as in createPost.
             comment,
             createdAt: new Date().toISOString(),
-            likeCount: 0 // Comment likes live in the comment's own likes subcollection; the rules require this to start at 0.
+            likeCount: 0, // Comment likes live in the comment's own likes subcollection; the rules require this to start at 0.
+            ...(piece && { piece })
         };
 
         const batch = writeBatch(db);

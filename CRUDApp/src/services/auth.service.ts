@@ -2,6 +2,8 @@
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail, updatePassword, deleteUser as deleteAuthUser } from 'firebase/auth';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { archiveService } from './archive.service';
+import { fitService } from './fit.service';
 import type { UserInfo } from '../types';
 
 export const authService = {
@@ -152,6 +154,11 @@ export const authService = {
         await this.reauthenticate(currentPassword);
 
         const user = auth.currentUser!;
+
+        // The style board (archive and fits) is private, so the owner can clear it from here, unlike their posts, comments, and follows (see the NOTE above).
+        await archiveService.deleteAll(user.uid);
+        await fitService.deleteAll(user.uid);
+
         await this.deleteUser(user.uid);
         await deleteAuthUser(user);
     },

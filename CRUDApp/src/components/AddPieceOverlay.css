@@ -1,0 +1,67 @@
+/* The add-piece form inside the modal: the name, the details checkbox, and (when it's checked) the four detail fields, stacked. */
+.add-piece-overlay-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+/* A label and its input, same structure as the settings forms' fields. */
+.add-piece-overlay-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+}
+
+.add-piece-overlay-label {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+}
+
+/* White inputs with the app's usual border, same as the settings and post forms. */
+.add-piece-overlay-input {
+    height: var(--input-height);
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.add-piece-overlay-input:focus {
+    outline: none;
+    /* Matching every other input in the app, which all drop the browser's default blue focus ring. */
+}
+
+/* The "Include details" checkbox, as a plain button so it reads like the post form's clickable label. */
+.add-piece-overlay-details-toggle {
+    align-self: flex-start;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    height: var(--button-height-md);
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    font-size: var(--font-size-md);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.add-piece-overlay-details-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* The four detail fields in a 2 by 2 grid, which drops to one column on mobile. */
+.add-piece-overlay-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+}
+
+@media (max-width: 500px) {
+    .add-piece-overlay-details {
+        grid-template-columns: 1fr;
+    }
+}

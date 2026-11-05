@@ -93,11 +93,11 @@
 }
 
 .remove-photo-button:hover {
-    transform: scale(var(--scale-hover));
+    transform: scale(var(--scale-icon-md-hover));
 }
 
 .remove-photo-button:active {
-    transform: scale(var(--scale-active));
+    transform: scale(var(--scale-icon-md-active));
 }
 
 .remove-photo-button svg {

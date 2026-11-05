@@ -157,6 +157,95 @@ service cloud.firestore {
                       && !existsAfter(mirrorFollowerPath())
                       && followingCountMoved(-1);
       }
+
+      // The two blocks below are the style board, and both are private: only the owner can read or write their own archive and fits (nobody else's style board is visible yet).
+      // Since the check only needs userId from the path, the list queries the style board page runs (every doc in your own archive/fits) work without any extra reads.
+
+      // The archive: pieces you've favorited from posts (source "favorite") or added yourself (source "own"). Each doc is a copy of the piece, see ArchivedPiece in src/types.ts.
+      match /archive/{pieceId} {
+      	// This function handles field-level validation for the piece itself, shared by both kinds. Every text field is capped at 100 characters (same caps as the add-piece form), and the detail fields are optional since a piece without details doesn't have them.
+      	function pieceFieldsValid(d) {
+        	return d.name is string
+          	&& d.name.size() > 0
+            && d.name.size() <= 100
+            && d.get('price', '') is string && d.get('price', '').size() <= 100
+            && d.get('size', '') is string && d.get('size', '').size() <= 100
+            && d.get('materials', '') is string && d.get('materials', '').size() <= 100
+            && d.get('dateAcquired', '') is string && d.get('dateAcquired', '').size() <= 100
+            && d.hasDetails is bool
+            && d.fromUsername is string
+            && d.createdAt is string;
+        }
+
+        // This function fetches the post a favorite says it came from. It only runs for favorites, so adding your own piece costs no extra read.
+        function sourcePost() {
+        	return get(/databases/$(database)/documents/posts/$(request.resource.data.postId));
+        }
+
+      	allow read: if isSignedIn() && request.auth.uid == userId;
+
+        // Create: into your own archive only, as one of the two kinds.
+        // Your own piece: it has to say it's from you, and can't claim to come from a post.
+        // A favorite: the doc ID has to be postId_pieceIndex (which is what stops favoriting the same piece twice, since an existing doc can't be overwritten), and the copy has to match the real post: same owner, same name at that index, and same details setting.
+        allow create: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && pieceFieldsValid(request.resource.data)
+                      && (
+                      	(request.resource.data.source == 'own'
+                        	&& request.resource.data.keys().hasOnly(['name', 'price', 'size', 'materials', 'dateAcquired', 'hasDetails', 'source', 'fromUid', 'fromUsername', 'createdAt'])
+                          && request.resource.data.fromUid == userId)
+                        ||
+                        (request.resource.data.source == 'favorite'
+                        	&& request.resource.data.keys().hasOnly(['name', 'price', 'size', 'materials', 'dateAcquired', 'hasDetails', 'source', 'fromUid', 'fromUsername', 'createdAt', 'postId', 'pieceIndex'])
+                          && request.resource.data.postId is string
+                          && request.resource.data.pieceIndex is int
+                          && pieceId == request.resource.data.postId + '_' + string(request.resource.data.pieceIndex)
+                          && request.resource.data.fromUid == sourcePost().data.uid
+                          && request.resource.data.hasDetails == sourcePost().data.hasDetails
+                          && request.resource.data.name == sourcePost().data.pieces[request.resource.data.pieceIndex].name)
+                      );
+
+        // Archived pieces can't be edited for now, only removed (and favorited/added again).
+        allow update: if false;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      // Planned fits: an optional name plus five sections of pieces copied from the archive, see Fit in src/types.ts.
+      match /fits/{fitId} {
+      	// This function checks one section of a fit: a list of up to 10 pieces. get() with a fallback lets a section be missing entirely.
+        // (Rules can't loop over a list, so the pieces inside aren't checked one by one. The 10 piece cap per section is what keeps a fit doc small.)
+      	function sectionValid(sections, key) {
+        	return sections.get(key, []) is list && sections.get(key, []).size() <= 10;
+        }
+
+        // This function handles field-level validation shared by create and update: the name is optional and capped at 40 characters, and sections can only hold the five known parts of an outfit.
+        function fitFieldsValid(d) {
+        	return (!('name' in d) || (d.name is string && d.name.size() > 0 && d.name.size() <= 40))
+          	&& d.sections is map
+            && d.sections.keys().hasOnly(['headwear', 'tops', 'bottoms', 'footwear', 'accessories'])
+            && sectionValid(d.sections, 'headwear')
+            && sectionValid(d.sections, 'tops')
+            && sectionValid(d.sections, 'bottoms')
+            && sectionValid(d.sections, 'footwear')
+            && sectionValid(d.sections, 'accessories')
+            && d.createdAt is string;
+        }
+
+      	allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && request.resource.data.keys().hasOnly(['name', 'sections', 'createdAt'])
+                      && fitFieldsValid(request.resource.data);
+
+        // Update: the owner editing a fit. createdAt is frozen (it's what decides the fit's spot on the board), and updatedAt has to be set.
+        allow update: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && request.resource.data.keys().hasOnly(['name', 'sections', 'createdAt', 'updatedAt'])
+                      && fitFieldsValid(request.resource.data)
+                      && request.resource.data.createdAt == resource.data.createdAt
+                      && request.resource.data.updatedAt is string;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
     }
     
   	// Username read stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.
@@ -277,9 +366,20 @@ service cloud.firestore {
         	return /databases/$(database)/documents/posts/$(postId)/comments/$(commentId)/likes/$(request.auth.uid);
         }
 
+        // This function handles validation for the optional piece a comment can be about (see CommentPiece in src/types.ts). It's a copy of one of the post's pieces, so the name and details setting have to match the post's piece at that index.
+        // The get() on the post is a billed read, but it only happens for comments about a piece, since !('piece' in d) passes first for every other comment.
+        function commentPieceValid(d) {
+        	return !('piece' in d)
+          	|| (d.piece is map
+            	&& d.piece.keys().hasOnly(['pieceIndex', 'name', 'price', 'size', 'materials', 'dateAcquired', 'hasDetails'])
+              && d.piece.pieceIndex is int
+              && d.piece.name == get(/databases/$(database)/documents/posts/$(postId)).data.pieces[d.piece.pieceIndex].name
+              && d.piece.hasDetails == get(/databases/$(database)/documents/posts/$(postId)).data.hasDetails);
+        }
+
       	allow read: if true;
         allow create: if isSignedIn()
-        							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt', 'likeCount'])
+        							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt', 'likeCount', 'piece'])
                       && request.resource.data.id == commentId
                       && request.resource.data.uid == request.auth.uid
                       && request.resource.data.username is string
@@ -287,7 +387,8 @@ service cloud.firestore {
                       && request.resource.data.comment.size() > 0
                       && request.resource.data.comment.size() <= 500
                       && request.resource.data.createdAt is string
-                      && request.resource.data.likeCount == 0;
+                      && request.resource.data.likeCount == 0
+                      && commentPieceValid(request.resource.data);
 
         // The two update cases below are additive, same as the post's update cases: an update goes through if EITHER passes, so each one pins down its own field set.
         // Update case #1: the like counter, which behaves exactly like the post like counter above: it moves by 1 and only when the same batched write also creates/deletes the caller's own like doc.

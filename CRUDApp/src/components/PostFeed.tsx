@@ -3,12 +3,20 @@ import PostCard from './PostCard';
 import LoadingSpinner from './LoadingSpinner';
 import { postService } from '../services/post.service';
 import { profileService } from '../services/profile.service';
+import { archiveService } from '../services/archive.service';
+import { useAlert } from '../alerts/AlertContext';
 import { auth } from '../firebase';
 import { useState, useEffect } from 'react';
 import type { Post, UserInfo } from '../types';
 
 // This component fetches all posts from the database and displays them in the feed.
-const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) => {
+// onPieceCommentClick is the Comment option in a piece's menu: it opens the post overlay like onCommentClick does, but with that piece attached to the comment box.
+interface PostFeedProps {
+    onCommentClick: (post: Post) => void,
+    onPieceCommentClick?: (post: Post, pieceIndex: number) => void,
+}
+
+const PostFeed = ({ onCommentClick, onPieceCommentClick }: PostFeedProps) => {
     // Setting up a posts object that will hold all the posts from the Firestore collection and then be used to render each PostCard component.
     const [posts, setPosts] = useState<Post[]>([]);
 
@@ -18,6 +26,8 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
 
     // Each post's author profile (UID -> profile). Posts only store the author's uid and username, so this is where the profile picture and the link to their profile come from.
     const [authors, setAuthors] = useState<Record<string, UserInfo>>({});
+
+    const { showAlert } = useAlert();
 
     // Setting up state variables for loading and error. error is a simple flag, since what went wrong only matters for the console (the user just sees "Couldn't load posts").
     const [loading, setLoading] = useState(true);
@@ -58,6 +68,21 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
         fetchPosts();
     }, []);
 
+    // The Favorite option in a piece's menu: copies that piece into the signed-in user's style board archive.
+    // The archive shows who the piece is from, so the post author's live username is used when their profile has loaded (same as the card's header), falling back to the one stored on the post.
+    const handlePieceFavorite = async (post: Post, pieceIndex: number) => {
+        const currentUserId = auth.currentUser?.uid;
+        if (!currentUserId) return;
+
+        try {
+            const added = await archiveService.favoritePiece(currentUserId, post, pieceIndex, authors[post.uid]?.username ?? post.username);
+            showAlert(added ? 'success' : 'info', added ? "Added to your archive." : "That piece is already in your archive.");
+        } catch (error) {
+            console.error("Failed to favorite piece:", error);
+            showAlert('error', "Couldn't add that piece to your archive. Try again.");
+        }
+    };
+
     // Formats a date string into a readable format like "March 14, 2026".
     const formatDate = (dateStr: string): string => {
         const date = new Date(dateStr);
@@ -85,6 +110,8 @@ const PostFeed = ({ onCommentClick }: { onCommentClick: (post: Post) => void }) 
                     hasDetails={post.hasDetails}
                     author={authors[post.uid]}
                     onCommentClick={() => onCommentClick(post)}
+                    onPieceFavorite={(pieceIndex) => handlePieceFavorite(post, pieceIndex)}
+                    onPieceComment={onPieceCommentClick && ((pieceIndex) => onPieceCommentClick(post, pieceIndex))}
                 />
             ))}
         </div>

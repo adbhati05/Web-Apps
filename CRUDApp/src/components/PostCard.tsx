@@ -7,9 +7,7 @@ import { auth } from '../firebase';
 import { useAlert } from '../alerts/AlertContext';
 import type { PieceDetail, UserInfo } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
-import { Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
-
-// TO-DO: Figure out why accordion "bounces" when unexpanded and expanded and fix issue.
+import PieceItem from './PieceItem';
 
 // Defining the props that will be passed into the PostCard component. Essentially, this component is a skeleton for a post that will be displayed on the feed. PostFeed.tsx will handle the logic of fetching users' posts and passing the data into this component.
 // Likes (as well as comments) now live in a subcollection, so the card receives the denormalized likeCount off the post doc plus an initiallyLiked flag that PostFeed looks up from the subcollection for the current user.
@@ -25,9 +23,11 @@ interface PostCardProps {
     hasDetails: boolean,
     author?: UserInfo, // The poster's profile, looked up by PostFeed. Optional since it can still be loading or fail to load, in which case the card falls back to the placeholder picture and no link.
     onCommentClick: () => void,
+    onPieceFavorite?: (pieceIndex: number) => void, // The piece menu's Favorite option, which adds the piece to the user's style board archive (PostFeed does the actual saving).
+    onPieceComment?: (pieceIndex: number) => void, // The piece menu's Comment option, which opens the post overlay with that piece attached to the comment box.
 }
 
-const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount: initialLikeCount, initiallyLiked, pieces, hasDetails, author, onCommentClick }: PostCardProps) => {
+const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount: initialLikeCount, initiallyLiked, pieces, hasDetails, author, onCommentClick, onPieceFavorite, onPieceComment }: PostCardProps) => {
 
     // Retrieving current user's information.
     const currentUserId = auth.currentUser?.uid;
@@ -103,28 +103,19 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
                     <p>{caption}</p>
                 </div>
                 <div className='post-pieces-container'>
-                    {/* Conditionally rendering pieces via hasDetails. If it does, then render an accordion for each piece. */}
-                    {pieces.map((piece, index) =>
-                        hasDetails ? (
-                            <Accordion key={index} className='post-piece'>
-                                <AccordionSummary expandIcon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>} className='post-piece-summary'>
-                                    <span>{piece.name}</span>
-                                </AccordionSummary>
-                                <AccordionDetails className='post-piece-details'>
-                                    <ul className='post-piece-detail-list'>
-                                        {piece.price && <li><span>Price</span><span>{piece.price}</span></li>}
-                                        {piece.size && <li><span>Size</span><span>{piece.size}</span></li>}
-                                        {piece.materials && <li><span>Materials</span><span>{piece.materials}</span></li>}
-                                        {piece.dateAcquired && <li><span>Date Acquired</span><span>{piece.dateAcquired}</span></li>}
-                                    </ul>
-                                </AccordionDetails>
-                            </Accordion>
-                        ) : (
-                            <div key={index} className='post-piece post-piece-static'>
-                                <span className='post-piece-name'>{piece.name}</span>
-                            </div>
-                        )
-                    )}
+                    {/* Each piece is a PieceItem: clicking its name opens a menu with Favorite and Comment, and pieces with details (hasDetails) get a chevron to show them. */}
+                    {/* The menu options only show up when PostFeed passes the handlers for them. */}
+                    {pieces.map((piece, index) => (
+                        <PieceItem
+                            key={index}
+                            piece={piece}
+                            hasDetails={hasDetails}
+                            actions={[
+                                ...(onPieceFavorite ? [{ label: 'Favorite', onClick: () => onPieceFavorite(index) }] : []),
+                                ...(onPieceComment ? [{ label: 'Comment', onClick: () => onPieceComment(index) }] : []),
+                            ]}
+                        />
+                    ))}
                 </div>
             </div>
         </div>

@@ -72,6 +72,8 @@
   --radius-button-lg: 22px;
   --radius-button-xl: 28px;
   --radius-round: 50%;
+  /* Items inside dropdown menus (comment, message, and piece menus, the fit form's piece picker), so their hover highlight has the same slightly rounded corners everywhere. */
+  --radius-menu-item: 6px;
 
   /* Buttons and other controls */
   /* Button heights. Every button in the app uses one of these three:
@@ -86,6 +88,15 @@
   --shadow-card: 0px 6px 6px var(--color-shadow);
   --scale-hover: 1.03;
   --scale-active: 1.05;
+  /* Icon buttons (a button that's only an icon, like the like heart or a close X) grow the icon itself on hover/click instead of using the scale above.
+     The same scale looks very different on a tiny icon and a big one (1.05 adds under 1px to an 18px icon but over 2px to a 48px one), so these go by the icon's size, aiming for roughly 2-3px of growth on every icon:
+     sm for icons up to 20px, md for 21-30px, lg for anything bigger. */
+  --scale-icon-sm-hover: 1.15;
+  --scale-icon-sm-active: 1.25;
+  --scale-icon-md-hover: 1.1;
+  --scale-icon-md-active: 1.15;
+  --scale-icon-lg-hover: 1.06;
+  --scale-icon-lg-active: 1.1;
 }
 
 /* This first rule set ensures that the default margins and padding are removed for all elements. */

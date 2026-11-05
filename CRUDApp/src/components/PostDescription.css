@@ -155,11 +155,11 @@
 }
 
 .remove-piece-button:hover {
-    transform: scale(var(--scale-hover));
+    transform: scale(var(--scale-icon-lg-hover));
 }
 
 .remove-piece-button:active {
-    transform: scale(var(--scale-active));
+    transform: scale(var(--scale-icon-lg-active));
 }
 
 .details-label {

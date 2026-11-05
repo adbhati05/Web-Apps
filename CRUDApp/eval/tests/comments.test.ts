@@ -140,3 +140,31 @@ describe('posts/{postId}/comments/{commentId}/likes/{uid}', () => {
         await assertSucceeds(deleteDoc(likeRef('carol', 'carol')));
     });
 });
+
+// Comments about one specific piece of the post (picked with the piece's Comment option). The piece is a copy of the post's piece, checked against the real post.
+describe('comments about a piece', () => {
+    const pieces = [{ name: 'Black Denim Jacket', price: '$80', size: 'M', materials: 'Denim', dateAcquired: '' }];
+    const piece = { pieceIndex: 0, ...pieces[0], hasDetails: true };
+
+    beforeEach(() => seedPost(POST, 'alice', { commentCount: 1, pieces, hasDetails: true }));
+
+    it('a comment about a piece of the post succeeds', () =>
+        assertSucceeds(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), piece })));
+
+    it('the piece name has to match the post\'s piece at that index', () =>
+        assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), piece: { ...piece, name: 'Made-up Jacket' } })));
+
+    it('the piece index has to exist on the post', () =>
+        assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), piece: { ...piece, pieceIndex: 5 } })));
+
+    it('the details setting has to match the post', () =>
+        assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), piece: { ...piece, hasDetails: false } })));
+
+    it('the piece cannot carry extra fields', () =>
+        assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), piece: { ...piece, color: 'black' } })));
+
+    it('editing the comment cannot change its piece', async () => {
+        await seed(db => setDoc(doc(db, 'posts', POST, 'comments', COMMENT), { ...validComment('bob', COMMENT), piece }));
+        await assertFails(updateDoc(commentRef('bob'), { comment: 'edited', editedAt: now(), piece: { ...piece, name: 'Other' } }));
+    });
+});

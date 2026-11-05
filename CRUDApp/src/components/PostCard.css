@@ -119,11 +119,11 @@
 }
 
 .like-button:hover {
-    transform: scale(var(--scale-hover));
+    transform: scale(var(--scale-icon-md-hover));
 }
 
 .like-button:active {
-    transform: scale(var(--scale-active));
+    transform: scale(var(--scale-icon-md-active));
 }
 
 .like-button-liked {
@@ -156,11 +156,11 @@
 }
 
 .comment-button:hover {
-    transform: scale(var(--scale-hover));
+    transform: scale(var(--scale-icon-md-hover));
 }
 
 .comment-button:active {
-    transform: scale(var(--scale-active));
+    transform: scale(var(--scale-icon-md-active));
 }
 
 .comment-button svg {

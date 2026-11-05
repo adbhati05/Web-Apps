@@ -1,5 +1,5 @@
 /* These are the rule sets for the page that will be used for the user to access their style board. */
-/* The Post, Saved, and StyleBoard pages will have identical layouts, just with different content. */
+/* The layout matches the Home and Chat pages (1/5 nav, 3/5 middle, 1/5 right side bar): the planned fits in the middle and the Archive in the right side bar. */
 .style-board-main-layout {
     width: 80vw;
     height: 85vh;
@@ -20,13 +20,75 @@
 }
 
 .style-board-container {
-    flex: 4;
+    flex: 3;
     height: 100%;
+    min-width: 0;
+    overflow-y: auto;
+    background-color: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+}
+
+/* Same logic as the Home page's right side bar, the border radius statements are dedicated for the top/bottom right corners of the bar. */
+.style-board-right-side-bar {
+    flex: 1;
+    height: 100%;
+    min-width: 0;
     overflow-y: auto;
     background-color: var(--color-surface);
     border: var(--border-width) solid var(--color-border);
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
+}
+
+/* The Fits/Archive tabs. Hidden while both panes fit side by side, and shown below 900px (see the media query below). */
+.style-board-tabs {
+    display: none;
+    flex-direction: row;
+    gap: var(--space-md);
+    /* Same gap as the profile's buttons at these screen sizes. */
+    padding: var(--space-md) var(--space-lg) 0;
+}
+
+/* Each tab is a pill in the same large, bold style as the buttons under the profile info, and the open one takes the accent color. */
+.style-board-tab {
+    flex: 1;
+    height: var(--button-height-lg);
+    background-color: var(--color-bg);
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-button-lg);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.style-board-tab-active {
+    background-color: var(--color-accent);
+}
+
+.style-board-tab:hover:not(.style-board-tab-active) {
+    transform: scale(var(--scale-hover));
+}
+
+/* Responsive: below 900px (the same point the Home page drops its right side bar) the board and the archive can't both fit next to the nav, so only one shows and the tabs switch between them.
+   style-board-archive-open (set in StyleBoard.tsx when the Archive tab is picked) decides which one. */
+@media (max-width: 900px) {
+    .style-board-tabs {
+        display: flex;
+    }
+
+    .style-board-main-layout:not(.style-board-archive-open) .style-board-right-side-bar,
+    .style-board-archive-open .style-board-container {
+        display: none;
+    }
+
+    /* Whichever pane is showing takes over the space of both, and the right-hand corners. */
+    .style-board-container,
+    .style-board-right-side-bar {
+        flex: 4;
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
 }
 
 /* Responsive: at tablet the layout stays side-by-side and just widens to fill more of the viewport. */
@@ -36,7 +98,7 @@
     }
 }
 
-/* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the container carries its own fully rounded corners and shadow. */
+/* Responsive: on mobile the layout stacks and the nav buttons float free above the content, so the outer frame and side bar chrome disappear and the pane that's showing carries its own fully rounded corners and shadow. */
 @media (max-width: 500px) {
     .style-board-main-layout {
         flex-direction: column;
@@ -54,9 +116,15 @@
         margin-bottom: var(--space-md);
     }
 
-    .style-board-container {
+    .style-board-container,
+    .style-board-right-side-bar {
         flex: 1;
+        min-height: 0;
         border-radius: 10px;
         box-shadow: var(--shadow-card);
+    }
+
+    .style-board-tabs {
+        padding: var(--space-sm) var(--space-md) 0;
     }
 }

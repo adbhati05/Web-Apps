@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
 import { useAlert } from '../alerts/AlertContext';
 import { BsHeart, BsHeartFill, BsList } from 'react-icons/bs';
+import PieceItem from './PieceItem';
 import type { Comment as CommentData, UserInfo } from '../types';
 
 // The Comment interface from types.ts is renamed to CommentData on import above, since this component already takes the name Comment.
@@ -175,6 +176,14 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
                         )}
                     </div>
                 </div>
+
+                {/* A comment about a piece shows that piece above its text, in the same shape as the piece on the post.
+                    It's only for display (no actions, so the name isn't a button and there's no menu), since the same piece is right there on the post to favorite or comment on. Details can still be expanded. */}
+                {comment.piece && (
+                    <div className='comment-piece'>
+                        <PieceItem piece={comment.piece} hasDetails={comment.piece.hasDetails} />
+                    </div>
+                )}
 
                 {editing ? (
                     <div className='comment-edit-container'>
