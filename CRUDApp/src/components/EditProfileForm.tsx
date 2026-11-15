@@ -2,19 +2,17 @@ import './EditProfileForm.css';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState, useRef } from 'react';
 import { profileService, type ProfileUpdate } from '../services/profile.service';
-import { storageService } from '../services/storage.service';
-import { useUserAuth } from '../auth/UserAuthContext';
+import { ImageProcessingError, storageService } from '../services/storage.service';
 import { useAlert } from '../alerts/AlertContext';
 import type { UserInfo } from '../types';
+import { DISPLAY_NAME_MAX, BIO_MAX } from '../utils/limits';
+import { logError } from '../utils/logger';
 
-// These match the limits in the users rules (profileFieldsValid in firestore.rules), so the inputs stop the user before the server would reject the save.
-const DISPLAY_NAME_MAX = 30;
-const BIO_MAX = 150;
+// DISPLAY_NAME_MAX and BIO_MAX match the limits in the users rules (profileFieldsValid in firestore.rules), so the inputs stop the user before the server would reject the save.
 
 // This component is the Edit profile section of the Settings page: picture, display name, and bio. The Settings page decides when it's shown, this handles the form itself and saving it.
 const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
 
-    const { refreshUserInfo } = useUserAuth();
     const { showAlert } = useAlert();
 
     // Each field keeps its own draft, so nothing on the real profile changes until Save, and Discard just resets the drafts.
@@ -102,12 +100,9 @@ const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
                 try {
                     await storageService.deleteImage(profile.profilePicURL);
                 } catch (error) {
-                    console.error("Failed to delete old profile picture:", error);
+                    logError("Failed to delete old profile picture:", error);
                 }
             }
-
-            // Pulls the updated doc into the auth context, which the top bar and profile page read from, and which passes the new values back down here as the profile prop.
-            await refreshUserInfo();
 
             // The drafts now match what was saved, so they're settled to the trimmed values and the picked photo is cleared.
             setDisplayName(trimmedName);
@@ -118,8 +113,8 @@ const EditProfileForm = ({ profile }: { profile: UserInfo }) => {
             // Updates get a success alert, same as every other change in Settings.
             showAlert('success', "Profile saved.");
         } catch (error) {
-            console.error("Failed to save profile:", error);
-            setError("Couldn't save your profile. Try again.");
+            logError("Failed to save profile:", error);
+            setError(error instanceof ImageProcessingError ? error.message : "Couldn't save your profile. Try again.");
         }
         setSaving(false);
     };

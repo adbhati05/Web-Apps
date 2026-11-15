@@ -1,6 +1,16 @@
 import { storage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import imageCompression from "browser-image-compression";
+import { logError } from '../utils/logger';
+
+// Thrown when a picked image can't be processed (compression fails, e.g. an unsupported format like HEIC or a corrupted file). Upload and permission errors are NOT this type.
+// Its message is written for the user, so pages can show it as-is (error instanceof ImageProcessingError); any other error gets a generic message instead.
+export class ImageProcessingError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ImageProcessingError";
+    }
+}
 
 export const storageService = {
     async compressImage(
@@ -9,26 +19,23 @@ export const storageService = {
         options: {
             maxSizeMB?: number,
             maxWidthOrHeight?: number,
-            format?: "jpeg" | "png"
+            fileType?: "image/jpeg" | "image/png"
         } = {}
-    ): Promise<string> {
+    ): Promise<File> {
         // First converting the URL into a blob so that I can create a file since imageCompression solely works with files.
         const response = await fetch(url);
         const blob = await response.blob();
         const file = new File([blob], fileName, { type: blob.type });
 
         try {
-            console.log(`Compressing image to width/height: ${options.maxWidthOrHeight}, size: ${options.maxSizeMB}MB, format: ${options.format}`);
             // Using imageCompression and options to compress the image.
             const compressedFile = await imageCompression(file, options);
 
-            // Returning the URL of the compressedFile.
-            return URL.createObjectURL(compressedFile);
+            // Returning the compressed file.
+            return compressedFile;
         } catch (error) {
-            console.error("Error compressing image:", error);
-
-            // Returning original image URL.
-            return url;
+            logError("Error compressing image:", error, { fileName, type: blob.type });
+            throw new ImageProcessingError("Couldn't process that image. Try a different photo (JPEG or PNG work best).");
         }
     },
 
@@ -39,41 +46,23 @@ export const storageService = {
         options: {
             maxSizeMB?: number,
             maxWidthOrHeight?: number,
-            format?: "jpeg" | "png"
+            fileType?: "image/jpeg" | "image/png"
         } = {}
     ): Promise<string> {
         try {
             // First compress the image via function above.
-            const compressedURL = await this.compressImage(url, fileName, options);
-
-            // Convert compressed image URL to blob.
-            const response = await fetch(compressedURL);
-            const blob = await response.blob();
+            const compressedFile = await this.compressImage(url, fileName, options);
 
             // Create a reference to the storage location.
             const storageRef = ref(storage, storagePath);
 
-            // To perform cache-busting, first create a const that holds the current timestamp in the file's metadata.
-            const metadata = {
-                customMetadata: {
-                    uploadedAt: new Date().toISOString()
-                }
-            }
-
             // Upload the file to Firebase Storage.
-            await uploadBytes(storageRef, blob, metadata);
+            await uploadBytes(storageRef, compressedFile);
 
-            // Get the download URL.
-            let downloadURL = await getDownloadURL(storageRef);
-
-            // Append a cache-busting query parameter to the download URL.
-            downloadURL += downloadURL.includes('?')
-                ? `&t=${Date.now()}`
-                : `?t=${Date.now()}`;
-
-            return downloadURL;
+            // Returning the download URL via getDownloadURL, where each upload gets a unique timestamped path.
+            return getDownloadURL(storageRef);
         } catch (error) {
-            console.error("Error uploading image:", error);
+            logError("Error uploading image:", error, { storagePath });
             throw error;
         }
     },
@@ -82,9 +71,6 @@ export const storageService = {
         url: string,
         userId: string,
     ): Promise<string> {
-        // Logging for debugging purposes.
-        console.log("Uploading profile image for user:", userId);
-
         // Generating a hierarchical path so that rules can be applied based on the userId folder.
         const timestamp = Date.now();
         const fileName = `${timestamp}.jpg`;
@@ -94,7 +80,7 @@ export const storageService = {
         const options = {
             maxSizeMB: 0.2,
             maxWidthOrHeight: 500,
-            format: "jpeg" as "jpeg"
+            fileType: "image/jpeg" as const
         }
 
         return this.uploadImage(url, fileName, storagePath, options);
@@ -105,7 +91,6 @@ export const storageService = {
         userId: string,
     ): Promise<string> {
         // Same process as with profile image upload, but different constraints and storage path.
-        console.log("Uploading post image for user:", userId);
         const timestamp = Date.now();
         const fileName = `${timestamp}.jpg`;
         const storagePath = `posts/${userId}/${fileName}`;
@@ -114,7 +99,7 @@ export const storageService = {
         const options = {
             maxSizeMB: 0.6,
             maxWidthOrHeight: 1080,
-            format: "jpeg" as "jpeg"
+            fileType: "image/jpeg" as const
         }
 
         return this.uploadImage(url, fileName, storagePath, options);
@@ -122,22 +107,9 @@ export const storageService = {
 
     async deleteImage(url: string): Promise<void> {
         try {
-            // Taking the inputted string and converting it to a URL object.
-            const urlObj = new URL(url);
-            const pathname = urlObj.pathname;
-
-            // Extracting leading '/v0/b/PROJECT_ID/o/' part of image file path.
-            const encodedPath = pathname.split("/o/")[1];
-
-            // Decoding the Firebase-encoded path.
-            const path = decodeURIComponent(encodedPath);
-
-            // Finally, with the decoded path, a reference can be created and the image can be deleted.
-            const imageRef = ref(storage, path);
-            await deleteObject(imageRef);
-            console.log("Image deleted successfully from storage: ", path);
+            await deleteObject(ref(storage, url));
         } catch (error) {
-            console.error("Error deleting image from storage: ", error);
+            logError("Error deleting image:", error, { url });
             throw error;
         }
     }

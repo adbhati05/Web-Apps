@@ -13,13 +13,44 @@ service cloud.firestore {
 
     // This function turns one of the app's ISO timestamp strings (like "2026-11-04T15:30:45.123Z", what new Date().toISOString() produces) into a rules timestamp, so it can be compared against request.time.
     // Rules have no built-in way to read a date string, so it's split into its parts by hand. A string in any other format fails to parse and the request is denied, which doubles as a format check.
-    // Used by the chat messages block below for the 15 minute edit window.
+    // Used by isNotFuture below, and by the chat messages block for the 15 minute edit window.
     function isoToTimestamp(s) {
     	let parts = s.split('T');
       let date = parts[0].split('-');
       let time = parts[1].split(':');
       return timestamp.date(int(date[0]), int(date[1]), int(date[2]))
       	+ duration.value(int(time[0]) * 3600 + int(time[1]) * 60 + int(time[2].split('[.]')[0]), 's');
+    }
+
+    // This function checks a createdAt being written: it has to be an ISO timestamp string, and it can't be more than 5 minutes ahead of the server's clock (request.time).
+    // Why it matters: createdAt comes from the writer's own device (new Date().toISOString()), and lists are sorted by it (the feed newest first, comments and chats oldest first, fits by board position).
+    // Without this check, a doc dated years ahead would sit at the top of the feed forever, or jump the queue in a chat.
+    // The 5 minute allowance covers devices whose clocks run a little fast. Dates in the past are allowed on purpose: an old date only buries the writer's own doc,
+    // and writes made offline are sent late, so they'd fail if past dates were rejected.
+    // It's only used on create. Every update rule already freezes createdAt (it has to equal the stored value), so a checked date can't be swapped out later, and old docs stay editable.
+    // `s is string` comes first so a non-string never reaches isoToTimestamp; a string in the wrong format makes isoToTimestamp fail, which denies the write, so this doubles as the format check.
+    function isNotFuture(s) {
+    	return s is string
+      	&& isoToTimestamp(s) < request.time + duration.value(5, 'm');
+    }
+
+    // This function checks that an image URL points at the app's own Storage bucket, inside the given folder for the given user (posts/{uid}/... or profile/{uid}/...).
+    // Why it matters: post images and profile pictures load in every viewer's browser. Without this, a user could set either one to any URL on any site (a tracking pixel, for instance),
+    // and every person who scrolled past their post would have their browser contact that site, leaking their IP address and when they looked. It also stops hotlinking off-site images into the feed.
+    // The URL has to look exactly like what getDownloadURL() returns (see storage.service.ts):
+    //   https://firebasestorage.googleapis.com/v0/b/<bucket>/o/posts%2F<uid>%2F<file>?alt=media&token=...
+    // The path after /o/ is URL-encoded, which is why the slashes show up as %2F. Dots are written as [.] because a bare . in a regex matches any character.
+    // <file> can't contain / ? or #, so a URL can't sneak out of the folder, and anything after the ? (alt, token, the ?t= cache buster) is allowed.
+    // The bucket is FitLog Dev's. When the production project is created, its bucket gets added here as a second option (planning/to-do.txt "Before launch"), or production uploads will be rejected.
+    function isOwnStorageURL(url, folder, uid) {
+    	return url is string
+      	&& url.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/fitlog-9ffc1[.]firebasestorage[.]app/o/' + folder + '%2F' + uid + '%2F[^/?#]+([?].*)?$');
+    }
+
+    // This function checks whether a field is part of an update. Used where a check only runs on the fields an update actually changes,
+    // so older docs (written before a check existed) can still be edited without having to fix their untouched fields first.
+    function isChanging(field) {
+    	return request.resource.data.diff(resource.data).affectedKeys().hasAny([field]);
     }
     
     // User docs are the public profile: any signed-in user can read them (profile pages, follower lists, chat headers all need other people's docs).
@@ -36,6 +67,11 @@ service cloud.firestore {
           && d.get('profilePicURL', '') is string;
       }
 
+      // This function checks the profile picture: empty (no picture, or one that was removed, which EditProfileForm saves as '') or an image in this user's own profile/ folder in Storage.
+      function profilePicValid(d) {
+      	return d.get('profilePicURL', '') == '' || isOwnStorageURL(d.profilePicURL, 'profile', userId);
+      }
+
       // This function fetches the path of the caller's own doc in this user's followers subcollection. Same idea as myLikePath() in the posts block: the follower doc's id is the follower's uid, so there's exactly one fixed path to check.
       function myFollowerPath() {
       	return /databases/$(database)/documents/users/$(userId)/followers/$(request.auth.uid);
@@ -49,18 +85,21 @@ service cloud.firestore {
       							&& request.auth.uid == userId
                     && request.resource.data.keys().hasOnly(['displayName', 'username', 'createdAt', 'bio', 'profilePicURL', 'followerCount', 'followingCount'])
                     && profileFieldsValid(request.resource.data)
+                    && profilePicValid(request.resource.data)
                     && request.resource.data.username is string
                     && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid
-                    && request.resource.data.createdAt is string
+                    && isNotFuture(request.resource.data.createdAt)
                     && request.resource.data.followerCount == 0
                     && request.resource.data.followingCount == 0;
 
       // The three update cases below are additive, same as the post's update cases: an update goes through if ANY ONE passes, so each one pins down its own field set.
       // Update case #1: the owner editing their profile. Only displayName, bio and profilePicURL can move, so username (which has its own claim doc), createdAt and both counters stay frozen.
+      // The picture is only checked when it changes, so a profile with an older picture URL can still edit its bio.
       allow update: if isSignedIn()
       							&& request.auth.uid == userId
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'profilePicURL'])
-                    && profileFieldsValid(request.resource.data);
+                    && profileFieldsValid(request.resource.data)
+                    && (!isChanging('profilePicURL') || profilePicValid(request.resource.data));
 
       // Update case #2: follower counter, moved by the person following/unfollowing (not the owner), same shape as the post like counter.
       // It moves by 1 and only when the same batched write also creates/deletes the caller's own doc in this user's followers subcollection, and nobody can follow themselves.
@@ -121,7 +160,7 @@ service cloud.firestore {
                       && followerUid != userId
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                       && request.resource.data.uid == followerUid
-                      && request.resource.data.createdAt is string
+                      && isNotFuture(request.resource.data.createdAt)
                       && existsAfter(mirrorFollowingPath())
                       && followerCountMoved(1);
         // Overwriting an existing follow doc counts as an update, so this is also what stops a double follow.
@@ -148,7 +187,7 @@ service cloud.firestore {
                       && followedUid != userId
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                       && request.resource.data.uid == followedUid
-                      && request.resource.data.createdAt is string
+                      && isNotFuture(request.resource.data.createdAt)
                       && existsAfter(mirrorFollowerPath())
                       && followingCountMoved(1);
         allow update: if false;
@@ -190,6 +229,7 @@ service cloud.firestore {
         allow create: if isSignedIn()
         							&& request.auth.uid == userId
                       && pieceFieldsValid(request.resource.data)
+                      && isNotFuture(request.resource.data.createdAt)
                       && (
                       	(request.resource.data.source == 'own'
                         	&& request.resource.data.keys().hasOnly(['name', 'price', 'size', 'materials', 'dateAcquired', 'hasDetails', 'source', 'fromUid', 'fromUsername', 'createdAt'])
@@ -235,7 +275,8 @@ service cloud.firestore {
         allow create: if isSignedIn()
         							&& request.auth.uid == userId
                       && request.resource.data.keys().hasOnly(['name', 'sections', 'createdAt'])
-                      && fitFieldsValid(request.resource.data);
+                      && fitFieldsValid(request.resource.data)
+                      && isNotFuture(request.resource.data.createdAt);
 
         // Update: the owner editing a fit. createdAt is frozen (it's what decides the fit's spot on the board), and updatedAt has to be set.
         allow update: if isSignedIn()
@@ -249,7 +290,10 @@ service cloud.firestore {
     }
     
   	// Username read stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.
-    // Username creation is only possible for yourself (uid must match), doc id must equal the stored username (request.resource.data.username) and be lowercase (for convention), and no extra fields are published when the doc is created.
+    // Username creation is only possible for yourself (uid must match), doc id must equal the stored username (request.resource.data.username), and no extra fields are published when the doc is created.
+    // The name itself has to be 3-16 characters of a-z, 0-9, and underscores (the same rule as getUsernameError in src/utils/validation.ts, which used to be the only place it was checked; change both together).
+    // The pattern only allows lowercase letters, so it also covers the old "must be lowercase" check. The app lowercases names before saving, which is why the sign-up form can still accept capitals.
+    // This is the only rule that needs the check: creating a user doc (sign-up) and renaming (users update case #4) both require a claim doc for the name, so a bad name can't get onto a profile any other way.
     // Username update is hardcoded false to ensure that when a user wants to update their name, the old username doc is deleted and replaced with a doc for the new username.
     // Username deletion is only possible when the user is authenticated and the existing document's uid field matches the caller's uid (whoever is trying to delete their username).
     // On top of that, a claim can only be given up while it's no longer in use: either the owner's user doc is being deleted in the same batch (account deletion) or it's being switched to a different username (a rename).
@@ -264,8 +308,8 @@ service cloud.firestore {
       							&& request.resource.data.keys().hasOnly(['uid', 'username', 'createdAt'])
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.username == username
-                    && username == username.lower()
-                    && request.resource.data.createdAt is string;
+                    && username.matches('^[a-z0-9_]{3,16}$')
+                    && isNotFuture(request.resource.data.createdAt);
       allow update: if false;
       allow delete: if isSignedIn()
       							&& request.auth.uid == resource.data.uid
@@ -291,6 +335,35 @@ service cloud.firestore {
           && d.commentCount is int;
       }
       
+      // This function checks one piece of a post: a map with only the five piece fields (see PieceDetail in src/types.ts), all strings.
+      // The name is required (1-100 characters), and each detail is optional and capped at 100. These are the same caps as an archived piece, so any piece on a post can be favorited.
+      // PostDescription always sends all five fields (empty strings for details that weren't filled in), which is why '' has to pass for the details.
+      // Each field is checked with one regex instead of separate "is string" and size() checks, because rules can only evaluate so many expressions per request, and with 8 pieces
+      // the longer version ran out (posts with 7 or 8 pieces were denied). matches() on a non-string is an error, which denies the write, so the regex is the type check too.
+      // Same idea for the map check: keys() on anything that isn't a map is an error, so a piece that's a plain string (or a number) is denied.
+      // (?s) lets . match line breaks as well, so a pasted value with a newline is still counted by length instead of being rejected outright.
+      function pieceValid(p) {
+      	return p.keys().hasOnly(['name', 'price', 'size', 'materials', 'dateAcquired'])
+        	&& p.name.matches('(?s)^.{1,100}$')
+          && p.get('price', '').matches('(?s)^.{0,100}$')
+          && p.get('size', '').matches('(?s)^.{0,100}$')
+          && p.get('materials', '').matches('(?s)^.{0,100}$')
+          && p.get('dateAcquired', '').matches('(?s)^.{0,100}$');
+      }
+
+      // This function checks every piece on a post. Rules have no loops, so each of the 8 possible positions is checked by hand; a position past the end of the list is skipped (the size check is false, so || never reads it).
+      // postFieldsValid already caps the list at 8, so these 8 lines cover every piece.
+      function piecesValid(pieces) {
+      	return (pieces.size() < 1 || pieceValid(pieces[0]))
+        	&& (pieces.size() < 2 || pieceValid(pieces[1]))
+          && (pieces.size() < 3 || pieceValid(pieces[2]))
+          && (pieces.size() < 4 || pieceValid(pieces[3]))
+          && (pieces.size() < 5 || pieceValid(pieces[4]))
+          && (pieces.size() < 6 || pieceValid(pieces[5]))
+          && (pieces.size() < 7 || pieceValid(pieces[6]))
+          && (pieces.size() < 8 || pieceValid(pieces[7]));
+      }
+
       // This function fetches the path of the caller's own like doc for this post (since likes are subcollections).
       function myLikePath() {
       	return /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
@@ -303,14 +376,20 @@ service cloud.firestore {
       allow create: if isSignedIn()
       							&& request.resource.data.uid == request.auth.uid
                     && postFieldsValid(request.resource.data)
+                    && piecesValid(request.resource.data.pieces)
+                    && isOwnStorageURL(request.resource.data.imageURL, 'posts', request.auth.uid)
+                    && isNotFuture(request.resource.data.createdAt)
                     && request.resource.data.likeCount == 0
                     && request.resource.data.commentCount == 0;
                     
       // The three update cases below are additive, meaning an update goes through if ANY ONE of them passes. That's why each one locks down the exact set of fields it allows to change (via diff/affectedKeys or by re-asserting the frozen values), otherwise the loosest rule would quietly cancel out the stricter ones.
       // Update case #1: post creator editing their own post's content. uid/createdAt are frozen (no reassigning posts, no backdating) and the counters cannot be tampered with in this case.
+      // Pieces and the image are only checked when they change, so an older post can still have its caption edited.
       allow update: if isSignedIn()
       							&& request.auth.uid == resource.data.uid
                     && postFieldsValid(request.resource.data)
+                    && (!isChanging('pieces') || piecesValid(request.resource.data.pieces))
+                    && (!isChanging('imageURL') || isOwnStorageURL(request.resource.data.imageURL, 'posts', request.auth.uid))
                     && request.resource.data.uid == resource.data.uid
                     && request.resource.data.createdAt == resource.data.createdAt
                     && request.resource.data.likeCount == resource.data.likeCount
@@ -353,7 +432,7 @@ service cloud.firestore {
         							&& request.auth.uid == userId
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                       && request.resource.data.uid == userId
-                      && request.resource.data.createdAt is string;
+                      && isNotFuture(request.resource.data.createdAt);
         allow update: if false;
         allow delete: if isSignedIn() && request.auth.uid == userId;
       }
@@ -386,7 +465,7 @@ service cloud.firestore {
                       && request.resource.data.comment is string
                       && request.resource.data.comment.size() > 0
                       && request.resource.data.comment.size() <= 500
-                      && request.resource.data.createdAt is string
+                      && isNotFuture(request.resource.data.createdAt)
                       && request.resource.data.likeCount == 0
                       && commentPieceValid(request.resource.data);
 
@@ -428,7 +507,7 @@ service cloud.firestore {
           							&& request.auth.uid == userId
                         && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                         && request.resource.data.uid == userId
-                        && request.resource.data.createdAt is string;
+                        && isNotFuture(request.resource.data.createdAt);
           allow update: if false;
           allow delete: if isSignedIn() && request.auth.uid == userId;
         }
@@ -453,7 +532,7 @@ service cloud.firestore {
           && p.text is string
           && p.text.size() > 0
           && p.text.size() <= 1000
-          && p.createdAt is string;
+          && isNotFuture(p.createdAt);
       }
 
       // This function fetches the path of the message the current preview is a copy of (used by update case #3).
@@ -476,8 +555,8 @@ service cloud.firestore {
                     && chatId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1]
                     && exists(/databases/$(database)/documents/users/$(request.resource.data.participantIds[0]))
                     && exists(/databases/$(database)/documents/users/$(request.resource.data.participantIds[1]))
-                    && request.resource.data.createdAt is string
-                    && request.resource.data.updatedAt is string
+                    && isNotFuture(request.resource.data.createdAt)
+                    && isNotFuture(request.resource.data.updatedAt)
                     && previewValid(request.resource.data.lastMessage)
                     && request.resource.data.lastRead is map
                     && request.resource.data.lastRead.keys().hasOnly(request.resource.data.participantIds);
@@ -550,7 +629,7 @@ service cloud.firestore {
       	allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
 
         // Create: as yourself only, with a known field set, 1-1000 characters of text, and an optional valid reply.
-        // createdAt can't be more than 5 minutes ahead of the server's clock, so a fake future timestamp can't stretch the edit window below (or jump to the top of the chat).
+        // createdAt can't be in the future (isNotFuture), so a fake future timestamp can't stretch the edit window below (or jump to the top of the chat).
         // getAfter() reads the chat doc as it will be AFTER the batch commits, which ties the message to its preview: the chat has to exist (or be created in the same batch) with this exact message as its lastMessage.
         allow create: if isSignedIn()
         							&& request.auth.uid in chatId.split('_')
@@ -559,8 +638,7 @@ service cloud.firestore {
                       && request.resource.data.text is string
                       && request.resource.data.text.size() > 0
                       && request.resource.data.text.size() <= 1000
-                      && request.resource.data.createdAt is string
-                      && isoToTimestamp(request.resource.data.createdAt) < request.time + duration.value(5, 'm')
+                      && isNotFuture(request.resource.data.createdAt)
                       && replyValid(request.resource.data)
                       && isPreviewedAfter()
                       && getAfter(chatPath()).data.lastMessage.senderId == request.resource.data.senderId

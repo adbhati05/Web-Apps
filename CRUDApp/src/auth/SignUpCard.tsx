@@ -5,8 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "./UserAuthContext";
 import { authService } from "../services/auth.service";
 import { useAlert } from "../alerts/AlertContext";
-import { getUsernameError, getEmailError, getPasswordError, USERNAME_MIN, USERNAME_MAX } from "../utils/validation";
+import { getUsernameError, getEmailError, getPasswordError } from "../utils/validation";
+import { USERNAME_MIN, USERNAME_MAX } from "../utils/limits";
 import { Link } from "react-router-dom";
+import { logError } from "../utils/logger";
 
 // NOTE: More validation/error-handling code will need to be implemented. DO RESEARCH!
 const SignUpCard = () => {
@@ -75,7 +77,7 @@ const SignUpCard = () => {
       navigate("/");
       showAlert("success", `Welcome to FitLog, ${userSignUpInfo.username}!`);
     } catch (caught) {
-      console.log("An error occurred while signing up: ", caught);
+      logError("An error occurred while signing up: ", caught);
 
       // Firebase Auth errors carry a code like "auth/email-already-in-use", and authService.signUp throws a plain Error with a message for a taken username.
       const error = caught as { code?: string, message?: string };

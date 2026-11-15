@@ -1,5 +1,7 @@
 import './Error.css';
-import { Link, useRouteError, isRouteErrorResponse } from 'react-router-dom';
+import { Link, useRouteError, isRouteErrorResponse, useNavigate } from 'react-router-dom';
+import { useUserAuth } from '../auth/UserAuthContext';
+import { logError } from '../utils/logger';
 
 // This page displays an error message when something goes wrong in the application. It covers two cases:
 // 1. Page not found (404): the URL doesn't match any route. routes.tsx sends every unknown URL here with a catch-all "*" route.
@@ -11,7 +13,21 @@ const Error = () => {
     // isRouteErrorResponse is true for errors React Router creates itself, like a 404. Anything else is a real crash.
     const notFound = !error || (isRouteErrorResponse(error) && error.status === 404);
 
-    if (!notFound) console.error("Page crashed:", error);
+    if (!notFound) logError("Page crashed:", error);
+
+    // When the signed-in user's profile couldn't be loaded (or doesn't exist), ProtectedRoutes sends them here. Going home would just land back on this page, so they get a way to sign out instead.
+    const { status, signOut } = useUserAuth();
+    const navigate = useNavigate();
+    const profileProblem = status === 'error' || status === 'noProfile';
+
+    const handleSignOut = async () => {
+        try {
+            await signOut();
+        } finally {
+            // Navigating also clears this error screen (React Router resets it on every navigation).
+            navigate('/login', { replace: true });
+        }
+    };
 
     return (
         <div className="error-layout">
@@ -29,7 +45,11 @@ const Error = () => {
                     {!notFound && (
                         <button className="error-button" onClick={() => window.location.reload()}>Reload</button>
                     )}
-                    <Link to="/" className="error-button error-button-primary">Go home</Link>
+                    {profileProblem ? (
+                        <button className="error-button error-button-primary" onClick={handleSignOut}>Sign out</button>
+                    ) : (
+                        <Link to="/" className="error-button error-button-primary">Go home</Link>
+                    )}
                 </div>
             </div>
         </div>

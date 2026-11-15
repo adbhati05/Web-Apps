@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { BsSquare, BsCheckSquare } from 'react-icons/bs';
 import Modal from './Modal';
 import type { PieceDetail } from '../types';
+import { PIECE_FIELD_MAX } from '../utils/limits';
 
 // This component is the overlay for adding one of your own pieces to your style board archive, opened from the Add piece button at the top of the archive side bar.
 // It works like adding a piece to a post (PostDescription): a name, plus an optional "Include details" checkbox that shows the price, size, materials, and date acquired fields.
@@ -12,8 +13,6 @@ interface AddPieceOverlayProps {
     onAdd: (piece: PieceDetail, hasDetails: boolean) => Promise<void>, // Async so the overlay knows when the save went through and can keep the form if it didn't.
 }
 
-// Same cap as the archive rules, for the name and each detail.
-const PIECE_FIELD_MAX = 100;
 
 const AddPieceOverlay = ({ onClose, onAdd }: AddPieceOverlayProps) => {
     const [name, setName] = useState('');

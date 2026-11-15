@@ -7,15 +7,6 @@ import { fitService } from './fit.service';
 import type { UserInfo } from '../types';
 
 export const authService = {
-    // This function gets the current user from Firebase via currentUser method (returns null if the user is not logged in).
-    // It then retrieves the user doc from "users" collection, ensures it exists, and if so stores that doc's values in a UserInfo object.
-    async getCurrentUser(): Promise<UserInfo | null> {
-        const user = auth.currentUser;
-        if (!user) return null;
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        return userDoc.exists() ? ({ uid: user.uid, ...userDoc.data() } as UserInfo) : null;
-    },
-
     // This is just a simple function that retrieves the current user's info (AKA that user's document).
     async getUserInfo(uid: string): Promise<UserInfo | null> {
         const userDoc = await getDoc(doc(db, "users", uid));

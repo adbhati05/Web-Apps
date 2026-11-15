@@ -1,9 +1,11 @@
 import "./PostDescription.css";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BsSquare, BsCheckSquare, BsDashCircle } from "react-icons/bs";
 import { postService } from "../services/post.service";
-import { authService } from "../services/auth.service";
-import type { UserInfo } from "../types";
+import { useSignedInUser } from "../auth/UserAuthContext";
+import { ImageProcessingError } from "../services/storage.service";
+import { logError } from "../utils/logger";
+import { CAPTION_MAX, PIECES_MAX, PIECE_FIELD_MAX } from "../utils/limits";
 
 // TO-DO: SET UP TWO REACT COMPONENTS THAT WILL BE ERROR AND SUCCESS MESSAGES THAT WILL BE DISPLAYED WHENEVER THE USER ATTEMPTS AN OPERATION SUCH AS CREATING A POST.
 
@@ -14,27 +16,20 @@ interface PostDescriptionProps {
 }
 
 const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionProps) => {
-  // Setting up states that will be used to hold information inputted by user for caption, pieces, and piece details (price, size, materials, date acquired). Also setting up a state to hold user info (which will be fetched on mount) and a loading state for when the post is being created.
+  // The signed-in user's profile, which createPost stores the author's username from. It comes from the auth context, so there's nothing to fetch here.
+  const userInfo = useSignedInUser();
+
+  // Setting up states that will be used to hold information inputted by user for caption, pieces, and piece details (price, size, materials, date acquired), plus a loading state for when the post is being created.
   // Details are optional, hence the detailsEnabled state to track whether the user has chosen to enter details or not.
   const [caption, setCaption] = useState<string>("");
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [pieces, setPieces] = useState<string[]>([]);
   const [piecesDetails, setPiecesDetails] = useState<string[][]>([]);
   const [detailsEnabled, setDetailsEnabled] = useState<boolean>(false);
 
-  // Fetch current user on mount
-  useEffect(() => {
-    const fetchUser = async () => {
-      const user = await authService.getCurrentUser();
-      setUserInfo(user);
-    };
-    fetchUser();
-  }, []);
-
   // This function is essentially the push operation, adding a new piece to the top (or end) of the array. If the user chooses to add details for each piece, the corresponding details array will be initialized.
   const handleAddPiece = () => {
-    if (pieces.length < 8) {
+    if (pieces.length < PIECES_MAX) {
       setPieces([...pieces, ""]);
 
       if (detailsEnabled) {
@@ -98,12 +93,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
 
   // This function will take all the data entered by the user and leverage postService's functions to register that data into the database and storage bucket.
   const handleCreatePost = async () => {
-    // Basic error handling ensuring user is authenticated, a photo has been selected, and a caption has been entered before allowing the user to create a post.
-    if (!userInfo) {
-      onError("You must be logged in to create a post.");
-      return;
-    }
-
+    // Basic error handling ensuring a photo has been selected and a caption has been entered before allowing the user to create a post (being signed in is guaranteed by ProtectedRoutes).
     if (!imagePreview) {
       onError("Please select a photo for your post.");
       return;
@@ -111,6 +101,11 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
 
     if (!caption.trim()) {
       onError("Please enter a caption for your post.");
+      return;
+    }
+
+    if (pieces.some((piece) => !piece.trim())) {
+      onError("Please enter a name for every piece.");
       return;
     }
 
@@ -132,14 +127,14 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
 
     // Leveraging createPost from postService, but doing so in a try-catch block to handle any errors that might arise during post creation.
     try {
-      const post = await postService.createPost(
+      // The new post isn't needed here (the feed fetches posts itself), so the return value is ignored.
+      await postService.createPost(
         caption,
         piecesInfo,
         detailsEnabled, // Using detailsEnabled to populate the hasDetails field for each Post object.
         imagePreview, // postService.createPost expects a URL
         userInfo
       );
-      console.log("Post created successfully:", post);
 
       // Reset form on success, throw an error otherwise
       setCaption("");
@@ -147,9 +142,9 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
       setPiecesDetails([]);
       setDetailsEnabled(false);
       onSuccess(); // The Post page shows the "Post created!" alert.
-    } catch (err: any) {
-      console.error("Error creating post:", err);
-      onError(err.message || "Failed to create post. Please try again.");
+    } catch (error) {
+      logError("Error creating post:", error);
+      onError(error instanceof ImageProcessingError ? error.message : "Couldn't create your post. Try again.");
     } finally {
       setLoading(false);
     }
@@ -164,7 +159,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
         className="post-caption-input"
         id="post-caption"
         placeholder="Write a caption..."
-        maxLength={500} // Limiting the caption length to 500 characters for now.
+        maxLength={CAPTION_MAX} // Same cap as the rules (see src/utils/limits.ts).
         rows={4} // Setting the number of rows to four for now.
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
@@ -193,6 +188,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
               type="text"
               value={piece} // Ensuring that the current piece in pieces to be the user's input.
               placeholder={`Enter piece ${index + 1} name...`}
+              maxLength={PIECE_FIELD_MAX} // Limiting piece name length to 100 chars (piece details will also be limited to 100 chars per field below).
               onChange={(e) => handlePieceChange(index, e.target.value)} // Creating an event handler to handle populating the array with the inputted value.
             />
 
@@ -207,6 +203,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
                   className="detail-input-field"
                   type="text"
                   placeholder="Enter price..."
+                  maxLength={PIECE_FIELD_MAX}
                   value={piecesDetails[index][0] || ""} // Ensuring that the first element in each array of piecesDetail is set to be the value of the price input.
                   onChange={(e) =>
                     handleDetailsChange(index, 0, e.target.value)
@@ -219,6 +216,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
                   className="detail-input-field"
                   type="text"
                   placeholder="Enter size..."
+                  maxLength={PIECE_FIELD_MAX}
                   value={piecesDetails[index][1] || ""} // Ensuring that the second element in each array of piecesDetail is set to be the value of the size input.
                   onChange={(e) =>
                     handleDetailsChange(index, 1, e.target.value)
@@ -231,6 +229,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
                   className="detail-input-field"
                   type="text"
                   placeholder="Enter materials..."
+                  maxLength={PIECE_FIELD_MAX}
                   value={piecesDetails[index][2] || ""} // Ensuring that the third element in each array of piecesDetail is set to be the value of the materials input.
                   onChange={(e) =>
                     handleDetailsChange(index, 2, e.target.value)
@@ -243,6 +242,7 @@ const PostDescription = ({ imagePreview, onSuccess, onError }: PostDescriptionPr
                   className="detail-input-field"
                   type="text"
                   placeholder="Enter date acquired... (mm/dd/yyyy)"
+                  maxLength={PIECE_FIELD_MAX}
                   value={piecesDetails[index][3] || ""} // Ensuring that the fourth element in each array of piecesDetail is set to be the value of the date acquired input.
                   onChange={(e) =>
                     handleDetailsChange(index, 3, e.target.value)

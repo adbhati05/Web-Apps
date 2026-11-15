@@ -1,11 +1,12 @@
 // Shared input checks for anything that sets a username or password (the sign-up card's rules, pulled out so the Account info settings can enforce the exact same ones).
 // Each function returns an error message to show the user, or null if the value is fine.
 
-// Usernames are 3-16 characters long and can only contain A-Z, a-z, 0-9, and underscores.
-// (The length used to only be checked by the browser through the sign-up input's minLength/maxLength, which the custom alerts replaced.)
-export const USERNAME_MIN = 3;
-export const USERNAME_MAX = 16;
+import { USERNAME_MIN, USERNAME_MAX } from './limits';
 
+// Usernames are 3-16 characters long (USERNAME_MIN/MAX in src/utils/limits.ts) and can only contain A-Z, a-z, 0-9, and underscores.
+// The length limits and allowed characters mirror the usernames create rule in rules/firestore.rules, so in case these limits ever change, both the front-end and back-end will need to be updated together.
+
+// Note that the regex here allows A-Z while the rule enforces a-z, that's because the app lowercases the name before saving it to Firestore so the rule only ever sees the lowercased form.
 export function getUsernameError(username: string): string | null {
     if (!username) return "Please enter a username.";
     if (username.length < USERNAME_MIN || username.length > USERNAME_MAX) {

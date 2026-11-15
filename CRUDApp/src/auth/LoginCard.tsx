@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useUserAuth } from "./UserAuthContext";
 import { useAlert } from "../alerts/AlertContext";
 import { getEmailError } from "../utils/validation";
+import { logError } from "../utils/logger";
 
 const LoginCard = () => {
   // The following code follows the same logic as with the SignUpCard component, but obviously in the context of logging in a user instead.
@@ -42,7 +43,7 @@ const LoginCard = () => {
       await signIn(userLoginInfo.email, userLoginInfo.password);
       navigate("/");
     } catch (caught) {
-      console.log("An error occurred while logging in: ", caught);
+      logError("An error occurred while logging in: ", caught);
 
       // Firebase Auth errors carry a code like "auth/invalid-credential", which is what decides the message below.
       const error = caught as { code?: string };

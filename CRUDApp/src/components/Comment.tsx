@@ -7,6 +7,8 @@ import { useAlert } from '../alerts/AlertContext';
 import { BsHeart, BsHeartFill, BsList } from 'react-icons/bs';
 import PieceItem from './PieceItem';
 import type { Comment as CommentData, UserInfo } from '../types';
+import { COMMENT_MAX } from '../utils/limits';
+import { logError } from '../utils/logger';
 
 // The Comment interface from types.ts is renamed to CommentData on import above, since this component already takes the name Comment.
 
@@ -92,7 +94,7 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
                 setLikeCount(prev => nowLiked ? prev + 1 : prev - 1);
             }
         } catch (error) {
-            console.error("Failed to toggle comment like:", error);
+            logError("Failed to toggle comment like:", error);
 
             // Upon error, rollback both optimistic updates and let the user know why the heart flipped back.
             setLiked(isLiked);
@@ -124,7 +126,7 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
             setEditing(false);
         } catch (error) {
             // Staying in edit mode on failure so the draft isn't lost.
-            console.error("Failed to edit comment:", error);
+            logError("Failed to edit comment:", error);
             showAlert("error", "Couldn't save your edit. Try again.");
         }
         setSaving(false);
@@ -191,7 +193,7 @@ const Comment = ({ postId, comment, author, initiallyLiked, currentUserId, canEd
                             className='comment-edit-input'
                             type="text"
                             value={draft}
-                            maxLength={500} // Same cap the security rules enforce.
+                            maxLength={COMMENT_MAX} // Same cap the security rules enforce.
                             autoFocus
                             onChange={(e) => setDraft(e.target.value)}
                             onKeyDown={handleEditKeyDown}

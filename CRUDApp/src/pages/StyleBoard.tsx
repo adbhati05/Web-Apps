@@ -5,20 +5,21 @@ import ArchiveSideBar from "../components/ArchiveSideBar";
 import AddPieceOverlay from "../components/AddPieceOverlay";
 import FitFormOverlay from "../components/FitFormOverlay";
 import { useState, useEffect } from "react";
-import { useUserAuth } from "../auth/UserAuthContext";
+import { useSignedInUser } from "../auth/UserAuthContext";
 import { useAlert } from "../alerts/AlertContext";
 import { archiveService } from "../services/archive.service";
 import { fitService, getFitLabel } from "../services/fit.service";
 import type { ArchivedPiece, Fit, PieceDetail } from "../types";
 import "./StyleBoard.css";
+import { logError } from "../utils/logger";
 
 // This page is the user's style board: the planned fits in the middle (FitBoard) and their archive of pieces in the right side bar (ArchiveSideBar).
 // Pieces get into the archive by favoriting them from posts on the feed or adding your own, and fits are planned from the archive's pieces.
 // Both lists are private and come from onSnapshot listeners, so adding, editing, or removing anything shows up here on its own.
 const StyleBoard = () => {
-  const { userInfo } = useUserAuth();
+  const userInfo = useSignedInUser();
   const { showAlert } = useAlert();
-  const myUid = userInfo?.uid;
+  const myUid = userInfo.uid;
 
   const [archive, setArchive] = useState<ArchivedPiece[]>([]);
   const [archiveLoading, setArchiveLoading] = useState(true);
@@ -35,10 +36,8 @@ const StyleBoard = () => {
   // Below 900px only one of the two lists fits next to the nav, so tabs at the top switch between them (see StyleBoard.css). Above that, both always show and the tabs are hidden.
   const [activeTab, setActiveTab] = useState<"fits" | "archive">("fits");
 
-  // Starts both listeners once the user's doc has loaded. The cleanup unsubscribes them when leaving the page, same as the chat listeners.
+  // Starts both listeners when the page opens. The cleanup unsubscribes them when leaving the page, same as the chat listeners.
   useEffect(() => {
-    if (!myUid) return;
-
     const unsubscribeArchive = archiveService.subscribeToArchive(
       myUid,
       (pieces) => {
@@ -46,7 +45,7 @@ const StyleBoard = () => {
         setArchiveLoading(false);
       },
       (error) => {
-        console.error("Failed to load archive:", error);
+        logError("Failed to load archive:", error);
         setArchiveError(true);
         setArchiveLoading(false);
       }
@@ -59,7 +58,7 @@ const StyleBoard = () => {
         setFitsLoading(false);
       },
       (error) => {
-        console.error("Failed to load fits:", error);
+        logError("Failed to load fits:", error);
         setFitsError(true);
         setFitsLoading(false);
       }
@@ -73,30 +72,28 @@ const StyleBoard = () => {
 
   // The handlers below are what the overlays call. Each one shows a success alert when it works. When it fails, it shows an error alert and re-throws, so the overlay knows to stay open with the form filled in.
   const handleAddPiece = async (piece: PieceDetail, hasDetails: boolean) => {
-    if (!userInfo) return;
     try {
       await archiveService.addOwnPiece(userInfo.uid, userInfo.username, piece, hasDetails);
       showAlert("success", "Added to your archive.");
     } catch (error) {
-      console.error("Failed to add piece:", error);
+      logError("Failed to add piece:", error);
       showAlert("error", "Couldn't add that piece. Try again.");
       throw error;
     }
   };
 
   const handleRemovePiece = async (piece: ArchivedPiece) => {
-    if (!myUid) return;
     try {
       await archiveService.removePiece(myUid, piece.id);
       showAlert("success", `Removed ${piece.name} from your archive.`);
     } catch (error) {
-      console.error("Failed to remove piece:", error);
+      logError("Failed to remove piece:", error);
       showAlert("error", "Couldn't remove that piece. Try again.");
     }
   };
 
   const handleSaveFit = async (name: string, sections: Fit["sections"]) => {
-    if (!myUid || !fitFormTarget) return;
+    if (!fitFormTarget) return;
     try {
       if (fitFormTarget === "new") {
         await fitService.createFit(myUid, name, sections);
@@ -106,19 +103,19 @@ const StyleBoard = () => {
         showAlert("success", "Fit updated.");
       }
     } catch (error) {
-      console.error("Failed to save fit:", error);
+      logError("Failed to save fit:", error);
       showAlert("error", "Couldn't save your fit. Try again.");
       throw error;
     }
   };
 
   const handleDeleteFit = async () => {
-    if (!myUid || !fitFormTarget || fitFormTarget === "new") return;
+    if (!fitFormTarget || fitFormTarget === "new") return;
     try {
       await fitService.deleteFit(myUid, fitFormTarget.id);
       showAlert("success", "Fit deleted.");
     } catch (error) {
-      console.error("Failed to delete fit:", error);
+      logError("Failed to delete fit:", error);
       showAlert("error", "Couldn't delete your fit. Try again.");
       throw error;
     }
@@ -152,7 +149,7 @@ const StyleBoard = () => {
           {tabs}
           <FitBoard
             fits={fits}
-            loading={fitsLoading || !myUid}
+            loading={fitsLoading}
             error={fitsError}
             onAddClick={() => setFitFormTarget("new")}
             onFitClick={(fit) => setFitFormTarget(fit)}
@@ -162,7 +159,7 @@ const StyleBoard = () => {
           {tabs}
           <ArchiveSideBar
             pieces={archive}
-            loading={archiveLoading || !myUid}
+            loading={archiveLoading}
             error={archiveError}
             onAddClick={() => setAddPieceOpen(true)}
             onRemove={handleRemovePiece}

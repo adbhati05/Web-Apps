@@ -1,9 +1,10 @@
 // This will include all Firebase functionality necessary for viewing and editing user profiles.
 // Fetching a single user doc still goes through authService.getUserInfo, this service just builds the profile-specific lookups on top of it.
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { authService } from './auth.service';
 import type { UserInfo } from '../types';
+import { logError } from '../utils/logger';
 
 // The fields on a user doc that its owner is allowed to edit. Everything else (username, createdAt, the counters) is frozen by the security rules, so the service doesn't accept them either.
 export type ProfileUpdate = Partial<Pick<UserInfo, 'displayName' | 'bio' | 'profilePicURL'>>;
@@ -13,6 +14,21 @@ export type ProfileUpdate = Partial<Pick<UserInfo, 'displayName' | 'bio' | 'prof
 const profileCache = new Map<string, UserInfo>();
 
 export const profileService = {
+    // Listens to one user's doc and calls onChange with their profile whenever it changes (or null if the doc doesn't exist). Returns an unsubscribe function (usual protocol for listeners).
+    // Auth context uses this for the signed-in user, so their profile shows up the moment sign-up completes, and any edit (Settings, a follow) updates the top bar and pages on its own.
+    subscribeToUserInfo(uid: string, onChange: (userInfo: UserInfo | null) => void, onError: (error: Error) => void): () => void {
+        return onSnapshot(doc(db, "users", uid), (docSnapshot) => {
+            // While offline, Firestore can report a doc as not existing since nothing has cached yet. This is a false negative, so the listener should ignore it and wait for the server to report the doc's actual state.
+            if (!docSnapshot.exists() && docSnapshot.metadata.fromCache) return;
+
+            const userInfo = docSnapshot.exists() ? ({ uid: docSnapshot.id, ...docSnapshot.data() } as UserInfo) : null;
+
+            // Keeping the cache in sync with the listener, so any author lookups elsewhere see the same values.
+            if (userInfo) profileCache.set(uid, userInfo);
+            onChange(userInfo);
+        }, onError);
+    },
+
     // Fetches a profile by UID. Pass fresh = true to skip the cache, which the profile page does so the counts and bio shown there are always current.
     async getProfileByUid(uid: string, fresh = false): Promise<UserInfo | null> {
         if (!fresh && profileCache.has(uid)) {
@@ -40,7 +56,7 @@ export const profileService = {
 
         const profiles = await Promise.all(
             uniqueUids.map(uid => this.getProfileByUid(uid).catch(error => {
-                console.error("Failed to load profile:", uid, error);
+                logError("Failed to load profile:", error, { uid });
                 return null;
             }))
         );

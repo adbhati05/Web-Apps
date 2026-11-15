@@ -10,18 +10,15 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore",
     "test:rules": "firebase emulators:exec --only firestore \"cd eval && npx vitest run\"",
+    "deploy:rules": "npm run test:rules && firebase deploy --only firestore:rules,storage --project dev",
     "lines": "node info/count-lines.mjs"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/material": "^7.3.9",
     "bootstrap": "^5.3.7",
     "browser-image-compression": "^2.0.2",
     "firebase": "^11.9.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-firebase-hooks": "^5.1.1",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.3"
   },

@@ -8,6 +8,8 @@ import LoadingSpinner from './LoadingSpinner';
 import { useAlert } from '../alerts/AlertContext';
 import { chatService, EDIT_WINDOW_MS } from '../services/chat.service';
 import type { Chat, Message, UserInfo } from '../types';
+import { MESSAGE_MAX } from '../utils/limits';
+import { logError } from '../utils/logger';
 
 // TO-DO: "Typing..." indicator with an animation while the other person is typing (see the to-do list).
 
@@ -20,8 +22,6 @@ interface ChatThreadProps {
     chat: Chat | undefined, // undefined until the first message is sent, since that's when the chat doc gets created.
 }
 
-// Same cap as the rules (1-1000 characters), so the input stops the user before the server would reject the message.
-const MESSAGE_MAX = 1000;
 
 // How long a pause between two messages has to be before a new timestamp label is shown above the second one.
 const TIME_GAP_MS = 30 * 60 * 1000;
@@ -77,7 +77,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
                 setLoading(false);
             },
             (error) => {
-                console.error("Failed to load messages:", error);
+                logError("Failed to load messages:", error);
                 setLoadError(true);
                 setLoading(false);
             }
@@ -100,7 +100,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
 
         if (lastMessage.senderId !== myUid && (lastRead[myUid] ?? '') < lastMessage.createdAt) {
             chatService.markRead(chat.id, myUid, lastMessage.createdAt)
-                .catch((error) => console.error("Failed to mark chat as read:", error));
+                .catch((error) => logError("Failed to mark chat as read:", error));
         }
     }, [chat, myUid]);
 
@@ -175,7 +175,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
             // Only cleared once the write succeeds, so a failed message isn't lost and can just be sent again.
             setDraft('');
         } catch (error) {
-            console.error(editing ? "Failed to edit message:" : "Failed to send message:", error);
+            logError(editing ? "Failed to edit message:" : "Failed to send message:", error);
 
             // An edit past the 15 minute window gets rejected by the rules even if the Edit option was still showing when it was picked.
             showAlert("error", editing ? "Couldn't save your edit (messages can only be edited for 15 minutes)." : "Couldn't send your message. Try again.");
@@ -192,7 +192,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
         try {
             await chatService.unsendMessage(chat, message.id);
         } catch (error) {
-            console.error("Failed to unsend message:", error);
+            logError("Failed to unsend message:", error);
             showAlert("error", "Couldn't unsend your message. Try again.");
         }
     };
@@ -332,7 +332,7 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
                     placeholder={`Message ${otherProfile.username}...`}
                     aria-label="Message"
                     value={draft}
-                    maxLength={MESSAGE_MAX}
+                    maxLength={MESSAGE_MAX} // Same cap as the rules (1-1000 characters), so the input stops the user before the server would reject the message.
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={handleKeyDown}
                 />

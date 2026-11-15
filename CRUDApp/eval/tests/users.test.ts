@@ -2,7 +2,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
-import { startEnv, clearAll, stopEnv, as, anon, seed, now } from './helpers';
+import { startEnv, clearAll, stopEnv, as, anon, seed, now, minutesAgo, storageURL } from './helpers';
 
 beforeAll(startEnv);
 beforeEach(clearAll);
@@ -63,13 +63,30 @@ describe('users/{uid}', () => {
 
         it('displayName is capped at 30 characters', () =>
             assertFails(signUpBatch('alice', 'alice', validUser('alice', { displayName: 'x'.repeat(31) }))));
+
+        it('a profile picture on another site is rejected at sign-up too', () =>
+            assertFails(signUpBatch('alice', 'alice', validUser('alice', { profilePicURL: 'https://example.com/me.jpg' }))));
+
+        it('createdAt cannot be in the future', () =>
+            assertFails(signUpBatch('alice', 'alice', validUser('alice', { createdAt: minutesAgo(-60) }))));
+
+        it('createdAt has to be an ISO timestamp', () =>
+            assertFails(signUpBatch('alice', 'alice', validUser('alice', { createdAt: 'yesterday' }))));
+
+        it('the username claim\'s createdAt cannot be in the future', () => {
+            const db = as('alice');
+            const batch = writeBatch(db);
+            batch.set(doc(db, 'usernames', 'alice'), { ...claim('alice', 'alice'), createdAt: minutesAgo(-60) });
+            batch.set(doc(db, 'users', 'alice'), validUser('alice'));
+            return assertFails(batch.commit());
+        });
     });
 
     describe('update case #1: owner editing their profile', () => {
         beforeEach(() => seed(db => setDoc(doc(db, 'users/alice'), validUser('alice'))));
 
         it('owner can edit displayName, bio, and profilePicURL', () =>
-            assertSucceeds(updateDoc(doc(as('alice'), 'users/alice'), { displayName: 'Ally', bio: 'fits only', profilePicURL: 'https://example.com/me.jpg' })));
+            assertSucceeds(updateDoc(doc(as('alice'), 'users/alice'), { displayName: 'Ally', bio: 'fits only', profilePicURL: storageURL('profile', 'alice', 'me.jpg') })));
 
         it('another user cannot edit it', () =>
             assertFails(updateDoc(doc(as('bob'), 'users/alice'), { bio: 'hijacked' })));
@@ -91,6 +108,25 @@ describe('users/{uid}', () => {
 
         it('owner cannot add email back onto the doc', () =>
             assertFails(updateDoc(doc(as('alice'), 'users/alice'), { email: 'alice@example.com' })));
+
+        // The profile picture has to be '' (no picture) or in your own profile/ folder in the app's Storage bucket (profilePicValid in the rules).
+        it('owner can remove their picture (saved as an empty string)', () =>
+            assertSucceeds(updateDoc(doc(as('alice'), 'users/alice'), { profilePicURL: '' })));
+
+        it('a picture on another site is rejected (a tracking pixel, for instance)', () =>
+            assertFails(updateDoc(doc(as('alice'), 'users/alice'), { profilePicURL: 'https://example.com/me.jpg' })));
+
+        it('a picture in someone else\'s folder is rejected', () =>
+            assertFails(updateDoc(doc(as('alice'), 'users/alice'), { profilePicURL: storageURL('profile', 'bob') })));
+
+        it('a picture in your posts folder is rejected (profile pictures use the profile folder)', () =>
+            assertFails(updateDoc(doc(as('alice'), 'users/alice'), { profilePicURL: storageURL('posts', 'alice') })));
+
+        // The picture is only checked when it changes, so a profile written before this check existed can still edit its bio.
+        it('a bio edit still works on an older profile whose picture is outside the bucket', async () => {
+            await seed(db => setDoc(doc(db, 'users/alice'), validUser('alice', { profilePicURL: 'https://example.com/old.jpg' })));
+            await assertSucceeds(updateDoc(doc(as('alice'), 'users/alice'), { bio: 'new bio' }));
+        });
     });
 
     // Positive tests for case #2 (the full follow/unfollow batch) live in follows.test.ts.
@@ -153,6 +189,9 @@ describe('users/{uid}', () => {
 
         it('cannot keep the old claim while switching (no holding two names)', () =>
             assertFails(renameBatch('alicia', ['release'])));
+
+        it('cannot switch to a name that breaks the format (here, too short)', () =>
+            assertFails(renameBatch('al')));
 
         it('cannot switch to a name someone else already claimed', async () => {
             await seed(db => setDoc(doc(db, 'usernames/bob'), claim('bob', 'bob')));
@@ -250,5 +289,30 @@ describe('usernames/{username}', () => {
             await setDoc(doc(db, 'users/alice'), { displayName: 'alice', username: 'alice', createdAt: now(), followerCount: 0, followingCount: 0 });
         });
         await assertFails(deleteDoc(doc(as('alice'), 'usernames/alice')));
+    });
+
+    // The name's format (usernames create rule): 3-16 characters of a-z, 0-9, and underscores. Each failing case puts the bad name in both the doc id and the field, so it's the format check that rejects it, not the id/field match.
+    describe('format', () => {
+        it('must be at least 3 characters', () =>
+            assertFails(setDoc(doc(as('alice'), 'usernames/ab'), claim('alice', 'ab'))));
+
+        it('must be 16 characters or fewer', () =>
+            assertFails(setDoc(doc(as('alice'), 'usernames/' + 'a'.repeat(17)), claim('alice', 'a'.repeat(17)))));
+
+        it('cannot contain spaces', () =>
+            assertFails(setDoc(doc(as('alice'), 'usernames/al ice'), claim('alice', 'al ice'))));
+
+        it('cannot contain special characters', () =>
+            assertFails(setDoc(doc(as('alice'), 'usernames/al!ce'), claim('alice', 'al!ce'))));
+
+        // Boundary cases: these catch a rule that's too strict (an off-by-one like {4,16}), which the failing cases above can't.
+        it('exactly 3 characters is allowed', () =>
+            assertSucceeds(setDoc(doc(as('alice'), 'usernames/abc'), claim('alice', 'abc'))));
+
+        it('exactly 16 characters is allowed', () =>
+            assertSucceeds(setDoc(doc(as('alice'), 'usernames/' + 'a'.repeat(16)), claim('alice', 'a'.repeat(16)))));
+
+        it('digits and underscores are allowed', () =>
+            assertSucceeds(setDoc(doc(as('alice'), 'usernames/a_1'), claim('alice', 'a_1'))));
     });
 });

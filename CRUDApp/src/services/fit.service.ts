@@ -13,12 +13,6 @@ export const FIT_SECTIONS: { key: FitSection, label: string }[] = [
     { key: 'accessories', label: 'Accessories' },
 ];
 
-// The most pieces one section can hold, same cap as the rules.
-export const FIT_SECTION_MAX = 10;
-
-// The longest a fit's name can be, same cap as the rules.
-export const FIT_NAME_MAX = 40;
-
 // What a fit is called on the board: its name if it has one, otherwise "Fit #" plus its position (the first fit after the plus button is Fit #1, the next is Fit #2, and so on).
 // Since the number comes from the fit's spot on the board, deleting a fit renumbers the unnamed ones after it.
 export const getFitLabel = (fit: Fit, index: number): string => fit.name || `Fit #${index + 1}`;

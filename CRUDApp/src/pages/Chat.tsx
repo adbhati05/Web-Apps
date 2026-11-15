@@ -5,12 +5,13 @@ import ChatThread from "../components/ChatThread";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
-import { useUserAuth } from "../auth/UserAuthContext";
+import { useSignedInUser } from "../auth/UserAuthContext";
 import { chatService } from "../services/chat.service";
 import { followService } from "../services/follow.service";
 import { profileService } from "../services/profile.service";
 import type { Chat as ChatDoc, UserInfo } from "../types";
 import "./Chat.css";
+import { logError } from "../utils/logger";
 
 // This page handles both /chat (just the list of people to message) and /chat/:username (an open chat with that user).
 // The middle is the open chat (ChatThread), and the right side bar is everyone you can message (ChatList): your existing chats first, then people you follow that you haven't messaged yet.
@@ -18,8 +19,8 @@ import "./Chat.css";
 const Chat = () => {
   // Same useParams idea as the Profile page: :username is whoever the open chat is with, undefined on plain /chat.
   const { username } = useParams<{ username: string }>();
-  const { userInfo } = useUserAuth();
-  const myUid = userInfo?.uid;
+  const userInfo = useSignedInUser();
+  const myUid = userInfo.uid;
 
   // Every chat you're in, kept live by the listener below.
   const [chats, setChats] = useState<ChatDoc[]>([]);
@@ -37,10 +38,8 @@ const Chat = () => {
   const [otherLoading, setOtherLoading] = useState(false);
   const [otherNotFound, setOtherNotFound] = useState(false);
 
-  // Starts the chat list listener once the user's doc has loaded. The cleanup unsubscribes it when leaving the page, otherwise it would keep running in the background.
+  // Starts the chat list listener when the page opens. The cleanup unsubscribes it when leaving the page, otherwise it would keep running in the background.
   useEffect(() => {
-    if (!myUid) return;
-
     const unsubscribe = chatService.subscribeToChats(
       myUid,
       (updatedChats) => {
@@ -48,7 +47,7 @@ const Chat = () => {
         setChatsLoading(false);
       },
       (error) => {
-        console.error("Failed to load chats:", error);
+        logError("Failed to load chats:", error);
         setChatsError(true);
         setChatsLoading(false);
       }
@@ -59,17 +58,13 @@ const Chat = () => {
 
   // Fetches who you follow once. It's a one-time read rather than a listener, so following someone new shows up here after a reload (or the next visit to this page).
   useEffect(() => {
-    if (!myUid) return;
-
     followService.getFollowing(myUid)
       .then((following) => setFollowingUids(following.map(({ uid }) => uid)))
-      .catch((error) => console.error("Failed to load following:", error));
+      .catch((error) => logError("Failed to load following:", error));
   }, [myUid]);
 
   // Looks up the profile of everyone in the list. getProfilesByUids is cached, so people who are already loaded aren't fetched again every time a new message updates the chat list.
   useEffect(() => {
-    if (!myUid) return;
-
     const otherUids = chats.map((chat) => chat.participantIds.find((uid) => uid !== myUid)!);
     const uids = [...otherUids, ...followingUids];
     if (uids.length === 0) return;
@@ -103,7 +98,7 @@ const Chat = () => {
         setOtherNotFound(!found);
       })
       .catch((error) => {
-        console.error("Failed to load chat user:", error);
+        logError("Failed to load chat user:", error);
         if (!cancelled) setOtherNotFound(true);
       })
       .finally(() => {
@@ -116,7 +111,7 @@ const Chat = () => {
   }, [username]);
 
   // You can't chat with yourself (the rules block it too), so /chat/<your own username> just goes back to the list.
-  if (username && userInfo && username.toLowerCase() === userInfo.username) {
+  if (username && username.toLowerCase() === userInfo.username) {
     return <Navigate to="/chat" replace />;
   }
 
@@ -139,7 +134,7 @@ const Chat = () => {
               <h2 className="chat-empty-state-title">Your messages</h2>
               <p className="chat-empty-state-text">Pick someone from the list to start chatting, or use the Message button on anyone's profile.</p>
             </div>
-          ) : otherLoading || !myUid ? (
+          ) : otherLoading ? (
             <LoadingSpinner label="Loading chat..." />
           ) : otherNotFound || !otherProfile ? (
             <p className="chat-message">This user doesn't exist.</p>

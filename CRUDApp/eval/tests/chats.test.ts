@@ -2,7 +2,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch, type Firestore, type DocumentData } from 'firebase/firestore';
-import { startEnv, clearAll, stopEnv, as, seed, now } from './helpers';
+import { startEnv, clearAll, stopEnv, as, seed, now, minutesAgo } from './helpers';
 
 beforeAll(startEnv);
 beforeEach(clearAll);
@@ -14,9 +14,6 @@ const validUser = (username: string) => ({ displayName: username, username, crea
 type Msg = { senderId: string, text: string, createdAt: string, replyTo?: { messageId: string, senderId: string } };
 const message = (senderId: string, text = 'nice fit', extra: Partial<Msg> = {}): Msg => ({ senderId, text, createdAt: now(), ...extra });
 const previewOf = (messageId: string, msg: Msg) => ({ messageId, senderId: msg.senderId, text: msg.text, createdAt: msg.createdAt });
-
-// An ISO timestamp `minutes` ago, for testing the 15 minute edit window (and future timestamps with a negative number).
-const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 1000).toISOString();
 
 // Mirrors chatService.sendMessage for a brand-new chat: the chat doc (with this message as its preview) and the message doc in one batch.
 // Anything in `chat` overrides the chat doc's fields, so a test can break one at a time.
@@ -82,6 +79,9 @@ describe('starting a chat (first message)', () => {
     it('the chat doc cannot carry extra fields', () =>
         assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { pinned: true })));
 
+    it('the chat doc\'s createdAt cannot be in the future', () =>
+        assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { createdAt: minutesAgo(-60) })));
+
     it('a message cannot be sent into a chat that doesn\'t exist', () =>
         assertFails(setDoc(doc(as('alice'), 'chats/alice_bob/messages/m1'), message('alice'))));
 });
@@ -127,6 +127,11 @@ describe('sending messages', () => {
 
     it('createdAt has to be an ISO timestamp', () =>
         assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', message('bob', 'hi', { createdAt: 'yesterday' }))));
+
+    it('the preview alone cannot be future-dated either (it would jump to the top of the chat list)', () => {
+        const msg = message('bob', 'hi', { createdAt: minutesAgo(-60) });
+        return assertFails(updateDoc(doc(as('bob'), 'chats/alice_bob'), { lastMessage: previewOf('m3', msg), updatedAt: msg.createdAt }));
+    });
 
     // Pins the known gap from the rules comment: the preview can move without a message doc (the message id is client-generated, so there's no fixed path to check).
     it('a participant can move the preview alone (not bound to a message doc, see rules comment)', () => {

@@ -2,7 +2,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, writeBatch, increment, type Firestore } from 'firebase/firestore';
-import { startEnv, clearAll, stopEnv, as, anon, seed, now } from './helpers';
+import { startEnv, clearAll, stopEnv, as, anon, seed, now, minutesAgo } from './helpers';
 
 beforeAll(startEnv);
 beforeEach(clearAll);
@@ -77,6 +77,16 @@ describe('follow', () => {
         const batch = writeBatch(db);
         batch.set(doc(db, 'users/bob/following/alice'), { ...followDoc('alice'), note: 'hi' });
         batch.set(doc(db, 'users/alice/followers/bob'), followDoc('bob'));
+        batch.update(doc(db, 'users/bob'), { followingCount: increment(1) });
+        batch.update(doc(db, 'users/alice'), { followerCount: increment(1) });
+        return assertFails(batch.commit());
+    });
+
+    it('follow docs\' createdAt cannot be in the future', () => {
+        const db = as('bob');
+        const batch = writeBatch(db);
+        batch.set(doc(db, 'users/bob/following/alice'), { ...followDoc('alice'), createdAt: minutesAgo(-60) });
+        batch.set(doc(db, 'users/alice/followers/bob'), { ...followDoc('bob'), createdAt: minutesAgo(-60) });
         batch.update(doc(db, 'users/bob'), { followingCount: increment(1) });
         batch.update(doc(db, 'users/alice'), { followerCount: increment(1) });
         return assertFails(batch.commit());

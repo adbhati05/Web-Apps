@@ -2,7 +2,8 @@ import './FitFormOverlay.css';
 import { useState } from 'react';
 import { BsPlus, BsX } from 'react-icons/bs';
 import Modal from './Modal';
-import { FIT_SECTIONS, FIT_SECTION_MAX, FIT_NAME_MAX, emptySections } from '../services/fit.service';
+import { FIT_SECTIONS, emptySections } from '../services/fit.service';
+import { FIT_SECTION_MAX, FIT_NAME_MAX } from '../utils/limits';
 import { copyPiece } from '../utils/pieces';
 import type { ArchivedPiece, Fit, FitPiece, FitSection } from '../types';
 
@@ -28,7 +29,7 @@ const FitFormOverlay = ({ archive, fit, defaultLabel, onClose, onSave, onDelete 
 
     const [saving, setSaving] = useState(false);
 
-    // Deleting takes two clicks: the first turns the button into "Confirm delete", same idea as the account deletion confirmation.
+    // Whether the "Delete this fit?" confirmation is open on top of the form. Delete fit opens it, and only its Delete button actually deletes.
     const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const totalPieces = FIT_SECTIONS.reduce((total, { key }) => total + sections[key].length, 0);
@@ -65,12 +66,9 @@ const FitFormOverlay = ({ archive, fit, defaultLabel, onClose, onSave, onDelete 
         }
     };
 
+    // Runs from the confirmation's Delete button. On failure the page already showed an error alert, so the confirmation closes and the form stays open.
     const handleDelete = async () => {
         if (!onDelete || saving) return;
-        if (!confirmingDelete) {
-            setConfirmingDelete(true);
-            return;
-        }
 
         setSaving(true);
         try {
@@ -82,7 +80,13 @@ const FitFormOverlay = ({ archive, fit, defaultLabel, onClose, onSave, onDelete 
         }
     };
 
+    // Closing the confirmation (Cancel, its X, Escape, or clicking outside it) goes back to the form. Ignored mid-delete so the request isn't left without its spinner text.
+    const closeConfirmation = () => {
+        if (!saving) setConfirmingDelete(false);
+    };
+
     return (
+        <>
         <Modal
             title={fit ? `Edit ${fit.name || defaultLabel}` : 'Plan a fit'}
             onClose={onClose}
@@ -90,8 +94,8 @@ const FitFormOverlay = ({ archive, fit, defaultLabel, onClose, onSave, onDelete 
             footer={
                 <>
                     {onDelete && (
-                        <button className='modal-button modal-button-danger modal-button-left' onClick={handleDelete} disabled={saving}>
-                            {confirmingDelete ? 'Confirm delete' : 'Delete fit'}
+                        <button className='modal-button modal-button-danger modal-button-left' onClick={() => setConfirmingDelete(true)} disabled={saving}>
+                            Delete fit
                         </button>
                     )}
                     <button className='modal-button modal-button-primary' onClick={handleSave} disabled={totalPieces === 0 || saving}>
@@ -175,6 +179,27 @@ const FitFormOverlay = ({ archive, fit, defaultLabel, onClose, onSave, onDelete 
                 })}
             </div>
         </Modal>
+
+        {/* The delete confirmation, a smaller modal stacked on top of the form. */}
+        {confirmingDelete && (
+            <Modal
+                title="Delete this fit?"
+                size="sm"
+                showCloseButton={false}
+                onClose={closeConfirmation}
+                footer={
+                    <>
+                        <button className='modal-button' onClick={closeConfirmation} disabled={saving}>Cancel</button>
+                        <button className='modal-button modal-button-danger' onClick={handleDelete} disabled={saving}>
+                            {saving ? 'Deleting...' : 'Delete'}
+                        </button>
+                    </>
+                }
+            >
+                <p className='modal-confirm-text'>{fit?.name || defaultLabel} will be removed from your board. This can't be undone.</p>
+            </Modal>
+        )}
+        </>
     );
 };
 

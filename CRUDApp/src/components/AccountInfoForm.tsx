@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { useUserAuth } from '../auth/UserAuthContext';
 import { useAlert } from '../alerts/AlertContext';
 import { authService } from '../services/auth.service';
-import { profileService } from '../services/profile.service';
-import { getUsernameError, getPasswordError, USERNAME_MAX } from '../utils/validation';
+import { getUsernameError, getPasswordError } from '../utils/validation';
+import { USERNAME_MAX } from '../utils/limits';
 import type { UserInfo } from '../types';
+import { logError } from '../utils/logger';
 
 // TO-DO: More personal info fields (birthdate, gender, etc.) will go in this section as the app grows. Anything shown on the public profile belongs in EditProfileForm instead.
 
@@ -43,7 +44,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
 
-    const { user, refreshUserInfo } = useUserAuth();
+    const { user, deleteAccount } = useUserAuth();
     const { showAlert } = useAlert();
     const navigate = useNavigate();
 
@@ -93,14 +94,12 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
         try {
             await authService.changeUsername(profile.uid, profile.username, trimmedUsername);
 
-            // Pulls the new username into the auth context (top bar, profile page, this form's profile prop) and into the profile cache (author names on posts and comments).
-            await refreshUserInfo();
-            await profileService.getProfileByUid(profile.uid, true);
+            // No refresh needed: the auth context's listener on the user doc picks up the new username (top bar, profile page, this form's profile prop) and updates the profile cache (author names on posts and comments).
 
             setUsername(trimmedUsername.toLowerCase());
             showAlert('success', "Username updated.");
         } catch (error) {
-            console.error("Failed to change username:", error);
+            logError("Failed to change username:", error);
             setUsernameStatus({ type: 'error', message: getErrorMessage(error, "Couldn't change your username. Try again.") });
         }
         setBusy(null);
@@ -125,7 +124,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
             setNewEmail('');
             setEmailPassword('');
         } catch (error) {
-            console.error("Failed to change email:", error);
+            logError("Failed to change email:", error);
             setEmailStatus({ type: 'error', message: getErrorMessage(error, "Couldn't change your email. Try again.") });
         }
         setBusy(null);
@@ -154,7 +153,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
             setNewPassword('');
             setConfirmPassword('');
         } catch (error) {
-            console.error("Failed to change password:", error);
+            logError("Failed to change password:", error);
             setPasswordStatus({ type: 'error', message: getErrorMessage(error, "Couldn't change your password. Try again.") });
         }
         setBusy(null);
@@ -173,7 +172,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
         setBusy('delete');
         setDeleteStatus(null);
         try {
-            await authService.deleteAccount(deletePassword);
+            await deleteAccount(deletePassword);
 
             // The account is gone, so the auth listener in UserAuthContext signs the user out on its own. Navigating to the login page just makes it immediate.
             navigate('/login', { replace: true });
@@ -181,7 +180,7 @@ const AccountInfoForm = ({ profile }: { profile: UserInfo }) => {
             // AlertProvider sits outside the router, so this alert carries over to the login page.
             showAlert('success', "Your account was deleted.");
         } catch (error) {
-            console.error("Failed to delete account:", error);
+            logError("Failed to delete account:", error);
             setDeleteStatus({ type: 'error', message: getErrorMessage(error, "Couldn't delete your account. Try again.") });
             setBusy(null);
         }

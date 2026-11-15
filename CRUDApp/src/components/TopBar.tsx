@@ -2,9 +2,10 @@ import "./TopBar.css";
 import pfp_placeholder from "../assets/pfp_placeholder.png";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useUserAuth } from "../auth/UserAuthContext";
+import { useUserAuth, useSignedInUser } from "../auth/UserAuthContext";
 import { useAlert } from "../alerts/AlertContext";
 import { useNavigate } from "react-router-dom";
+import { logError } from "../utils/logger";
 
 const TopBar = () => {
   // Creating a hook in which the state variable is a boolean indicating whether the dropdown is open (true) or closed (false) (setter function obviously updates that state whenever the user clicks on the button).
@@ -40,14 +41,14 @@ const TopBar = () => {
       await signOut();
       navigate("/login"); // Redirect to login page ONLY after logOut() is successful in execution.
     } catch (error) {
-      console.error("An error occurred while logging out: ", error);
+      logError("An error occurred while logging out:", error);
       showAlert("error", "Couldn't log you out. Try again.");
     }
   };
 
   // Retrieving the current user's info to acquire their displayName and profile picture so that both can be displayed in the pfp dropdown button.
-  const { userInfo } = useUserAuth();
-  const displayName = userInfo?.displayName || "User"; // Fallback to 'User' if displayName is not available (this will only occur if there's database corruption, manual database edits, etc).
+  const userInfo = useSignedInUser();
+  const displayName = userInfo.displayName || userInfo.username; // Falls back to the username, which every profile has, in case the display name is ever empty.
 
   return (
     <div className="top-bar-content">
@@ -57,14 +58,13 @@ const TopBar = () => {
         <button
           className="pfp-button"
           onClick={() => {
-            console.log("Dropdown toggled: ", !open);
             setOpen(!open);
           }}
         >
           {" "}
           {/* Setting open to false to ensure the dropdown is not expanded when the component mounts. */}
           {/* Falls back to the placeholder until the user uploads a picture (or if they removed theirs). */}
-          <img src={userInfo?.profilePicURL || pfp_placeholder} alt="Profile" className="pfp" />
+          <img src={userInfo.profilePicURL || pfp_placeholder} alt="Profile" className="pfp" />
           <span className="username">{displayName}</span>{" "}
           {/* Set username character limit to 12 characters */}
         </button>

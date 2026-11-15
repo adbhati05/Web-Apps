@@ -1,9 +1,8 @@
 import TopBar from "../components/TopBar";
 import EditProfileForm from "../components/EditProfileForm";
 import AccountInfoForm from "../components/AccountInfoForm";
-import LoadingSpinner from "../components/LoadingSpinner";
 import { Link, Navigate, useParams } from "react-router-dom";
-import { useUserAuth } from "../auth/UserAuthContext";
+import { useSignedInUser } from "../auth/UserAuthContext";
 import { BsPersonCircle, BsInfoCircle, BsChevronRight, BsChevronLeft } from "react-icons/bs";
 import "./Settings.css";
 
@@ -19,7 +18,7 @@ const Settings = () => {
   const activeSection = section ?? SETTINGS_SECTIONS[0].id;
   const activeLabel = SETTINGS_SECTIONS.find(({ id }) => id === activeSection)?.label;
 
-  const { userInfo } = useUserAuth();
+  const userInfo = useSignedInUser();
 
   // A section that doesn't exist (a mistyped URL, for instance) sends the user back to plain /settings. Navigate is react-router's way of redirecting from inside the render.
   if (!SETTINGS_SECTIONS.some(({ id }) => id === activeSection)) {
@@ -55,9 +54,7 @@ const Settings = () => {
             <BsChevronLeft />
             <span>{activeLabel}</span>
           </Link>
-          {!userInfo ? (
-            <LoadingSpinner label="Loading settings..." />
-          ) : activeSection === "account-info" ? (
+          {activeSection === "account-info" ? (
             // Same key reasoning as EditProfileForm below.
             <AccountInfoForm key={userInfo.uid} profile={userInfo} />
           ) : activeSection === "edit-profile" ? (

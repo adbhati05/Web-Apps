@@ -10,7 +10,7 @@ import type { Chat, UserInfo } from '../types';
 // Your existing chats come first (most recent activity at the top, unread ones bolded with a dot), then everyone you follow that you haven't messaged yet.
 // Each row links to /chat/:username, which is what opens that chat in the middle of the page.
 interface ChatListProps {
-    myUid: string | undefined,
+    myUid: string,
     chats: Chat[],
     followingUids: string[],
     profiles: Record<string, UserInfo>, // uid -> profile for everyone in the list, looked up by the Chat page.
@@ -39,7 +39,7 @@ const ChatList = ({ myUid, chats, followingUids, profiles, activeUid, loading, e
     const renderRow = (profile: UserInfo, chat?: Chat) => {
         // Unread means the latest message is from the other person and is newer than when you last opened the chat (ISO strings compare correctly as plain strings).
         // A message the other person unsent doesn't count, since there's nothing left to read.
-        const unread = !!chat && !!myUid && !chat.lastMessage.unsent && chat.lastMessage.senderId !== myUid && (chat.lastRead[myUid] ?? '') < chat.lastMessage.createdAt;
+        const unread = !!chat && !chat.lastMessage.unsent && chat.lastMessage.senderId !== myUid && (chat.lastRead[myUid] ?? '') < chat.lastMessage.createdAt;
 
         // An unsent latest message has its text emptied on the preview (see chatService.unsendMessage), so the row says what happened instead.
         const mine = chat?.lastMessage.senderId === myUid;

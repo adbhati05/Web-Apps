@@ -1,31 +1,37 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { getAuth } from 'firebase/auth';
+import { useUserAuth } from './UserAuthContext';
 import Loading from '../pages/Loading';
 
 const ProtectedRoutes = () => {
-    // Initializing an Auth instance to gain access to all of its functionalities (like checking user auth state, loading, error, etc).
-    const auth = getAuth();
-
-    // For now I'm using useAuthState to get the current user, loading state, and any potential errors, but perhaps in the future I can add a loading hook to UserAuthContext to prevent the need for UseAuthState from Firebase (do RESEARCH!!).
-    const [user, loading, error] = useAuthState(auth);
+    // Leveraging the useUserAuth hook to get the current state from the auth context.
+    const { status } = useUserAuth();
 
     // This hook will give us the current location of the user in the app. It'll be used to keep track of where the user was before being redirected if they're not logged in.
     const location = useLocation();
 
-    // This helps ensure that if the user is logged in, they access and stay in (they won't be redirected if the user refreshes or goes to another protected route) the protected routes. 
-    // The full-screen Loading page shows while Firebase works out whether the user is signed in.
-    if (loading) {
-        return <Loading />;
+    switch (status) {
+        // This executes when Firebase hasn't reported who's signed in yet, or if the profile is still loading.
+        case 'loading':
+            return <Loading />;
+        
+        // This executes when the user is signed in and their profile is loaded: the only case where pages should render.
+        case 'ready':
+            return <Outlet />;
+        
+        // This executes when the user is signed in, but the profile couldn't be loaded (context already logs the cause so no need to log it here).
+        // Throwing an error during render hands it to the route's errorElement, so the "Something went wrong" page will show with the message below.
+        case 'error':
+            throw new Error("Couldn't load your profile.");
+        
+        // This executes when the user is signed in, but there's no profile doc present (sign-up failed partway see audit item C-02).
+        // For now, this is treated as an error, but ideally an optional CompleteProfile page should be rendered here.
+        case 'noProfile':
+            throw new Error("Your account has no profile.");
+        
+        // This executes when the user is signed out: the only case where the user should be redirected to the login page.
+        case 'signedOut':
+            return <Navigate to='/login' state={{ from: location }} replace />;
     }
-
-    // If checking the sign-in state itself fails, the user is treated as signed out (sent to the login page below), and the error is logged so it isn't silent.
-    if (error) console.error("Failed to check sign-in state:", error);
-     
-    // If the user is logged in, then the Outlet component will be rendered (which means that ONLY components belonging to the protected routes, like the ones for home page or styleboard page, are rendered). If not, redirect user to login page.
-    return user ? (<Outlet />) : (
-        <Navigate to='/login' state={{ from: location }} />
-    );
-}
+};
 
 export default ProtectedRoutes;

@@ -41,6 +41,14 @@ export const seed = (fn: (db: Firestore) => Promise<void>) =>
 
 export const now = () => new Date().toISOString();
 
+// An ISO timestamp `minutes` ago. A negative number gives a time in the future, which is what the createdAt checks (isNotFuture in the rules) are tested with.
+export const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60 * 1000).toISOString();
+
+// A download URL shaped exactly like what getDownloadURL() returns for a file in the app's Storage bucket, in folder/uid/ (posts/alice/..., profile/alice/...).
+// The rules only accept image URLs like this (isOwnStorageURL), so fixtures use it, and tests change the folder or uid to prove someone else's folder is rejected.
+export const storageURL = (folder: 'posts' | 'profile', uid: string, file = 'fit.jpg') =>
+    `https://firebasestorage.googleapis.com/v0/b/fitlog-9ffc1.firebasestorage.app/o/${folder}%2F${uid}%2F${file}?alt=media&token=test-token`;
+
 // Fixtures that satisfy the create rules exactly. Tests break one field at a time from these to prove each check in the rules is really there.
 export const validPost = (uid: string, postId: string) => ({
     id: postId,
@@ -50,7 +58,7 @@ export const validPost = (uid: string, postId: string) => ({
     pieces: [],
     hasDetails: false,
     createdAt: now(),
-    imageURL: 'https://example.com/fit.jpg',
+    imageURL: storageURL('posts', uid),
     likeCount: 0,
     commentCount: 0,
 });

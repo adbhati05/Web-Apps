@@ -2,7 +2,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { startEnv, clearAll, stopEnv, as, anon, seed, now, validComment, validLike, seedPost, likeInBatch } from './helpers';
+import { startEnv, clearAll, stopEnv, as, anon, seed, now, minutesAgo, validComment, validLike, seedPost, likeInBatch } from './helpers';
 
 beforeAll(startEnv);
 beforeEach(clearAll);
@@ -48,6 +48,13 @@ describe('comments create', () => {
 
     it('editedAt cannot be set at creation', () =>
         assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), editedAt: now() })));
+
+    // Comments are listed oldest first, so a future date would push a comment to the bottom forever (always "the latest").
+    it('createdAt cannot be in the future', () =>
+        assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), createdAt: minutesAgo(-60) })));
+
+    it('createdAt has to be an ISO timestamp', () =>
+        assertFails(setDoc(commentRef('carol'), { ...validComment('carol', COMMENT), createdAt: 'just now' })));
 });
 
 describe('comments update: like counter', () => {
@@ -128,6 +135,9 @@ describe('posts/{postId}/comments/{commentId}/likes/{uid}', () => {
 
     it('cannot create a like doc under another uid', () =>
         assertFails(setDoc(likeRef('carol', 'bob'), validLike('bob'))));
+
+    it('createdAt cannot be in the future', () =>
+        assertFails(setDoc(likeRef('carol', 'carol'), { ...validLike('carol'), createdAt: minutesAgo(-60) })));
 
     it('cannot be updated', async () => {
         await seed(db => setDoc(doc(db, 'posts', POST, 'comments', COMMENT, 'likes', 'carol'), validLike('carol')));
