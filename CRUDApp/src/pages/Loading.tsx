@@ -6,7 +6,7 @@ import './Loading.css';
 const Loading = () => {
     return (
         <div className="loading-page">
-            <h1 className="loading-page-title">FitLog</h1>
+            <h1 className="loading-page-title">Archive</h1>
             <LoadingSpinner />
         </div>
     );

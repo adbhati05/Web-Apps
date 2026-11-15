@@ -52,7 +52,7 @@ const TopBar = () => {
 
   return (
     <div className="top-bar-content">
-      FitLog
+      Archive
       {/* This is the code for the profile picture button that, when clicked, will expand a dropdown that will allow the user to access Settings or Log out. */}
       <div className="mt-auto profile-dropdown" ref={dropdownRef}>
         <button

@@ -1,4 +1,4 @@
-# FitLog
+# Archive
 
 A social fashion app for posting outfits, breaking down the pieces in them, and interacting with other people's fits. Built with React 19, TypeScript, Vite, and Firebase.
 
@@ -184,7 +184,7 @@ npm run test:rules   # starts the emulator, runs eval/tests/*.test.ts, shuts it 
 npm run emulators    # just the emulator, for running vitest in watch mode from eval/
 ```
 
-`firebase.json` and `.firebaserc` at the project root configure the emulator and point it at `rules/`. The project ID there is `demo-fitlog`: the `demo-` prefix tells the CLI the project doesn't exist online, so no login is needed and nothing can reach production. Tests live in `eval/tests/`, one file per area (users, posts, comments, follows, chats, style board), and each one acts as specific users and asserts what the rules allow or deny. There are no component or end-to-end tests yet.
+`firebase.json` and `.firebaserc` at the project root configure the emulator and point it at `rules/`. The project ID there is `demo-archive`: the `demo-` prefix tells the CLI the project doesn't exist online, so no login is needed and nothing can reach production. Tests live in `eval/tests/`, one file per area (users, posts, comments, follows, chats, style board), and each one acts as specific users and asserts what the rules allow or deny. There are no component or end-to-end tests yet.
 
 ---
 

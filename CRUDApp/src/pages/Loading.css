@@ -12,7 +12,7 @@
     /* Starts invisible and only fades in if loading takes longer than 0.3s, so quick loads skip it entirely instead of flashing. */
 }
 
-/* Same size and weight as the top bar's FitLog title. */
+/* Same size and weight as the top bar's Archive title. */
 .loading-page-title {
     margin: 0;
     font-size: var(--font-size-2xl);

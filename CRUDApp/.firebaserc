@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "demo-fitlog",
+    "default": "demo-archive",
     "dev": "fitlog-9ffc1"
   }
 }

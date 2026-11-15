@@ -75,7 +75,7 @@ const SignUpCard = () => {
         userSignUpInfo.username
       );
       navigate("/");
-      showAlert("success", `Welcome to FitLog, ${userSignUpInfo.username}!`);
+      showAlert("success", `Welcome to Archive, ${userSignUpInfo.username}!`);
     } catch (caught) {
       logError("An error occurred while signing up: ", caught);
 

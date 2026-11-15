@@ -69,7 +69,7 @@ const LoginCard = () => {
     // Below is a login input field, a password input field, a link to the sign-up page, and a submit button.
     // Note: The link to the sign-up page will be a React Router link that will redirect the user to the sign-up page when clicked.
     <div className="login-card-container">
-      Fit Log
+      Archive
       {/* noValidate turns off the browser's built-in validation bubbles, since handleSubmit checks the fields and shows the app's own alerts instead. */}
       <form className="login-form-container" onSubmit={handleSubmit} noValidate>
         <div className="login-input-field-container">

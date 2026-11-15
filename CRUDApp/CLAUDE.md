@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository layout
 
-The git repository root is the parent `Web-Apps/` folder, which contains multiple independent projects (`CRUDApp`, `ArtistSearch`, `igneous-rocks`). This file covers `CRUDApp`, a work-in-progress social fashion/outfit-posting app (React 19 + TypeScript + Vite + Firebase). Run all commands from the `CRUDApp/` directory.
+The git repository root is the parent `Web-Apps/` folder, which contains multiple independent projects (`CRUDApp`, `ArtistSearch`, `igneous-rocks`). This file covers `CRUDApp`, which holds Archive (formerly FitLog), a work-in-progress social fashion/outfit-posting app (React 19 + TypeScript + Vite + Firebase). Run all commands from the `CRUDApp/` directory.
 
 ## Commands
 
@@ -18,15 +18,15 @@ npm run emulators   # Start just the Firestore emulator
 npm run deploy:rules  # Run the rules tests, then deploy Firestore + Storage rules to the dev project
 ```
 
-The only tests are the security rules tests in `eval/tests/` (one file per area: `users`, `posts`, `comments`, `follows`, `chats`, `styleboard`, plus shared setup in `helpers.ts`), run with Vitest against the Firebase Emulator (`firebase.json` / `.firebaserc` at the root, project ID `demo-fitlog` so it never touches production). When a rule changes, add or update the matching test. There are no component or end-to-end tests.
+The only tests are the security rules tests in `eval/tests/` (one file per area: `users`, `posts`, `comments`, `follows`, `chats`, `styleboard`, plus shared setup in `helpers.ts`), run with Vitest against the Firebase Emulator (`firebase.json` / `.firebaserc` at the root, project ID `demo-archive` so it never touches production). When a rule changes, add or update the matching test. There are no component or end-to-end tests.
 
 ## Environment
 
 Firebase config is read from Vite env vars (`VITE_FIREBASE_*`) in `src/firebase.ts`. `.env.development` and `.env.production` exist locally but are gitignored — never commit them. If they're missing, the app cannot connect to Firebase.
 
 Firebase projects (aliases in `.firebaserc`):
-- `default` → `demo-fitlog`: emulator only (rules tests). Any `firebase` command without `--project` lands here, so nothing touches a real project by accident.
-- `dev` → `fitlog-9ffc1` (FitLog Dev): the only real project so far. `.env.development` points at it, so `npm run dev` reads and writes real (dev) data. `npm run deploy:rules` runs the rules tests and, if they pass, deploys `rules/firestore.rules` and `rules/storage.rules` to it. Deploy rules this way, not by pasting into the console.
+- `default` → `demo-archive`: emulator only (rules tests). Any `firebase` command without `--project` lands here, so nothing touches a real project by accident.
+- `dev` → `fitlog-9ffc1` (the dev project): the only real project so far. Its ID still says fitlog because the app was called FitLog when it was created, and Firebase project IDs can't be renamed; only its display name in the console can change. Don't rename it in code or rules. `.env.development` points at it, so `npm run dev` reads and writes real (dev) data. `npm run deploy:rules` runs the rules tests and, if they pass, deploys `rules/firestore.rules` and `rules/storage.rules` to it. Deploy rules this way, not by pasting into the console.
 - `prod`: reserved, not created yet. Production gets its own Firebase project before launch: add it as `prod` in `.firebaserc`, add a separate `deploy:rules:prod` script, and fill `.env.production` (currently empty, so a production build has no Firebase config). Never point `dev` scripts or `.env.development` at the production project.
 
 ## Architecture

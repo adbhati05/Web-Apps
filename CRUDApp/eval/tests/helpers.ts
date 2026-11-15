@@ -13,7 +13,7 @@ let env: RulesTestEnvironment;
 // Runs once per test file. The projectId has to match .firebaserc, and the demo- prefix is what tells the CLI this project doesn't exist online, so no login or real credentials are involved.
 export async function startEnv() {
     env = await initializeTestEnvironment({
-        projectId: 'demo-fitlog',
+        projectId: 'demo-archive',
         firestore: {
             rules: readFileSync(fileURLToPath(new URL('../../rules/firestore.rules', import.meta.url)), 'utf8'),
             host: '127.0.0.1',

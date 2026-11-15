@@ -41,7 +41,7 @@ service cloud.firestore {
     //   https://firebasestorage.googleapis.com/v0/b/<bucket>/o/posts%2F<uid>%2F<file>?alt=media&token=...
     // The path after /o/ is URL-encoded, which is why the slashes show up as %2F. Dots are written as [.] because a bare . in a regex matches any character.
     // <file> can't contain / ? or #, so a URL can't sneak out of the folder, and anything after the ? (alt, token, the ?t= cache buster) is allowed.
-    // The bucket is FitLog Dev's. When the production project is created, its bucket gets added here as a second option (planning/to-do.txt "Before launch"), or production uploads will be rejected.
+    // The bucket is the dev project's (fitlog-9ffc1, created back when the app was called FitLog; Firebase project IDs can't be renamed). When the production project is created, its bucket gets added here as a second option (planning/to-do.txt "Before launch"), or production uploads will be rejected.
     function isOwnStorageURL(url, folder, uid) {
     	return url is string
       	&& url.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/fitlog-9ffc1[.]firebasestorage[.]app/o/' + folder + '%2F' + uid + '%2F[^/?#]+([?].*)?$');
