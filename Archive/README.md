@@ -66,7 +66,7 @@ Design tokens (colors, type scale, a 5px-based spacing scale, radii, three butto
 ## Project structure
 
 ```
-CRUDApp/
+Archive/
 ├── rules/
 │   ├── firestore.rules      # Firestore security rules (source of truth, mirrored into the console)
 │   └── storage.rules        # Storage security rules
@@ -154,7 +154,7 @@ Highlights:
 npm install
 ```
 
-Create `.env.development` (and `.env.production` for builds) in `CRUDApp/` with your Firebase web app config. These files are gitignored.
+Create `.env.development` (and `.env.production` for builds) in `Archive/` with your Firebase web app config. These files are gitignored.
 
 ```
 VITE_FIREBASE_API_KEY=

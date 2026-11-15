@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository layout
 
-The git repository root is the parent `Web-Apps/` folder, which contains multiple independent projects (`CRUDApp`, `ArtistSearch`, `igneous-rocks`). This file covers `CRUDApp`, which holds Archive (formerly FitLog), a work-in-progress social fashion/outfit-posting app (React 19 + TypeScript + Vite + Firebase). Run all commands from the `CRUDApp/` directory.
+The git repository root is the parent `Web-Apps/` folder, which contains multiple independent projects (`Archive`, `ArtistSearch`, `igneous-rocks`). This file covers `Archive` (formerly `CRUDApp`, and the app was formerly called FitLog), a work-in-progress social fashion/outfit-posting app (React 19 + TypeScript + Vite + Firebase). Run all commands from the `Archive/` directory.
 
 ## Commands
 
