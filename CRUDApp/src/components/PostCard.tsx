@@ -3,11 +3,12 @@ import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { postService } from "../services/post.service";
-import { auth } from '../firebase';
+import { useSignedInUser } from '../auth/UserAuthContext';
 import { useAlert } from '../alerts/AlertContext';
 import type { PieceDetail, UserInfo } from '../types';
 import { BsHeart, BsHeartFill, BsChatLeft } from "react-icons/bs";
 import PieceItem from './PieceItem';
+import { logError } from '../utils/logger';
 
 // Defining the props that will be passed into the PostCard component. Essentially, this component is a skeleton for a post that will be displayed on the feed. PostFeed.tsx will handle the logic of fetching users' posts and passing the data into this component.
 // Likes (as well as comments) now live in a subcollection, so the card receives the denormalized likeCount off the post doc plus an initiallyLiked flag that PostFeed looks up from the subcollection for the current user.
@@ -25,12 +26,13 @@ interface PostCardProps {
     onCommentClick: () => void,
     onPieceFavorite?: (pieceIndex: number) => void, // The piece menu's Favorite option, which adds the piece to the user's style board archive (PostFeed does the actual saving).
     onPieceComment?: (pieceIndex: number) => void, // The piece menu's Comment option, which opens the post overlay with that piece attached to the comment box.
+    menu?: React.ReactNode, // The Edit/Delete menu (PostMenu), shown next to the date. PostFeed only passes it for the signed-in user's own posts, so the card itself doesn't need to know whose post it is.
 }
 
-const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount: initialLikeCount, initiallyLiked, pieces, hasDetails, author, onCommentClick, onPieceFavorite, onPieceComment }: PostCardProps) => {
+const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount: initialLikeCount, initiallyLiked, pieces, hasDetails, author, onCommentClick, onPieceFavorite, onPieceComment, menu }: PostCardProps) => {
 
     // Retrieving current user's information.
-    const currentUserId = auth.currentUser?.uid;
+    const { uid: currentUserId } = useSignedInUser();
 
     // Defining a liked state variable that will track whether the current user has liked the post.
     const [liked, setLiked] = useState(initiallyLiked);
@@ -41,9 +43,6 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
     const [likeCount, setLikeCount] = useState(initialLikeCount);
 
     const handleLike = async () => {
-        // User must be logged in to like a post.
-        if (!currentUserId) return;
-
         // Using an optimistic update to have the like button and count change immediately upon click.
         const isLiked = liked;
         setLiked(!isLiked);
@@ -57,7 +56,7 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
                 setLikeCount(prev => nowLiked ? prev + 1 : prev - 1);
             }
         } catch (error) {
-            console.error("Failed to toggle like:", error);
+            logError("Failed to toggle like:", error, { postId });
 
             // Upon error, rollback both optimistic updates and let the user know why the heart flipped back.
             setLiked(isLiked);
@@ -81,7 +80,11 @@ const PostCard = ({ postId, username, dateCreated, caption, imageURL, likeCount:
                         <p>{username}</p>
                     </div>
                 )}
-                <p>{dateCreated}</p>
+                {/* The date and (on your own posts) the menu sit together on the right side of the bar. */}
+                <div className='post-card-top-right'>
+                    <p>{dateCreated}</p>
+                    {menu}
+                </div>
             </div>
             <div className='post-content'>
                 <div className='post-image-container'>

@@ -24,6 +24,23 @@
     overflow: hidden;
 }
 
+/* The narrower card for short confirmations (Delete this fit?), opened on top of another modal. */
+.modal-card-sm {
+    width: 400px;
+}
+
+/* The wider card for side-by-side layouts (Edit post: the photo on the left, the form on the right). max-width: 100% on .modal-card still keeps it inside smaller screens. */
+.modal-card-lg {
+    width: 900px;
+}
+
+/* The message in a confirmation modal. */
+.modal-confirm-text {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+}
+
 .modal-header {
     display: flex;
     flex-direction: row;

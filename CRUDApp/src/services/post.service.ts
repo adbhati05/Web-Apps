@@ -3,15 +3,26 @@ import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBa
 import { db } from '../firebase';
 import { storageService } from './storage.service';
 import type { Post, Comment, CommentPiece, UserInfo, PieceDetail } from '../types';
+import { logError } from '../utils/logger';
 
 // TO-DO: Implement pagination (do research on this) for fetching posts in the future, especially as the number of posts grows. For now, I'll just fetch all posts and sort them by creation date.
-// TO-DO: Figure out how to make the folders in storage bucket not be random strings of characters, but instead something more organized and user-friendly (like the user's Username or UID).
 
 // The fields on a post that its owner is allowed to edit after creation. Everything else (uid,
 // createdAt, the counters) is frozen by the security rules, so the service doesn't accept them either.
 export type PostContentUpdate = Partial<Pick<Post, 'caption' | 'pieces' | 'hasDetails' | 'imageURL'>>;
 
 const postCache = new Map<string, Post>();
+
+// A post being edited or deleted, as reported to the pages showing it (see subscribeToPostChanges below).
+export type PostChange = { type: 'updated', post: Post } | { type: 'deleted', postId: string };
+
+// Everyone currently listening for post changes. A Set, so the same listener can't be added twice and removing one is a single call.
+const postChangeListeners = new Set<(change: PostChange) => void>();
+
+// Tells every listener about an edit or deletion. Called by updatePost and deletePost once the write has gone through.
+const notifyPostChange = (change: PostChange) => {
+    postChangeListeners.forEach(listener => listener(change));
+};
 
 export const postService = {
     async createPost(
@@ -102,37 +113,49 @@ export const postService = {
     },
 
     // Content-only updates by the post's owner. The security rules reject attempts to change uid/createdAt or the like/comment counters through this path, and the PostContentUpdate type keeps the client honest about that.
-    async updatePost(postId: string, updates: PostContentUpdate): Promise<void> {
-        const postRef = doc(db, "posts", postId);
+    // Takes the whole post (like deletePost) rather than just its ID, so it can hand back the updated post and tell the pages showing it (via notifyPostChange) without another read.
+    async updatePost(post: Post, updates: PostContentUpdate): Promise<Post> {
         const updatedAt = new Date().toISOString();
 
-        // Once update UI is set up, make sure it aligns with the logic with updates being a partial Post object that only includes the fields that need to be updated.
-        await updateDoc(postRef, {
+        // updates is a partial Post holding only the fields being changed (the Edit post form sends caption, pieces, and hasDetails).
+        await updateDoc(doc(db, "posts", post.id), {
             ...updates,
             updatedAt
         });
 
-        // Update cache if it exists
-        if (postCache.has(postId)) {
-            const currentPost = postCache.get(postId)!;
-            postCache.set(postId, { ...currentPost, ...updates, updatedAt });
-        }
+        // The updated post, which goes into the cache and out to every page showing it.
+        const updatedPost: Post = { ...post, ...updates, updatedAt };
+        postCache.set(post.id, updatedPost);
+        notifyPostChange({ type: 'updated', post: updatedPost });
+
+        return updatedPost;
     },
 
     async deletePost(post: Post): Promise<void> {
-        // Delete image from Storage
-        try {
-            await storageService.deleteImage(post.imageURL);
-        } catch (error) {
-            console.error("Failed to delete image, proceeding with post deletion:", error);
-        }
-
         // Delete document from Firestore
         // Note: this orphans the likes/comments subcollection docs (a client can't delete a wholesubcollection). They become unreachable garbage; proper cleanup needs a Cloud Function (see to-do.txt).
         await deleteDoc(doc(db, "posts", post.id));
 
-        // Remove from cache
+        // Remove from cache, and tell the pages showing the post (the feed, the profile grid) to drop it.
         postCache.delete(post.id);
+        notifyPostChange({ type: 'deleted', postId: post.id });
+
+        // Delete image from Storage
+        try {
+            await storageService.deleteImage(post.imageURL);
+        } catch (error) {
+            logError("Failed to delete post image, post already deleted:", error, { postId: post.id });
+        }
+    },
+
+    // Listens for posts being edited or deleted in this browser tab, and returns the function that stops listening (run it in useEffect cleanup, same as chat.service's subscriptions).
+    // The feed and the profile grid each keep their own list of posts, and a post can be edited from somewhere that doesn't own that list (the overlay on Home is opened by the page, not the feed). This is how those lists hear about the change.
+    // It only covers changes made here; another user's edit shows up the next time the posts are fetched, since posts don't use onSnapshot (yet).
+    subscribeToPostChanges(listener: (change: PostChange) => void): () => void {
+        postChangeListeners.add(listener);
+        return () => {
+            postChangeListeners.delete(listener);
+        };
     },
 
     // Checks whether a user has liked a post, by checking the existence of their doc (doc ID = their UID) in the post's likes subcollection.

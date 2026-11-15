@@ -1,0 +1,68 @@
+/* The wrapper is the positioning context for the dropdown, so the menu hangs off the button rather than the whole card. Same setup as the comment menu. */
+.post-menu-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.post-menu-button {
+    height: var(--button-height-md);
+    display: flex;
+    align-items: center;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+/* 25px, the same size as the like and comment buttons on the card and the X in the overlay, so they line up with what's next to them. */
+.post-menu-button svg {
+    height: 25px;
+    width: 25px;
+}
+
+.post-menu-button:hover {
+    transform: scale(var(--scale-icon-md-hover));
+}
+
+.post-menu-button:active {
+    transform: scale(var(--scale-icon-md-active));
+}
+
+/* top: 100% puts the menu's top edge at the button's bottom edge, and right: 0 lines its right edge up with the button so it opens inward rather than off the card. */
+.post-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--space-2xs);
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+    background-color: var(--color-bg);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    z-index: 10;
+}
+
+.post-menu-item {
+    height: var(--button-height-md);
+    background-color: transparent;
+    border: none;
+    border-radius: var(--radius-menu-item);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    text-align: left;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.post-menu-item:hover {
+    background-color: var(--color-accent);
+}
+
+.post-menu-item-danger {
+    color: var(--color-danger);
+}

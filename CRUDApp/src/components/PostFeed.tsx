@@ -1,13 +1,15 @@
 import './PostFeed.css';
 import PostCard from './PostCard';
+import PostMenu from './PostMenu';
 import LoadingSpinner from './LoadingSpinner';
 import { postService } from '../services/post.service';
 import { profileService } from '../services/profile.service';
 import { archiveService } from '../services/archive.service';
 import { useAlert } from '../alerts/AlertContext';
-import { auth } from '../firebase';
+import { useSignedInUser } from '../auth/UserAuthContext';
 import { useState, useEffect } from 'react';
 import type { Post, UserInfo } from '../types';
+import { logError } from '../utils/logger';
 
 // This component fetches all posts from the database and displays them in the feed.
 // onPieceCommentClick is the Comment option in a piece's menu: it opens the post overlay like onCommentClick does, but with that piece attached to the comment box.
@@ -28,6 +30,7 @@ const PostFeed = ({ onCommentClick, onPieceCommentClick }: PostFeedProps) => {
     const [authors, setAuthors] = useState<Record<string, UserInfo>>({});
 
     const { showAlert } = useAlert();
+    const { uid: currentUserId } = useSignedInUser();
 
     // Setting up state variables for loading and error. error is a simple flag, since what went wrong only matters for the console (the user just sees "Couldn't load posts").
     const [loading, setLoading] = useState(true);
@@ -41,14 +44,11 @@ const PostFeed = ({ onCommentClick, onPieceCommentClick }: PostFeedProps) => {
 
                 // For each post, check (in parallel) whether the current user has a doc in its likes subcollection. 
                 // TO-DO: once pagination exists, a single collection-group query on likes (where uid == mine) could replace these per-post reads.
-                const currentUserId = auth.currentUser?.uid;
                 const likedFlags: Record<string, boolean> = {};
-                if (currentUserId) {
-                    const flags = await Promise.all(
-                        posts.map(post => postService.hasLiked(post.id, currentUserId))
-                    );
-                    posts.forEach((post, index) => { likedFlags[post.id] = flags[index]; });
-                }
+                const flags = await Promise.all(
+                    posts.map(post => postService.hasLiked(post.id, currentUserId))
+                );
+                posts.forEach((post, index) => { likedFlags[post.id] = flags[index]; });
 
                 // getProfilesByUids never throws (failed lookups are just skipped), so a missing profile only means that card falls back to the placeholder picture.
                 const postAuthors = await profileService.getProfilesByUids(posts.map(post => post.uid));
@@ -59,26 +59,35 @@ const PostFeed = ({ onCommentClick, onPieceCommentClick }: PostFeedProps) => {
                 setLoading(false);
             } catch (error) {
                 // Before, a failed fetch looked exactly like an empty feed. Now it's logged and the feed says so.
-                console.error("Failed to load posts:", error);
+                logError("Failed to load posts:", error);
                 setError(true);
                 setLoading(false);
             }
         };
 
         fetchPosts();
+    }, [currentUserId]);
+
+    // Keeping the feed in sync when one of your posts is edited or deleted, whether that happened from a card here or from the overlay (which Home opens, so the feed can't hear about it any other way).
+    // The cleanup stops listening when the feed unmounts, same as the chat subscriptions.
+    useEffect(() => {
+        return postService.subscribeToPostChanges((change) => {
+            if (change.type === 'updated') {
+                setPosts(prev => prev.map(post => post.id === change.post.id ? change.post : post));
+            } else {
+                setPosts(prev => prev.filter(post => post.id !== change.postId));
+            }
+        });
     }, []);
 
     // The Favorite option in a piece's menu: copies that piece into the signed-in user's style board archive.
     // The archive shows who the piece is from, so the post author's live username is used when their profile has loaded (same as the card's header), falling back to the one stored on the post.
     const handlePieceFavorite = async (post: Post, pieceIndex: number) => {
-        const currentUserId = auth.currentUser?.uid;
-        if (!currentUserId) return;
-
         try {
             const added = await archiveService.favoritePiece(currentUserId, post, pieceIndex, authors[post.uid]?.username ?? post.username);
             showAlert(added ? 'success' : 'info', added ? "Added to your archive." : "That piece is already in your archive.");
         } catch (error) {
-            console.error("Failed to favorite piece:", error);
+            logError("Failed to favorite piece:", error);
             showAlert('error', "Couldn't add that piece to your archive. Try again.");
         }
     };
@@ -112,6 +121,8 @@ const PostFeed = ({ onCommentClick, onPieceCommentClick }: PostFeedProps) => {
                     onCommentClick={() => onCommentClick(post)}
                     onPieceFavorite={(pieceIndex) => handlePieceFavorite(post, pieceIndex)}
                     onPieceComment={onPieceCommentClick && ((pieceIndex) => onPieceCommentClick(post, pieceIndex))}
+                    // Only your own posts get the Edit/Delete menu. The subscription above updates the feed afterwards, so no callbacks are needed here.
+                    menu={post.uid === currentUserId ? <PostMenu post={post} /> : undefined}
                 />
             ))}
         </div>

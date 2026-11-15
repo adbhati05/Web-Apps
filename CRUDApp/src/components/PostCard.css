@@ -25,6 +25,14 @@
     margin: 0;
 }
 
+/* The date and the post menu, side by side on the right of the top bar. */
+.post-card-top-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-md);
+}
+
 .account-profile-container {
     display: flex;
     flex-direction: row;
@@ -175,55 +183,6 @@
     gap: var(--space-2xs);
     width: 100%;
     padding-bottom: var(--space-xl);
-}
-
-/* Base card styles shared by both variants (note: the !important tag is used to override the default styles of the MUI components) */
-.post-piece {
-    width: 100%;
-    background-color: var(--color-accent) !important;
-    border-radius: var(--radius-sm) !important;
-    box-shadow: none !important;
-    overflow: hidden;
-    border: none !important;
-}
-
-/* Static (no details) piece */
-.post-piece-static {
-    display: flex;
-    align-items: center;
-    padding: var(--space-md) var(--space-lg);
-    min-height: var(--button-height-lg);
-}
-
-/* Dynamic (has details) piece. */
-/* Ensures that the piece summary (AKA piece name) is visible when expanded and also doesn't change in height. */
-.post-piece-summary.Mui-expanded {
-    min-height: 44px !important;
-    max-height: 48px !important;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.75);
-}
-
-/* Removes the margin that MUI adds around the accordion when expanded */
-.post-piece.Mui-expanded {
-    margin: 0 !important;
-}
-
-/* Piece detail list inside the accordion */
-.post-piece-detail-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3xs);
-}
-
-.post-piece-detail-list li {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: var(--font-size-sm);
 }
 
 /* Responsive: the card widens as the feed narrows so the photo stays legible, and the fixed image height shrinks to keep the whole post on screen. */

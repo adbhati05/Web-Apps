@@ -7,26 +7,27 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { useAlert } from "../alerts/AlertContext";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useUserAuth } from "../auth/UserAuthContext";
+import { useSignedInUser } from "../auth/UserAuthContext";
 import { profileService } from "../services/profile.service";
 import { postService } from "../services/post.service";
 import { followService } from "../services/follow.service";
 import type { Post, UserInfo } from "../types";
 import "./Profile.css";
+import { logError } from "../utils/logger";
 
 // This page handles both /profile (your own) and /profile/:username (anyone's). It fetches the profile and that user's posts, then hands them to ProfileHeader and ProfilePostGrid.
 const Profile = () => {
   // useParams reads the :username part of the URL defined in routes.tsx. On plain /profile there's no parameter, so it comes back undefined.
   const { username } = useParams<{ username: string }>();
-  const { userInfo, refreshUserInfo } = useUserAuth();
+  const userInfo = useSignedInUser();
   const { showAlert } = useAlert();
   const navigate = useNavigate();
 
   // It's your own profile either on plain /profile or when the URL happens to be your own username.
-  const isOwnProfile = !username || username.toLowerCase() === userInfo?.username;
-  const ownUid = userInfo?.uid;
+  const isOwnProfile = !username || username.toLowerCase() === userInfo.username;
+  const ownUid = userInfo.uid;
 
-  // Only other users' profiles are stored here. Your own comes straight from the auth context, so it's already up to date after an edit in Settings (see refreshUserInfo).
+  // Only other users' profiles are stored here. Your own comes straight from the auth context, which listens to your user doc, so it's already up to date after an edit in Settings or a follow.
   const [otherProfile, setOtherProfile] = useState<UserInfo | null>(null);
   const profile = isOwnProfile ? userInfo : otherProfile;
 
@@ -43,7 +44,7 @@ const Profile = () => {
 
   // Mirrors PostCard.handleLike: the button and the follower count change immediately, then get reconciled with (or rolled back to) what the server says.
   const handleFollow = async () => {
-    if (!ownUid || !otherProfile) return;
+    if (!otherProfile) return;
 
     const wasFollowing = following;
     const adjustFollowerCount = (delta: number) =>
@@ -59,11 +60,8 @@ const Profile = () => {
         setFollowing(nowFollowing);
         adjustFollowerCount(nowFollowing ? 1 : -1);
       }
-
-      // Your own followingCount changed too, so pull it into the auth context for when you visit your own profile.
-      refreshUserInfo().catch(error => console.error("Failed to refresh user info:", error));
     } catch (error) {
-      console.error("Failed to toggle follow:", error);
+      logError("Failed to toggle follow:", error);
       setFollowing(wasFollowing);
       adjustFollowerCount(wasFollowing ? 1 : -1);
 
@@ -73,9 +71,6 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    // Your own profile can't load until the auth context has fetched your user doc.
-    if (isOwnProfile && !ownUid) return;
-
     // If the URL changes mid-fetch (clicking from one profile to another), the old fetch can finish after the new one started.
     // The cleanup at the bottom flips this flag for the old fetch, so its results are thrown away instead of overwriting the new profile.
     let cancelled = false;
@@ -103,7 +98,7 @@ const Profile = () => {
           }
 
           // Fetched alongside the profile so the Follow button shows the right label as soon as the page renders.
-          const isFollowingThem = ownUid ? await followService.isFollowing(ownUid, fetched.uid) : false;
+          const isFollowingThem = await followService.isFollowing(ownUid, fetched.uid);
           if (cancelled) return;
 
           setOtherProfile(fetched);
@@ -111,10 +106,10 @@ const Profile = () => {
           uid = fetched.uid;
         }
 
-        const userPosts = await postService.getPostsByUser(uid!);
+        const userPosts = await postService.getPostsByUser(uid);
         if (!cancelled) setPosts(userPosts);
       } catch (error) {
-        console.error("Failed to load profile:", error);
+        logError("Failed to load profile:", error);
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);
@@ -127,6 +122,18 @@ const Profile = () => {
       cancelled = true;
     };
   }, [username, isOwnProfile, ownUid]);
+
+  // Keeping the grid in sync when you edit or delete one of your posts from the overlay. Same subscription as the feed's, and the post count in the header follows along since it's just posts.length.
+  // Changes to posts that aren't on this profile don't match any post here, so they're ignored.
+  useEffect(() => {
+    return postService.subscribeToPostChanges((change) => {
+      if (change.type === "updated") {
+        setPosts(prev => prev.map(post => post.id === change.post.id ? change.post : post));
+      } else {
+        setPosts(prev => prev.filter(post => post.id !== change.postId));
+      }
+    });
+  }, []);
 
   return (
     <div>

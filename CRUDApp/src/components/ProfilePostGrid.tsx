@@ -1,5 +1,5 @@
 import './ProfilePostGrid.css';
-import { BsGrid3X3, BsHeartFill, BsChatFill } from 'react-icons/bs';
+import { BsGrid3X3, BsHeartFill, BsChatLeftFill } from 'react-icons/bs';
 import type { Post } from '../types';
 
 // This component is the grid of a user's posts under the profile header, three square thumbnails per row like Instagram. Clicking one opens it in the PostOverlay (handled by the Profile page).
@@ -27,10 +27,10 @@ const ProfilePostGrid = ({ posts, onPostClick }: ProfilePostGridProps) => {
                         <button key={post.id} className='profile-post-grid-item' onClick={() => onPostClick(post)} aria-label="Open post">
                             <img src={post.imageURL} alt={post.caption} />
 
-                            {/* Hidden until hover, then shows the post's like and comment counts over the thumbnail. */}
+                            {/* Hidden until hover, then shows the post's like and comment counts over the thumbnail. The comment icon is the square one (filled here, since it sits on the photo), matching the post cards' comment button. */}
                             <div className='profile-post-grid-item-overlay'>
                                 <span><BsHeartFill /> {post.likeCount || 0}</span>
-                                <span><BsChatFill /> {post.commentCount || 0}</span>
+                                <span><BsChatLeftFill /> {post.commentCount || 0}</span>
                             </div>
                         </button>
                     ))}

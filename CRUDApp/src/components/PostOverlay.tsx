@@ -1,16 +1,20 @@
 import './PostOverlay.css';
 import Comment from './Comment';
 import LoadingSpinner from './LoadingSpinner';
+import PostMenu from './PostMenu';
+import { isModalOpen } from './Modal';
 import pfp_placeholder from '../assets/pfp_placeholder.png';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { postService } from '../services/post.service';
 import { profileService } from '../services/profile.service';
 import { copyPiece } from '../utils/pieces';
-import { useUserAuth } from '../auth/UserAuthContext';
+import { useSignedInUser } from '../auth/UserAuthContext';
 import { useAlert } from '../alerts/AlertContext';
 import { BsChevronDown, BsHeart, BsXCircle, BsX } from 'react-icons/bs';
 import type { Post, Comment as CommentData, CommentPiece, UserInfo } from '../types';
+import { COMMENT_MAX } from '../utils/limits';
+import { logError } from '../utils/logger';
 
 // TO-DO: The like count in the header is display only for now. Making it clickable means lifting the liked/count state out of PostCard so the card and the overlay can't disagree.
 
@@ -27,12 +31,15 @@ interface PostOverlayProps {
     initialPieceIndex?: number,
 }
 
-const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => {
+const PostOverlay = ({ post: initialPost, onClose, initialPieceIndex }: PostOverlayProps) => {
+
+    // The overlay keeps its own copy of the post, so an edit made from its menu shows up right away (the page that opened it still holds the old version until it's closed and reopened).
+    const [post, setPost] = useState(initialPost);
 
     // The overlay needs the full user profile (not just the UID) since addComment stores the username on the comment doc.
-    const { userInfo } = useUserAuth();
+    const userInfo = useSignedInUser();
     const { showAlert } = useAlert();
-    const currentUserId = userInfo?.uid;
+    const currentUserId = userInfo.uid;
 
     const [comments, setComments] = useState<CommentData[]>([]);
 
@@ -62,12 +69,10 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
                 const fetched = await postService.getComments(post.id);
 
                 const likedFlags: Record<string, boolean> = {};
-                if (currentUserId) {
-                    const flags = await Promise.all(
-                        fetched.map(comment => postService.hasLikedComment(post.id, comment.id, currentUserId))
-                    );
-                    fetched.forEach((comment, index) => { likedFlags[comment.id] = flags[index]; });
-                }
+                const flags = await Promise.all(
+                    fetched.map(comment => postService.hasLikedComment(post.id, comment.id, currentUserId))
+                );
+                fetched.forEach((comment, index) => { likedFlags[comment.id] = flags[index]; });
 
                 // The post's author is looked up alongside the commenters. Both come out of the profile cache when PostFeed already fetched them.
                 const fetchedAuthors = await profileService.getProfilesByUids([post.uid, ...fetched.map(comment => comment.uid)]);
@@ -77,7 +82,7 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
                 setAuthors(fetchedAuthors);
             } catch (error) {
                 // Shown in place of the list, so a failed load no longer looks like a post with no comments.
-                console.error("Failed to load comments:", error);
+                logError("Failed to load comments:", error);
                 setLoadError(true);
             }
             setLoading(false);
@@ -90,7 +95,8 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
     // The function returned at the end is the cleanup, which React runs when the overlay unmounts, so neither the listener nor the scroll lock outlives it.
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+            // When the Edit post or Delete post modal is open over the overlay, Escape belongs to that modal, so the overlay stays open.
+            if (e.key === 'Escape' && !isModalOpen()) onClose();
         };
 
         document.addEventListener('keydown', handleKeyDown);
@@ -105,8 +111,8 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
     const handleAddComment = async () => {
         const text = newComment.trim();
 
-        // Guarding against empty comments, signed-out users, and double submits from a fast second click.
-        if (!text || !userInfo || posting) return;
+        // Guarding against empty comments and double submits from a fast second click.
+        if (!text || posting) return;
 
         setPosting(true);
         try {
@@ -129,7 +135,7 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
             setAttachedPieceIndex(null);
         } catch (error) {
             // The typed comment stays in the box, so it can just be posted again.
-            console.error("Failed to add comment:", error);
+            logError("Failed to add comment:", error);
             showAlert("error", "Couldn't post your comment. Try again.");
         }
         setPosting(false);
@@ -147,12 +153,17 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
             await postService.deleteComment(post.id, commentId);
             setComments(prev => prev.filter(comment => comment.id !== commentId));
         } catch (error) {
-            console.error("Failed to delete comment:", error);
+            logError("Failed to delete comment:", error);
             showAlert("error", "Couldn't delete that comment. Try again.");
         }
     };
 
     const postAuthor = authors[post.uid];
+
+    // Your own post gets the Edit/Delete menu. An edit updates the overlay's copy of the post, and a delete closes the overlay, since there's no post left to show.
+    const postMenu = currentUserId === post.uid
+        ? <PostMenu post={post} onUpdated={setPost} onDeleted={onClose} />
+        : null;
 
     return (
         // Clicking the backdrop closes the overlay. stopPropagation on the card keeps clicks inside it from bubbling up to the backdrop and closing it too.
@@ -169,6 +180,8 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
                             <BsChevronDown />
                         </button>
                         <p>Comments</p>
+                        {/* The desktop header (with the menu) is hidden on smaller screens, so the menu also sits in the corner of this one. */}
+                        {postMenu && <div className='mobile-post-menu'>{postMenu}</div>}
                     </div>
 
                     <div className='post-info-header'>
@@ -185,6 +198,7 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
                             </div>
                         )}
                         <div className='post-overlay-actions'>
+                            {postMenu}
                             <button className='overlay-close-button' onClick={onClose} aria-label="Close">
                                 <BsXCircle />
                             </button>
@@ -224,7 +238,7 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
                                 type="text"
                                 placeholder={attachedPiece ? "Comment on this piece..." : "Add a comment..."}
                                 value={newComment}
-                                maxLength={500} // Matching the cap the security rules enforce, so an over-long comment is stopped here instead of being rejected by the server.
+                                maxLength={COMMENT_MAX} // Same cap the rules enforce, so an over-long comment is stopped here instead of being rejected by the server.
                                 onChange={(e) => setNewComment(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
                             />
@@ -255,8 +269,8 @@ const PostOverlay = ({ post, onClose, initialPieceIndex }: PostOverlayProps) => 
                                     author={authors[comment.uid]}
                                     initiallyLiked={likedByMe[comment.id] || false}
                                     currentUserId={currentUserId}
-                                    canEdit={!!currentUserId && currentUserId === comment.uid}
-                                    canDelete={!!currentUserId && (currentUserId === comment.uid || currentUserId === post.uid)}
+                                    canEdit={currentUserId === comment.uid}
+                                    canDelete={currentUserId === comment.uid || currentUserId === post.uid}
                                     onEdit={handleEditComment}
                                     onDelete={handleDeleteComment}
                                 />

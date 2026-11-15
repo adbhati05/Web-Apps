@@ -393,12 +393,24 @@
     }
 
     .mobile-comments-header {
+        position: relative; /* The positioning context for the post menu in its corner (.mobile-post-menu below). */
         display: flex;
         flex-direction: column;
         align-items: center;
         flex-shrink: 0;
         padding: var(--space-xs) var(--space-lg) var(--space-md);
         border-bottom: var(--border-width) solid var(--color-border);
+    }
+
+    /* Your own post's menu, pinned to the right of the header so the chevron and "Comments" stay centered.
+       top and bottom 0 with align-items centers it vertically. (A transform would also center it, but it would trap the menu's modals inside this header, since position: fixed is relative to the nearest transformed ancestor.) */
+    .mobile-post-menu {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: var(--space-lg);
+        display: flex;
+        align-items: center;
     }
 
     .mobile-comments-header p {
