@@ -1,4 +1,6 @@
 // Note that adding a question mark (?) after a prop name in an interface makes that prop optional.
+// Every timestamp here (createdAt, updatedAt, editedAt, lastRead) is an ISO string. Firestore stores them as server Timestamps (written with serverTimestamp(), which the rules require),
+// and the services convert them back to ISO strings as they read each doc (docData in src/utils/timestamps.ts), so nothing outside the services ever handles a Timestamp.
 
 // This will represent each user in the database.
 // Followers and following live in subcollections (users/{uid}/followers and users/{uid}/following) rather than arrays here, for the same reason likes and comments do on posts.
@@ -109,7 +111,7 @@ export interface Message {
     id: string; // The doc ID. Not stored as a field, it's filled in from the doc when reading.
     senderId: string; // The rules require this to be the caller's own UID.
     text: string; // 1-1000 characters, enforced by the rules.
-    createdAt: string; // ISO string like everything else for now; see the timestamps decision in planning/brainstorming.txt.
+    createdAt: string; // Set by the server like every other timestamp (see the note at the top of this file).
     editedAt?: string; // Only set once the sender edits the message (allowed for 15 minutes after sending), which is what the UI uses to mark it as edited.
     replyTo?: MessageReply; // Only set when the message is a reply to another one.
 }

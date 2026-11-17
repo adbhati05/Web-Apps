@@ -1,7 +1,7 @@
 // Rules for posts/{postId} and posts/{postId}/likes/{uid}.
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, collection } from 'firebase/firestore';
 import { startEnv, clearAll, stopEnv, as, anon, seed, now, minutesAgo, storageURL, validPost, validLike, seedPost, likeInBatch } from './helpers';
 
 beforeAll(startEnv);
@@ -19,10 +19,17 @@ const createPost = (overrides: Record<string, unknown>) =>
     setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), ...overrides });
 
 describe('posts/{postId} read', () => {
-    it('the feed is public, so signed-out visitors can read posts', async () => {
-        await seedPost(POST, 'alice');
-        await assertSucceeds(getDoc(doc(anon(), 'posts', POST)));
-    });
+    beforeEach(() => seedPost(POST, 'alice'));
+
+    it('signed-in users can read posts', () =>
+        assertSucceeds(getDoc(doc(as('bob'), 'posts', POST))));
+
+    // Every page that shows posts is behind the login, so signed-out reads would only serve scrapers.
+    it('signed-out visitors cannot read posts', () =>
+        assertFails(getDoc(doc(anon(), 'posts', POST))));
+
+    it('signed-out visitors cannot list the posts collection', () =>
+        assertFails(getDocs(collection(anon(), 'posts'))));
 });
 
 describe('posts/{postId} create', () => {
@@ -53,18 +60,27 @@ describe('posts/{postId} create', () => {
     it('hasDetails must be a boolean', () =>
         assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), hasDetails: 'yes' })));
 
-    // createdAt is what the feed sorts by, so a post dated in the future would stay pinned to the top.
-    it('createdAt cannot be in the future', () =>
+    // createdAt is what the feed sorts by, so it has to be the server's time (serverTimestamp()). Any client-chosen date could pin a post to the top or bury it.
+    it('createdAt cannot be a client-chosen date in the future', () =>
         assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: minutesAgo(-60) })));
 
-    it('createdAt has to be an ISO timestamp', () =>
-        assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: 'tomorrow' })));
+    it('createdAt cannot be a client-chosen date in the past', () =>
+        assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: minutesAgo(60) })));
 
-    it('a device clock a couple of minutes fast is still allowed (5 minute allowance)', () =>
-        assertSucceeds(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: minutesAgo(-2) })));
+    // The two strings that got past the old ISO-string check (audit section 9.9): a negative hour count, and missing zero padding that sorts above every real date as text.
+    it('createdAt cannot be a string, even one the old check accepted', async () => {
+        await assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: '9999-12-31T-70000000:00:00.000Z' }));
+        await assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: '2026-9-9T9:9:9' }));
+    });
 
-    it('a createdAt in the past is allowed (posts made offline are sent late)', () =>
-        assertSucceeds(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), createdAt: minutesAgo(60 * 24) })));
+    it('updatedAt cannot be set at creation', () =>
+        assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), updatedAt: now() })));
+
+    // The stored username is the fallback shown when the author lookup fails, so it has to look like a real username (no 900KB strings).
+    it('username has to be a valid username', async () => {
+        await assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), username: 'x'.repeat(17) }));
+        await assertFails(setDoc(doc(as('alice'), 'posts', POST), { ...validPost('alice', POST), username: 42 }));
+    });
 });
 
 // Each piece is checked field by field (pieceValid in the rules), at all 8 possible positions.
@@ -136,7 +152,15 @@ describe('posts/{postId} update: owner editing content', () => {
         assertFails(updateDoc(doc(as('alice'), 'posts', POST), { uid: 'bob' })));
 
     it('owner cannot backdate createdAt', () =>
-        assertFails(updateDoc(doc(as('alice'), 'posts', POST), { createdAt: '2020-01-01T00:00:00.000Z' })));
+        assertFails(updateDoc(doc(as('alice'), 'posts', POST), { createdAt: minutesAgo(60 * 24 * 365) })));
+
+    it('updatedAt has to be the server\'s time', async () => {
+        await assertFails(updateDoc(doc(as('alice'), 'posts', POST), { caption: 'updated', updatedAt: minutesAgo(-60) }));
+        await assertFails(updateDoc(doc(as('alice'), 'posts', POST), { caption: 'updated', updatedAt: { any: 'thing' } }));
+    });
+
+    it('owner cannot change the stored username (no posing as someone else)', () =>
+        assertFails(updateDoc(doc(as('alice'), 'posts', POST), { username: 'bob' })));
 
     it('owner cannot bump the counters while editing content', () =>
         assertFails(updateDoc(doc(as('alice'), 'posts', POST), { caption: 'updated', likeCount: 999 })));
@@ -195,6 +219,24 @@ describe('posts/{postId} update: like counter', () => {
     it('cannot unlike a post you never liked', () =>
         assertFails(like('bob', false)));
 
+    // The other direction (the like doc can't move without the counter), which is what stops one user from inflating or deflating the count in a loop.
+    it('a like doc cannot be created without the counter moving', () =>
+        assertFails(setDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob'), validLike('bob'))));
+
+    it('a like doc cannot be deleted without the counter moving', async () => {
+        await seed(db => Promise.all([
+            setDoc(doc(db, 'posts', POST, 'likes', 'bob'), validLike('bob')),
+            updateDoc(doc(db, 'posts', POST), { likeCount: 1 }),
+        ]).then(() => undefined));
+        await assertFails(deleteDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob')));
+    });
+
+    // The exact loop from audit section 9.9: like in a batch, then delete just the like doc. The second step is now denied, so the count stays honest.
+    it('like-then-delete-the-like-doc cannot inflate the count', async () => {
+        await assertSucceeds(like('bob', true));
+        await assertFails(deleteDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob')));
+    });
+
     it('cannot move the counter by writing a like doc under someone else\'s uid', () => {
         const db = as('bob');
         const batch = writeBatch(db);
@@ -238,38 +280,47 @@ describe('posts/{postId} delete', () => {
 describe('posts/{postId}/likes/{uid}', () => {
     beforeEach(() => seedPost(POST, 'alice'));
 
-    it('anyone can read (the feed checks did-I-like per post)', async () => {
+    // Likes and unlikes always go through likeInBatch (the counter moves with them), so the like doc's own checks are what's being tested here.
+    // likeData swaps in a broken like doc for bob's own likes/bob, and the target uid can be changed for the "someone else's uid" cases.
+    const likeAs = (actor: string, target: string, likeData: Record<string, unknown> = validLike(target)) => {
+        const db = as(actor);
+        return likeInBatch(db, doc(db, 'posts', POST), doc(db, 'posts', POST, 'likes', target), target, true, likeData);
+    };
+
+    it('signed-in users can read (the feed checks did-I-like per post), signed-out visitors cannot', async () => {
         await seed(db => setDoc(doc(db, 'posts', POST, 'likes', 'bob'), validLike('bob')));
-        await assertSucceeds(getDoc(doc(anon(), 'posts', POST, 'likes', 'bob')));
+        await assertSucceeds(getDoc(doc(as('carol'), 'posts', POST, 'likes', 'bob')));
+        await assertFails(getDoc(doc(anon(), 'posts', POST, 'likes', 'bob')));
     });
 
-    it('a user can create their own like doc', () =>
-        assertSucceeds(setDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob'), validLike('bob'))));
+    it('a user can create their own like doc (with the counter)', () =>
+        assertSucceeds(likeAs('bob', 'bob')));
 
     it('cannot create a like doc under another uid', () =>
-        assertFails(setDoc(doc(as('bob'), 'posts', POST, 'likes', 'carol'), validLike('carol'))));
+        assertFails(likeAs('bob', 'carol')));
 
     it('uid field must match the doc id', () =>
-        assertFails(setDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob'), validLike('carol'))));
+        assertFails(likeAs('bob', 'bob', validLike('carol'))));
 
     it('no extra fields', () =>
-        assertFails(setDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob'), { ...validLike('bob'), weight: 10 })));
+        assertFails(likeAs('bob', 'bob', { ...validLike('bob'), weight: 10 })));
 
-    it('createdAt cannot be in the future', () =>
-        assertFails(setDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob'), { ...validLike('bob'), createdAt: minutesAgo(-60) })));
+    it('createdAt has to be the server\'s time', () =>
+        assertFails(likeAs('bob', 'bob', { ...validLike('bob'), createdAt: minutesAgo(-60) })));
 
     it('cannot be updated', async () => {
         await seed(db => setDoc(doc(db, 'posts', POST, 'likes', 'bob'), validLike('bob')));
         await assertFails(updateDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob'), { createdAt: now() }));
     });
 
-    it('owner can delete their like doc', async () => {
-        await seed(db => setDoc(doc(db, 'posts', POST, 'likes', 'bob'), validLike('bob')));
-        await assertSucceeds(deleteDoc(doc(as('bob'), 'posts', POST, 'likes', 'bob')));
-    });
-
-    it('another user cannot delete it', async () => {
-        await seed(db => setDoc(doc(db, 'posts', POST, 'likes', 'bob'), validLike('bob')));
-        await assertFails(deleteDoc(doc(as('carol'), 'posts', POST, 'likes', 'bob')));
+    it('owner can delete their like doc (with the counter), another user cannot', async () => {
+        await seed(db => Promise.all([
+            setDoc(doc(db, 'posts', POST, 'likes', 'bob'), validLike('bob')),
+            updateDoc(doc(db, 'posts', POST), { likeCount: 1 }),
+        ]).then(() => undefined));
+        const carol = as('carol');
+        await assertFails(likeInBatch(carol, doc(carol, 'posts', POST), doc(carol, 'posts', POST, 'likes', 'bob'), 'bob', false));
+        const bob = as('bob');
+        await assertSucceeds(likeInBatch(bob, doc(bob, 'posts', POST), doc(bob, 'posts', POST, 'likes', 'bob'), 'bob', false));
     });
 });

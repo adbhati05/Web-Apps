@@ -1,17 +1,16 @@
 // This will be include all Firebase functionality necessary for post operations.
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, query, orderBy, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { storageService } from './storage.service';
 import type { Post, Comment, CommentPiece, UserInfo, PieceDetail } from '../types';
 import { logError } from '../utils/logger';
+import { docData } from '../utils/timestamps';
 
 // TO-DO: Implement pagination (do research on this) for fetching posts in the future, especially as the number of posts grows. For now, I'll just fetch all posts and sort them by creation date.
 
 // The fields on a post that its owner is allowed to edit after creation. Everything else (uid,
 // createdAt, the counters) is frozen by the security rules, so the service doesn't accept them either.
 export type PostContentUpdate = Partial<Pick<Post, 'caption' | 'pieces' | 'hasDetails' | 'imageURL'>>;
-
-const postCache = new Map<string, Post>();
 
 // A post being edited or deleted, as reported to the pages showing it (see subscribeToPostChanges below).
 export type PostChange = { type: 'updated', post: Post } | { type: 'deleted', postId: string };
@@ -45,32 +44,15 @@ export const postService = {
             caption,
             pieces,
             hasDetails,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(), // Only a local stand-in for the returned post; the doc itself gets the server's time below.
             imageURL: uploadedImageURL,
             likeCount: 0, // Likes live in the posts/{id}/likes subcollection; this is just the denormalized count.
             commentCount: 0 // Same for comments (posts/{id}/comments subcollection).
         };
 
-        // Save to Firestore
-        await setDoc(postRef, post);
+        // Save to Firestore. createdAt is the server's time (the rules accept nothing else), so nobody can date a post to pin it to the top of the feed.
+        await setDoc(postRef, { ...post, createdAt: serverTimestamp() });
 
-        // Update cache (optional but can speed up subsequent reads)
-        postCache.set(post.id, post);
-
-        return post;
-    },
-
-    async getPost(postId: string): Promise<Post | null> {
-        // If the post is in the cache, return it immediately to avoid unnecessary Firestore reads.
-        if (postCache.has(postId)) {
-            return postCache.get(postId)!;
-        }
-
-        const postDoc = await getDoc(doc(db, "posts", postId));
-        if (!postDoc.exists()) return null;
-
-        const post = { id: postDoc.id, ...postDoc.data() } as Post;
-        postCache.set(postId, post);
         return post;
     },
 
@@ -80,15 +62,7 @@ export const postService = {
         const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
 
-        const posts = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
-
-        // Update cache
-        posts.forEach(post => postCache.set(post.id, post));
-
-        return posts;
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as Post));
     },
 
     // Fetches every post by one user, newest first (used by the profile page's grid).
@@ -97,17 +71,11 @@ export const postService = {
         const q = query(collection(db, "posts"), where("uid", "==", uid));
         const querySnapshot = await getDocs(q);
 
-        const posts = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
+        const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as Post));
 
         // ISO timestamps sort alphabetically in the same order as chronologically, so a plain string comparison works (b before a gives newest first).
         // This sorting is done to ensure that when this program is called when populating the profile page, the posts are displayed in the correct order (newest first).
         posts.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
-        // Update cache
-        posts.forEach(post => postCache.set(post.id, post));
 
         return posts;
     },
@@ -115,17 +83,14 @@ export const postService = {
     // Content-only updates by the post's owner. The security rules reject attempts to change uid/createdAt or the like/comment counters through this path, and the PostContentUpdate type keeps the client honest about that.
     // Takes the whole post (like deletePost) rather than just its ID, so it can hand back the updated post and tell the pages showing it (via notifyPostChange) without another read.
     async updatePost(post: Post, updates: PostContentUpdate): Promise<Post> {
-        const updatedAt = new Date().toISOString();
-
         // updates is a partial Post holding only the fields being changed (the Edit post form sends caption, pieces, and hasDetails).
         await updateDoc(doc(db, "posts", post.id), {
             ...updates,
-            updatedAt
+            updatedAt: serverTimestamp()
         });
 
-        // The updated post, which goes into the cache and out to every page showing it.
-        const updatedPost: Post = { ...post, ...updates, updatedAt };
-        postCache.set(post.id, updatedPost);
+        // The updated post, which goes out to every page showing it. updatedAt is a local stand-in for the server's time, which only matters until the next fetch.
+        const updatedPost: Post = { ...post, ...updates, updatedAt: new Date().toISOString() };
         notifyPostChange({ type: 'updated', post: updatedPost });
 
         return updatedPost;
@@ -136,8 +101,7 @@ export const postService = {
         // Note: this orphans the likes/comments subcollection docs (a client can't delete a wholesubcollection). They become unreachable garbage; proper cleanup needs a Cloud Function (see to-do.txt).
         await deleteDoc(doc(db, "posts", post.id));
 
-        // Remove from cache, and tell the pages showing the post (the feed, the profile grid) to drop it.
-        postCache.delete(post.id);
+        // Tell the pages showing the post (the feed, the profile grid) to drop it.
         notifyPostChange({ type: 'deleted', postId: post.id });
 
         // Delete image from Storage
@@ -164,8 +128,8 @@ export const postService = {
         return likeDoc.exists();
     },
 
-    // Toggles a like on a post and returns the NEW liked state (true = now liked). The like doc write and the counter change are committed in one atomic batch. 
-    // The security rules actually require this (they only allow the counter to move when the same batch creates/deletes the caller's own like doc), so the count can never drift from reality.
+    // Toggles a like on a post and returns the NEW liked state (true = now liked). The like doc write and the counter change are committed in one atomic batch.
+    // The security rules actually require this in both directions (the counter can't move without the like doc, and the like doc can't be created or deleted without the counter), so the count can never drift from reality.
     async toggleLike(postId: string, userId: string): Promise<boolean> {
         const postRef = doc(db, "posts", postId);
         const likeRef = doc(db, "posts", postId, "likes", userId);
@@ -183,19 +147,12 @@ export const postService = {
             nowLiked = false;
         } else {
             // Like: create the like doc (ID = the liker's UID), increment the counter.
-            batch.set(likeRef, { uid: userId, createdAt: new Date().toISOString() });
+            batch.set(likeRef, { uid: userId, createdAt: serverTimestamp() });
             batch.update(postRef, { likeCount: increment(1) });
             nowLiked = true;
         }
 
         await batch.commit();
-
-        // Keep the cached post's counter in sync.
-        if (postCache.has(postId)) {
-            const currentPost = postCache.get(postId)!;
-            postCache.set(postId, { ...currentPost, likeCount: currentPost.likeCount + (nowLiked ? 1 : -1) });
-        }
-
         return nowLiked;
     },
 
@@ -203,10 +160,10 @@ export const postService = {
     async getComments(postId: string): Promise<Comment[]> {
         const q = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc"));
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as Comment));
     },
 
-    // Adds a comment doc to the post's comments subcollection and bumps the denormalized counter in the same atomic batch. Returns the new comment so the UI can append it without refetching.
+    // Adds a comment doc to the post's comments subcollection and bumps the denormalized counter in the same atomic batch (the rules require both together). Returns the new comment so the UI can append it without refetching.
     // piece is set when the comment is about one specific piece of the post (see CommentPiece in types.ts). The rules check it against the post's real piece.
     async addComment(postId: string, comment: string, userInfo: UserInfo, piece?: CommentPiece): Promise<Comment> {
         const postRef = doc(db, "posts", postId);
@@ -217,21 +174,15 @@ export const postService = {
             uid: userInfo.uid,
             username: userInfo.username, // Same reasoning as in createPost.
             comment,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(), // Local stand-in for the returned comment, same as createPost.
             likeCount: 0, // Comment likes live in the comment's own likes subcollection; the rules require this to start at 0.
             ...(piece && { piece })
         };
 
         const batch = writeBatch(db);
-        batch.set(commentRef, newComment);
+        batch.set(commentRef, { ...newComment, createdAt: serverTimestamp() });
         batch.update(postRef, { commentCount: increment(1) });
         await batch.commit();
-
-        // Keep the cached post's counter in sync.
-        if (postCache.has(postId)) {
-            const currentPost = postCache.get(postId)!;
-            postCache.set(postId, { ...currentPost, commentCount: currentPost.commentCount + 1 });
-        }
 
         return newComment;
     },
@@ -257,25 +208,22 @@ export const postService = {
             batch.update(commentRef, { likeCount: increment(-1) });
             nowLiked = false;
         } else {
-            batch.set(likeRef, { uid: userId, createdAt: new Date().toISOString() });
+            batch.set(likeRef, { uid: userId, createdAt: serverTimestamp() });
             batch.update(commentRef, { likeCount: increment(1) });
             nowLiked = true;
         }
 
         await batch.commit();
-
-        // Nothing to sync here, unlike toggleLike: only posts are cached, comments are fetched fresh each time the overlay opens.
         return nowLiked;
     },
 
-    // Edits a comment's text. The security rules only let the author do this and only let comment/editedAt change, so nothing else is sent. Returns the editedAt stamp so the UI can mark the comment as edited without refetching.
+    // Edits a comment's text. The security rules only let the author do this and only let comment/editedAt change, so nothing else is sent. Returns an editedAt stamp so the UI can mark the comment as edited without refetching.
     async editComment(postId: string, commentId: string, comment: string): Promise<string> {
-        const editedAt = new Date().toISOString();
-        await updateDoc(doc(db, "posts", postId, "comments", commentId), { comment, editedAt });
-        return editedAt;
+        await updateDoc(doc(db, "posts", postId, "comments", commentId), { comment, editedAt: serverTimestamp() });
+        return new Date().toISOString(); // Local stand-in for the server's time; the UI only uses it to show "edited".
     },
 
-    // Deletes a comment doc and decrements the counter atomically. The security rules allow this for the comment's author and for the post's owner (moderation).
+    // Deletes a comment doc and decrements the counter atomically (the rules require both together). The security rules allow this for the comment's author and for the post's owner (moderation).
     // Note: this orphans the comment's likes subcollection docs, same caveat (and same Cloud Function fix) as deletePost above.
     async deleteComment(postId: string, commentId: string): Promise<void> {
         const postRef = doc(db, "posts", postId);
@@ -285,11 +233,5 @@ export const postService = {
         batch.delete(commentRef);
         batch.update(postRef, { commentCount: increment(-1) });
         await batch.commit();
-
-        // Keep the cached post's counter in sync.
-        if (postCache.has(postId)) {
-            const currentPost = postCache.get(postId)!;
-            postCache.set(postId, { ...currentPost, commentCount: currentPost.commentCount - 1 });
-        }
     }
 };

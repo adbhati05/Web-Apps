@@ -104,7 +104,7 @@ The app is three layers: pages and routing on top, the contexts in the middle (`
 
 ## Data model
 
-Timestamps are ISO strings everywhere, not Firestore `Timestamp`s.
+Timestamps are written with `serverTimestamp()` (the rules only accept the server's time), stored as Firestore `Timestamp`s, and converted to ISO strings as the services read them, so the app above the services only ever sees ISO strings.
 
 ```
 users/{uid}                                   UserInfo (carries followerCount + followingCount)
@@ -177,14 +177,14 @@ npm run lint      # ESLint
 
 ### Testing
 
-The security rules have a test suite that runs against the local Firebase Emulator, so nothing touches the real project. Java is required (the Firestore emulator is a jar, downloaded on first run).
+The security rules have a test suite that runs against the local Firebase Emulator, so nothing touches the real project. Java is required (the Firestore and Storage emulators are jars, downloaded on first run).
 
 ```sh
-npm run test:rules   # starts the emulator, runs eval/tests/*.test.ts, shuts it down
-npm run emulators    # just the emulator, for running vitest in watch mode from eval/
+npm run test:rules   # starts the emulators, runs eval/tests/*.test.ts, shuts them down
+npm run emulators    # just the emulators, for running vitest in watch mode from eval/
 ```
 
-`firebase.json` and `.firebaserc` at the project root configure the emulator and point it at `rules/`. The project ID there is `demo-archive`: the `demo-` prefix tells the CLI the project doesn't exist online, so no login is needed and nothing can reach production. Tests live in `eval/tests/`, one file per area (users, posts, comments, follows, chats, style board), and each one acts as specific users and asserts what the rules allow or deny. There are no component or end-to-end tests yet.
+`firebase.json` and `.firebaserc` at the project root configure the emulator and point it at `rules/`. The project ID there is `demo-archive`: the `demo-` prefix tells the CLI the project doesn't exist online, so no login is needed and nothing can reach production. Tests live in `eval/tests/`, one file per area (users, posts, comments, follows, chats, style board, Storage), and each one acts as specific users and asserts what the rules allow or deny. There are no component or end-to-end tests yet.
 
 ---
 

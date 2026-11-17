@@ -19,6 +19,14 @@
     font-weight: bold;
 }
 
+/* The "taking longer than usual" message under the spinner, shown after a slow load (see Loading.tsx). */
+.loading-page-message {
+    margin: var(--space-lg) var(--space-lg) 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
 @keyframes loading-page-fade-in {
     to {
         opacity: 1;

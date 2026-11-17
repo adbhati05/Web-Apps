@@ -8,27 +8,29 @@ service firebase.storage {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Uploads must declare an image content type. (Cheap check, not deep file
-    // inspection yet, real validation of file contents would need a Cloud Function | add to TO-DO.)
+    // Uploads must be JPEGs: storageService converts every picture to JPEG before uploading, so nothing else is ever expected.
+    // This also rules out SVG, which can carry scripts that run when the file's URL is opened directly.
+    // (Cheap check on the declared type, not deep file inspection; real validation of file contents would need a Cloud Function.)
     function isImage() {
-      return request.resource.contentType.matches('image/.*');
+      return request.resource.contentType == 'image/jpeg';
     }
 
-    // Profile pictures: public read, owner-only write, image-only, max 2MB.
+    // Profile pictures: public get, owner-only write, JPEG-only, max 2MB.
     // The client compresses to ~0.2MB (and refuses to upload if compression fails),
     // so this cap only stops uploads that skip the app's client, with room to spare.
+    // Get is public (every <img> tag loads the file through its download URL), but listing a folder isn't, so nobody can enumerate every file a user has uploaded.
     match /profile/{userId}/{allPaths=**} {
-      allow read: if true;
+      allow get: if true;
       allow create, update: if isOwner(userId)
                             && isImage()
                             && request.resource.size < 2 * 1024 * 1024;
       allow delete: if isOwner(userId);
     }
 
-    // Post photos: public read, owner-only write, image-only, max 5MB.
+    // Post photos: public get, owner-only write, JPEG-only, max 5MB.
     // The client compresses to ~0.6MB; same reasoning as above.
     match /posts/{userId}/{allPaths=**} {
-      allow read: if true;
+      allow get: if true;
       allow create, update: if isOwner(userId)
                             && isImage()
                             && request.resource.size < 5 * 1024 * 1024;

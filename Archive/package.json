@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "emulators": "firebase emulators:start --only firestore",
-    "test:rules": "firebase emulators:exec --only firestore \"cd eval && npx vitest run\"",
+    "emulators": "firebase emulators:start --only firestore,storage",
+    "test:rules": "firebase emulators:exec --only firestore,storage \"cd eval && npx vitest run\"",
     "deploy:rules": "npm run test:rules && firebase deploy --only firestore:rules,storage --project dev",
     "lines": "node info/count-lines.mjs"
   },

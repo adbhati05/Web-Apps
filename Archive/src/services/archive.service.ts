@@ -1,8 +1,9 @@
 // This will include all Firebase functionality for the style board's archive: the pieces a user has favorited from posts or added themselves (users/{uid}/archive).
 // The archive is private (only its owner can read or write it, see the archive rules), and like chats it uses an onSnapshot listener, so the archive side bar updates on its own when a piece is added or removed.
-import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { copyPiece } from '../utils/pieces';
+import { docData } from '../utils/timestamps';
 import type { ArchivedPiece, PieceDetail, Post } from '../types';
 
 export const archiveService = {
@@ -15,7 +16,7 @@ export const archiveService = {
     // Listens to the user's archive and calls onChange with every piece (newest first) whenever it changes. Returns the unsubscribe function, which the page has to call in its useEffect cleanup.
     subscribeToArchive(uid: string, onChange: (pieces: ArchivedPiece[]) => void, onError: (error: Error) => void): () => void {
         return onSnapshot(collection(db, "users", uid, "archive"), (snapshot) => {
-            const pieces = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ArchivedPiece));
+            const pieces = snapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as ArchivedPiece));
 
             // ISO strings sort correctly as plain strings, same as the chat list.
             pieces.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -38,7 +39,7 @@ export const archiveService = {
             fromUsername,
             postId: post.id,
             pieceIndex,
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp()
         });
         return true;
     },
@@ -51,7 +52,7 @@ export const archiveService = {
             source: 'own',
             fromUid: myUid,
             fromUsername: myUsername,
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp()
         });
     },
 

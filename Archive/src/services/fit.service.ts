@@ -1,7 +1,8 @@
 // This will include all Firebase functionality for the style board's planned fits (users/{uid}/fits).
 // Fits are private like the archive, and also use an onSnapshot listener so the board updates on its own after a fit is added, edited, or deleted.
-import { collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp, deleteField } from 'firebase/firestore';
 import { db } from '../firebase';
+import { docData } from '../utils/timestamps';
 import type { Fit, FitSection } from '../types';
 
 // The five parts of an outfit with the labels the fit form and fit cards show, in order from head to toe (accessories last).
@@ -25,7 +26,7 @@ export const fitService = {
     // Returns the unsubscribe function, which the page has to call in its useEffect cleanup.
     subscribeToFits(uid: string, onChange: (fits: Fit[]) => void, onError: (error: Error) => void): () => void {
         return onSnapshot(collection(db, "users", uid, "fits"), (snapshot) => {
-            const fits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Fit));
+            const fits = snapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as Fit));
             fits.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
             onChange(fits);
         }, onError);
@@ -36,17 +37,17 @@ export const fitService = {
         await setDoc(doc(collection(db, "users", myUid, "fits")), { // Auto-generated ID.
             ...(name && { name }),
             sections,
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp()
         });
     },
 
-    // Saves changes to an existing fit. The whole doc is written again (which is how clearing the name removes it), keeping the original createdAt, since that decides the fit's spot on the board.
+    // Saves changes to an existing fit. Only the name, sections, and updatedAt are sent, so createdAt (which decides the fit's spot on the board) stays exactly as stored, which the rules require.
+    // Clearing the name removes the field (deleteField), so the fit goes back to being labeled by its position.
     async updateFit(myUid: string, fit: Fit, name: string, sections: Fit['sections']): Promise<void> {
-        await setDoc(doc(db, "users", myUid, "fits", fit.id), {
-            ...(name && { name }),
+        await updateDoc(doc(db, "users", myUid, "fits", fit.id), {
+            name: name || deleteField(),
             sections,
-            createdAt: fit.createdAt,
-            updatedAt: new Date().toISOString()
+            updatedAt: serverTimestamp()
         });
     },
 

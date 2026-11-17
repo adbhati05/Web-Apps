@@ -1,7 +1,7 @@
 // Rules for chats/{chatId} and chats/{chatId}/messages/{messageId}.
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch, type Firestore, type DocumentData } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, writeBatch, deleteField, type Firestore, type DocumentData } from 'firebase/firestore';
 import { startEnv, clearAll, stopEnv, as, seed, now, minutesAgo } from './helpers';
 
 beforeAll(startEnv);
@@ -11,7 +11,8 @@ afterAll(stopEnv);
 const validUser = (username: string) => ({ displayName: username, username, createdAt: now(), followerCount: 0, followingCount: 0 });
 
 // A message doc's fields, and the preview the chat doc carries for it (the same fields plus which message it's a copy of).
-type Msg = { senderId: string, text: string, createdAt: string, replyTo?: { messageId: string, senderId: string } };
+// createdAt is now() (serverTimestamp) for anything being sent, or a fixed Timestamp for seeded messages, hence unknown.
+type Msg = { senderId: string, text: string, createdAt: unknown, replyTo?: { messageId: string, senderId: string } };
 const message = (senderId: string, text = 'nice fit', extra: Partial<Msg> = {}): Msg => ({ senderId, text, createdAt: now(), ...extra });
 const previewOf = (messageId: string, msg: Msg) => ({ messageId, senderId: msg.senderId, text: msg.text, createdAt: msg.createdAt });
 
@@ -76,10 +77,17 @@ describe('starting a chat (first message)', () => {
     it('lastRead cannot hold anyone but the participants', () =>
         assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { lastRead: { carol: now() } })));
 
+    // Setting the other person's read state at creation would hide the unread dot from them and show "Seen" to the sender right away.
+    it('lastRead cannot hold the other participant\'s key, only the sender\'s', () =>
+        assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { lastRead: { alice: now(), bob: minutesAgo(-60 * 24 * 365) } })));
+
+    it('the sender\'s own lastRead has to be the server\'s time', () =>
+        assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { lastRead: { alice: 12345 } })));
+
     it('the chat doc cannot carry extra fields', () =>
         assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { pinned: true })));
 
-    it('the chat doc\'s createdAt cannot be in the future', () =>
+    it('the chat doc\'s createdAt has to be the server\'s time', () =>
         assertFails(firstMessageBatch(as('alice'), 'alice_bob', 'alice', ['alice', 'bob'], { createdAt: minutesAgo(-60) })));
 
     it('a message cannot be sent into a chat that doesn\'t exist', () =>
@@ -113,7 +121,7 @@ describe('sending messages', () => {
 
     it('updatedAt has to match the preview\'s timestamp', () => {
         const msg = message('bob');
-        return assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', msg, { lastMessage: previewOf('m3', msg), updatedAt: '2000-01-01T00:00:00.000Z' }));
+        return assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', msg, { lastMessage: previewOf('m3', msg), updatedAt: minutesAgo(60) }));
     });
 
     it('empty messages are rejected', () =>
@@ -122,11 +130,15 @@ describe('sending messages', () => {
     it('messages are capped at 1000 characters', () =>
         assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', message('bob', 'x'.repeat(1001)))));
 
-    it('createdAt cannot be far in the future (it would stretch the edit window)', () =>
+    it('createdAt cannot be a client-chosen date in the future (it would stretch the edit window)', () =>
         assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', message('bob', 'from the future', { createdAt: minutesAgo(-60) }))));
 
-    it('createdAt has to be an ISO timestamp', () =>
-        assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', message('bob', 'hi', { createdAt: 'yesterday' }))));
+    // The case from audit section 9.9: a message dated years back would land in the middle of the chat's history, as if it had been said back then.
+    it('createdAt cannot be a client-chosen date in the past', () =>
+        assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', message('bob', 'from 2020', { createdAt: minutesAgo(60 * 24 * 365 * 6) }))));
+
+    it('createdAt cannot be a string', () =>
+        assertFails(nextMessageBatch(as('bob'), 'alice_bob', 'm3', message('bob', 'hi', { createdAt: '2026-9-9T9:9:9' }))));
 
     it('the preview alone cannot be future-dated either (it would jump to the top of the chat list)', () => {
         const msg = message('bob', 'hi', { createdAt: minutesAgo(-60) });
@@ -162,6 +174,15 @@ describe('editing messages', () => {
         batch.update(doc(db, 'chats/alice_bob'), { 'lastMessage.text': previewText, 'lastMessage.editedAt': editedAt });
         return batch.commit();
     };
+
+    it('editedAt has to be the server\'s time', async () => {
+        await seedChat(5);
+        const db = as('alice');
+        const batch = writeBatch(db);
+        batch.update(doc(db, 'chats/alice_bob/messages/m2'), { text: 'hi (edited)', editedAt: minutesAgo(-60) });
+        batch.update(doc(db, 'chats/alice_bob'), { 'lastMessage.text': 'hi (edited)', 'lastMessage.editedAt': minutesAgo(-60) });
+        await assertFails(batch.commit());
+    });
 
     it('the sender can edit their latest message within 15 minutes (message + preview batch)', async () => {
         await seedChat(5);
@@ -220,6 +241,17 @@ describe('unsending messages', () => {
     it('the sender can unsend their latest message at any time (message + preview batch)', () =>
         assertSucceeds(unsendLatest(as('alice'))));
 
+    // chatService.unsendMessage also removes the preview's editedAt (with deleteField), since an unsent preview can't carry one.
+    it('unsending a latest message that was edited removes editedAt from the preview too', async () => {
+        await seed(db => updateDoc(doc(db, 'chats/alice_bob'), { 'lastMessage.editedAt': minutesAgo(30) }));
+        await assertSucceeds(unsendLatest(as('alice'), { 'lastMessage.text': '', 'lastMessage.unsent': true, 'lastMessage.editedAt': deleteField() }));
+    });
+
+    it('an unsent preview cannot keep its editedAt', async () => {
+        await seed(db => updateDoc(doc(db, 'chats/alice_bob'), { 'lastMessage.editedAt': minutesAgo(30) }));
+        await assertFails(unsendLatest(as('alice')));
+    });
+
     it('cannot unsend the latest message without clearing the preview', () =>
         assertFails(deleteDoc(doc(as('alice'), 'chats/alice_bob/messages/m2'))));
 
@@ -270,6 +302,9 @@ describe('read state and deleting', () => {
 
     it('a participant can mark the chat read for themselves', () =>
         assertSucceeds(updateDoc(doc(as('bob'), 'chats/alice_bob'), { 'lastRead.bob': now() })));
+
+    it('the read time has to be the server\'s time', () =>
+        assertFails(updateDoc(doc(as('bob'), 'chats/alice_bob'), { 'lastRead.bob': minutesAgo(-60 * 24 * 365) })));
 
     it('cannot mark it read on the other participant\'s behalf', () =>
         assertFails(updateDoc(doc(as('bob'), 'chats/alice_bob'), { 'lastRead.alice': now() })));

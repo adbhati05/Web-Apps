@@ -1,7 +1,8 @@
 // This will include all Firebase functionality for following/unfollowing users.
 // A follow is stored twice, once on each side (users/{target}/followers/{me} and users/{me}/following/{target}), so either user's list is one subcollection read. Both counters on the user docs move in the same batch, which the security rules require.
-import { doc, getDoc, getDocs, collection, writeBatch, increment } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import { docData } from '../utils/timestamps';
 import type { Follow } from '../types';
 
 export const followService = {
@@ -32,7 +33,7 @@ export const followService = {
             nowFollowing = false;
         } else {
             // Follow: each doc holds the OTHER user's UID (same as its doc ID), increment both counters.
-            const createdAt = new Date().toISOString();
+            const createdAt = serverTimestamp();
             batch.set(followingRef, { uid: targetUid, createdAt });
             batch.set(followerRef, { uid: myUid, createdAt });
             batch.update(myUserRef, { followingCount: increment(1) });
@@ -47,12 +48,12 @@ export const followService = {
     // Fetches everyone who follows uid. Each Follow only holds a UID, so pair this with profileService.getProfilesByUids to show names and pictures.
     async getFollowers(uid: string): Promise<Follow[]> {
         const querySnapshot = await getDocs(collection(db, "users", uid, "followers"));
-        return querySnapshot.docs.map(doc => doc.data() as Follow);
+        return querySnapshot.docs.map(doc => docData(doc) as Follow);
     },
 
     // Fetches everyone uid follows. Same shape as getFollowers.
     async getFollowing(uid: string): Promise<Follow[]> {
         const querySnapshot = await getDocs(collection(db, "users", uid, "following"));
-        return querySnapshot.docs.map(doc => doc.data() as Follow);
+        return querySnapshot.docs.map(doc => docData(doc) as Follow);
     }
 };

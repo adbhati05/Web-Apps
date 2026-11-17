@@ -1,7 +1,7 @@
 // Rules for users/{uid} and usernames/{username}.
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, increment, collection, query, limit } from 'firebase/firestore';
 import { startEnv, clearAll, stopEnv, as, anon, seed, now, minutesAgo, storageURL } from './helpers';
 
 beforeAll(startEnv);
@@ -24,6 +24,16 @@ describe('users/{uid}', () => {
 
     describe('read', () => {
         beforeEach(() => seed(db => setDoc(doc(db, 'users/alice'), validUser('alice'))));
+
+        // Lists are only allowed in small pages (request.query.limit), so nobody can download every profile in one query.
+        it('signed-in users can list users in pages of up to 20', () =>
+            assertSucceeds(getDocs(query(collection(as('bob'), 'users'), limit(20)))));
+
+        it('listing every user without a limit is denied', () =>
+            assertFails(getDocs(collection(as('bob'), 'users'))));
+
+        it('a page bigger than 20 is denied', () =>
+            assertFails(getDocs(query(collection(as('bob'), 'users'), limit(21)))));
 
         it('owner can read their own doc', () =>
             assertSucceeds(getDoc(doc(as('alice'), 'users/alice'))));
@@ -67,13 +77,12 @@ describe('users/{uid}', () => {
         it('a profile picture on another site is rejected at sign-up too', () =>
             assertFails(signUpBatch('alice', 'alice', validUser('alice', { profilePicURL: 'https://example.com/me.jpg' }))));
 
-        it('createdAt cannot be in the future', () =>
-            assertFails(signUpBatch('alice', 'alice', validUser('alice', { createdAt: minutesAgo(-60) }))));
+        it('createdAt has to be the server\'s time', async () => {
+            await assertFails(signUpBatch('alice', 'alice', validUser('alice', { createdAt: minutesAgo(-60) })));
+            await assertFails(signUpBatch('alice', 'alice', validUser('alice', { createdAt: minutesAgo(60) })));
+        });
 
-        it('createdAt has to be an ISO timestamp', () =>
-            assertFails(signUpBatch('alice', 'alice', validUser('alice', { createdAt: 'yesterday' }))));
-
-        it('the username claim\'s createdAt cannot be in the future', () => {
+        it('the username claim\'s createdAt has to be the server\'s time', () => {
             const db = as('alice');
             const batch = writeBatch(db);
             batch.set(doc(db, 'usernames', 'alice'), { ...claim('alice', 'alice'), createdAt: minutesAgo(-60) });
@@ -220,8 +229,11 @@ describe('users/{uid}', () => {
     describe('delete', () => {
         beforeEach(() => seed(db => setDoc(doc(db, 'users/alice'), validUser('alice'))));
 
-        it('owner can delete their doc', () =>
-            assertSucceeds(deleteDoc(doc(as('alice'), 'users/alice'))));
+        // A user doc can only go together with its username claim, otherwise the name would stay claimed (and unclaimable) forever.
+        it('owner cannot delete their doc on its own while the claim is kept', async () => {
+            await seed(db => setDoc(doc(db, 'usernames/alice'), claim('alice', 'alice')));
+            await assertFails(deleteDoc(doc(as('alice'), 'users/alice')));
+        });
 
         // Mirrors authService.deleteUser, which deleteAccount calls before removing the Auth account.
         it('the account deletion batch (user doc + username claim) succeeds', async () => {
@@ -241,30 +253,59 @@ describe('users/{uid}', () => {
 describe('usernames/{username}', () => {
     const claim = (uid: string, username: string, extra: Record<string, unknown> = {}) => ({ uid, username, createdAt: now(), ...extra });
 
-    it('anyone, even signed out, can read (the sign-up form checks availability before login)', async () => {
+    // A claim only counts if the claimer's profile uses that name after the batch, so every claim here goes in with a matching user doc, the way signUp writes them.
+    // claimData lets a test break one field of the claim while the user doc stays valid.
+    const claimBatch = (uid: string, username: string, claimData: Record<string, unknown> = claim(uid, username)) => {
+        const db = as(uid);
+        const batch = writeBatch(db);
+        batch.set(doc(db, 'usernames', username), claimData);
+        batch.set(doc(db, 'users', uid), { displayName: uid, username, createdAt: now(), followerCount: 0, followingCount: 0 });
+        return batch.commit();
+    };
+
+    it('anyone, even signed out, can get one (the sign-up form checks availability before login)', async () => {
         await seed(db => setDoc(doc(db, 'usernames/alice'), claim('alice', 'alice')));
         await assertSucceeds(getDoc(doc(anon(), 'usernames/alice')));
     });
 
-    it('a user can claim a username for themselves', () =>
-        assertSucceeds(setDoc(doc(as('alice'), 'usernames/alice'), claim('alice', 'alice'))));
+    // Otherwise anyone could download every username with its owner's UID.
+    it('nobody can list the whole collection, signed in or out', async () => {
+        await seed(db => setDoc(doc(db, 'usernames/alice'), claim('alice', 'alice')));
+        await assertFails(getDocs(collection(anon(), 'usernames')));
+        await assertFails(getDocs(collection(as('bob'), 'usernames')));
+    });
+
+    it('a user can claim a username for themselves (with their profile)', () =>
+        assertSucceeds(claimBatch('alice', 'alice')));
 
     it('cannot claim a username on behalf of another uid', () =>
-        assertFails(setDoc(doc(as('bob'), 'usernames/alice'), claim('alice', 'alice'))));
+        assertFails(claimBatch('bob', 'alice', claim('alice', 'alice'))));
 
     it('doc id must match the username field', () =>
-        assertFails(setDoc(doc(as('alice'), 'usernames/alice'), claim('alice', 'alicia'))));
+        assertFails(claimBatch('alice', 'alice', claim('alice', 'alicia'))));
 
     it('doc id must be lowercase', () =>
-        assertFails(setDoc(doc(as('alice'), 'usernames/Alice'), claim('alice', 'Alice'))));
+        assertFails(claimBatch('alice', 'Alice')));
 
     it('no extra fields', () =>
-        assertFails(setDoc(doc(as('alice'), 'usernames/alice'), claim('alice', 'alice', { admin: true }))));
+        assertFails(claimBatch('alice', 'alice', claim('alice', 'alice', { admin: true }))));
+
+    // The squatting case from audit section 9.9: claims that the profile doesn't use.
+    it('cannot claim a name on its own, without a profile that uses it', () =>
+        assertFails(setDoc(doc(as('alice'), 'usernames/alice'), claim('alice', 'alice'))));
+
+    it('cannot claim extra names while the profile keeps its own', async () => {
+        await seed(async db => {
+            await setDoc(doc(db, 'usernames/bob'), claim('bob', 'bob'));
+            await setDoc(doc(db, 'users/bob'), { displayName: 'bob', username: 'bob', createdAt: now(), followerCount: 0, followingCount: 0 });
+        });
+        await assertFails(setDoc(doc(as('bob'), 'usernames/nike'), claim('bob', 'nike')));
+    });
 
     // Overwriting an existing doc counts as an update, and updates are hardcoded false, so the second person to claim a name loses even if they never read it first.
     it('an existing claim cannot be overwritten, so a race for the same name has exactly one winner', async () => {
         await seed(db => setDoc(doc(db, 'usernames/alice'), claim('alice', 'alice')));
-        await assertFails(setDoc(doc(as('bob'), 'usernames/alice'), claim('bob', 'alice')));
+        await assertFails(claimBatch('bob', 'alice'));
     });
 
     it('cannot be updated, even by its owner', async () => {
@@ -291,28 +332,28 @@ describe('usernames/{username}', () => {
         await assertFails(deleteDoc(doc(as('alice'), 'usernames/alice')));
     });
 
-    // The name's format (usernames create rule): 3-16 characters of a-z, 0-9, and underscores. Each failing case puts the bad name in both the doc id and the field, so it's the format check that rejects it, not the id/field match.
+    // The name's format (usernames create rule): 3-16 characters of a-z, 0-9, and underscores. Each failing case puts the bad name in the doc id, the field, and the profile, so it's the format check that rejects it.
     describe('format', () => {
         it('must be at least 3 characters', () =>
-            assertFails(setDoc(doc(as('alice'), 'usernames/ab'), claim('alice', 'ab'))));
+            assertFails(claimBatch('alice', 'ab')));
 
         it('must be 16 characters or fewer', () =>
-            assertFails(setDoc(doc(as('alice'), 'usernames/' + 'a'.repeat(17)), claim('alice', 'a'.repeat(17)))));
+            assertFails(claimBatch('alice', 'a'.repeat(17))));
 
         it('cannot contain spaces', () =>
-            assertFails(setDoc(doc(as('alice'), 'usernames/al ice'), claim('alice', 'al ice'))));
+            assertFails(claimBatch('alice', 'al ice')));
 
         it('cannot contain special characters', () =>
-            assertFails(setDoc(doc(as('alice'), 'usernames/al!ce'), claim('alice', 'al!ce'))));
+            assertFails(claimBatch('alice', 'al!ce')));
 
         // Boundary cases: these catch a rule that's too strict (an off-by-one like {4,16}), which the failing cases above can't.
         it('exactly 3 characters is allowed', () =>
-            assertSucceeds(setDoc(doc(as('alice'), 'usernames/abc'), claim('alice', 'abc'))));
+            assertSucceeds(claimBatch('alice', 'abc')));
 
         it('exactly 16 characters is allowed', () =>
-            assertSucceeds(setDoc(doc(as('alice'), 'usernames/' + 'a'.repeat(16)), claim('alice', 'a'.repeat(16)))));
+            assertSucceeds(claimBatch('alice', 'a'.repeat(16))));
 
         it('digits and underscores are allowed', () =>
-            assertSucceeds(setDoc(doc(as('alice'), 'usernames/a_1'), claim('alice', 'a_1'))));
+            assertSucceeds(claimBatch('alice', 'a_1')));
     });
 });

@@ -92,15 +92,23 @@ const ChatThread = ({ myUid, otherProfile, chat }: ChatThreadProps) => {
         if (list) list.scrollTop = list.scrollHeight;
     }, [messages.length]);
 
+    // Which message this chat was last marked read for, so each new message is only marked once.
+    // Until the server confirms a markRead, lastRead holds this device's estimate of the time, which can be behind the message's server time on a slow clock, so without this the effect below could fire again before the real value arrives.
+    const markedReadFor = useRef<string | null>(null);
+
     // Marks the chat as read while it's open, whenever the latest message is from the other person and newer than when you last read it.
     // Because the chat doc is live, this also runs the moment a new message arrives in an already open chat.
     useEffect(() => {
         if (!chat) return;
         const { lastMessage, lastRead } = chat;
 
-        if (lastMessage.senderId !== myUid && (lastRead[myUid] ?? '') < lastMessage.createdAt) {
-            chatService.markRead(chat.id, myUid, lastMessage.createdAt)
-                .catch((error) => logError("Failed to mark chat as read:", error));
+        if (lastMessage.senderId !== myUid && (lastRead[myUid] ?? '') < lastMessage.createdAt && markedReadFor.current !== lastMessage.messageId) {
+            markedReadFor.current = lastMessage.messageId;
+            chatService.markRead(chat.id, myUid)
+                .catch((error) => {
+                    logError("Failed to mark chat as read:", error);
+                    markedReadFor.current = null; // So the next update of the chat tries again.
+                });
         }
     }, [chat, myUid]);
 

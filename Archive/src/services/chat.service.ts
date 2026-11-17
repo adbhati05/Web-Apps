@@ -1,9 +1,10 @@
 // This will include all Firebase functionality necessary for one-to-one chats: the chat list, the messages in a chat, sending, and read state.
 // Unlike posts and profiles there's no cache here. Chats use onSnapshot listeners, which push every change (from either person) as it happens, so the listener itself is the source of truth.
 // NOTE: onSnapshot returns an unsubscribe function. Whatever component starts a listener has to call it in its useEffect cleanup, otherwise the listener keeps running (and billing reads) after the component is gone.
-import { collection, doc, getDoc, onSnapshot, query, where, orderBy, limitToLast, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, query, where, orderBy, limitToLast, writeBatch, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Chat, Message, MessagePreview, MessageReply } from '../types';
+import { docData } from '../utils/timestamps';
+import type { Chat, Message, MessageReply } from '../types';
 
 // How many of the most recent messages a chat loads. Older ones need pagination (see the to-do list).
 const MESSAGE_LIMIT = 50;
@@ -23,7 +24,7 @@ export const chatService = {
         const q = query(collection(db, "chats"), where("participantIds", "array-contains", myUid));
 
         return onSnapshot(q, (snapshot) => {
-            const chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chat));
+            const chats = snapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as Chat));
 
             // ISO strings sort correctly as plain strings, so localeCompare is enough to order them by time.
             chats.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -37,14 +38,14 @@ export const chatService = {
         const q = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "asc"), limitToLast(MESSAGE_LIMIT));
 
         return onSnapshot(q, (snapshot) => {
-            onChange(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message)));
+            onChange(snapshot.docs.map(doc => ({ id: doc.id, ...docData(doc) } as Message)));
         }, onError);
     },
 
     // Fetches a single message, used to show the quote above a reply when the original is older than the messages loaded by subscribeToMessages. Returns null if it no longer exists (unsent).
     async getMessage(chatId: string, messageId: string): Promise<Message | null> {
         const messageDoc = await getDoc(doc(db, "chats", chatId, "messages", messageId));
-        return messageDoc.exists() ? ({ id: messageDoc.id, ...messageDoc.data() } as Message) : null;
+        return messageDoc.exists() ? ({ id: messageDoc.id, ...docData(messageDoc) } as Message) : null;
     },
 
     // Sends a message from myUid to otherUid, optionally as a reply to another message. The message doc and the chat's latest-message preview are written in one atomic batch, which is what the rules require (the preview has to be a copy of the message).
@@ -55,9 +56,10 @@ export const chatService = {
         const chatRef = doc(db, "chats", chatId);
         const messageRef = doc(collection(db, "chats", chatId, "messages")); // Auto-generated ID, created up front so the preview can point at it.
 
-        const createdAt = new Date().toISOString();
-        const preview: MessagePreview = { messageId: messageRef.id, senderId: myUid, text, createdAt };
-        const message: Omit<Message, 'id'> = { senderId: myUid, text, createdAt, ...(replyTo && { replyTo }) };
+        // Every serverTimestamp() in one batch is filled in with the same server time, so the message, its preview, and the chat's updatedAt all match (the rules check that they do).
+        const createdAt = serverTimestamp();
+        const preview = { messageId: messageRef.id, senderId: myUid, text, createdAt };
+        const message = { senderId: myUid, text, createdAt, ...(replyTo && { replyTo }) };
 
         // Asking the server whether the chat exists yet, since creating and updating it are different writes (and different rules).
         // If both people send their very first message at the same moment, the second batch fails (the create turns into an update the rules don't allow), and simply sending again works.
@@ -72,7 +74,7 @@ export const chatService = {
                 createdAt,
                 updatedAt: createdAt,
                 lastMessage: preview,
-                lastRead: { [myUid]: createdAt } // The sender has obviously seen their own first message.
+                lastRead: { [myUid]: createdAt } // The sender has obviously seen their own first message. Only their own key is allowed (the other person's read state is theirs to set).
             });
         }
 
@@ -82,37 +84,36 @@ export const chatService = {
 
     // Edits one of your own messages (the rules only allow this within 15 minutes of sending, see EDIT_WINDOW_MS).
     // If it's the chat's latest message, the preview gets the new text in the same batch, otherwise the chat list would keep showing the old text. updatedAt isn't touched, so an edit doesn't bump the chat to the top of the list.
+    // The preview is updated field by field (dot paths) so its createdAt is left exactly as stored, which the rules require.
     async editMessage(chat: Chat, messageId: string, text: string): Promise<void> {
-        const editedAt = new Date().toISOString();
+        const editedAt = serverTimestamp();
         const batch = writeBatch(db);
 
         batch.update(doc(db, "chats", chat.id, "messages", messageId), { text, editedAt });
         if (chat.lastMessage.messageId === messageId) {
-            batch.update(doc(db, "chats", chat.id), { lastMessage: { ...chat.lastMessage, text, editedAt } });
+            batch.update(doc(db, "chats", chat.id), { 'lastMessage.text': text, 'lastMessage.editedAt': editedAt });
         }
 
         await batch.commit();
     },
 
     // Unsends (deletes) one of your own messages, at any time. Same idea as editMessage: if it's the chat's latest message, the preview is emptied and marked unsent in the same batch, so its text disappears from the chat list too.
+    // editedAt is removed from the preview as well, since an unsent preview can only hold the message's id, sender, time, empty text, and the unsent flag.
     // If the other person sends something in the moment between, the batch fails (the preview is no longer yours to change), and unsending again works since the preview no longer points at this message.
     async unsendMessage(chat: Chat, messageId: string): Promise<void> {
         const batch = writeBatch(db);
 
         batch.delete(doc(db, "chats", chat.id, "messages", messageId));
         if (chat.lastMessage.messageId === messageId) {
-            const { senderId, createdAt } = chat.lastMessage;
-            batch.update(doc(db, "chats", chat.id), { lastMessage: { messageId, senderId, text: '', createdAt, unsent: true } });
+            batch.update(doc(db, "chats", chat.id), { 'lastMessage.text': '', 'lastMessage.unsent': true, 'lastMessage.editedAt': deleteField() });
         }
 
         await batch.commit();
     },
 
-    // Marks a chat as read for myUid by setting only their own key in lastRead. The "lastRead.uid" dot path updates that one key without touching the other participant's, which the rules check.
-    // upTo is the latest message's createdAt. Timestamps come from each device's own clock (D5 in planning/brainstorming.txt), so if the sender's clock runs ahead of mine, "now" could be EARLIER than their message.
-    // Taking whichever is later makes sure the chat always ends up counted as read, instead of looking unread forever (and re-marking itself on every snapshot).
-    async markRead(chatId: string, myUid: string, upTo: string): Promise<void> {
-        const now = new Date().toISOString();
-        await updateDoc(doc(db, "chats", chatId), { [`lastRead.${myUid}`]: now > upTo ? now : upTo });
+    // Marks a chat as read for myUid by setting only their own key in lastRead to the server's time. The "lastRead.uid" dot path updates that one key without touching the other participant's, which the rules check.
+    // Since every message's createdAt is also the server's time, "now" is always at or after the latest message, so the chat ends up counted as read.
+    async markRead(chatId: string, myUid: string): Promise<void> {
+        await updateDoc(doc(db, "chats", chatId), { [`lastRead.${myUid}`]: serverTimestamp() });
     }
 };

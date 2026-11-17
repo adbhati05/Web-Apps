@@ -11,27 +11,19 @@ service cloud.firestore {
     	return request.auth != null;
     }
 
-    // This function turns one of the app's ISO timestamp strings (like "2026-11-04T15:30:45.123Z", what new Date().toISOString() produces) into a rules timestamp, so it can be compared against request.time.
-    // Rules have no built-in way to read a date string, so it's split into its parts by hand. A string in any other format fails to parse and the request is denied, which doubles as a format check.
-    // Used by isNotFuture below, and by the chat messages block for the 15 minute edit window.
-    function isoToTimestamp(s) {
-    	let parts = s.split('T');
-      let date = parts[0].split('-');
-      let time = parts[1].split(':');
-      return timestamp.date(int(date[0]), int(date[1]), int(date[2]))
-      	+ duration.value(int(time[0]) * 3600 + int(time[1]) * 60 + int(time[2].split('[.]')[0]), 's');
+    // This function checks a timestamp being written (createdAt, updatedAt, editedAt, lastRead): it has to be the server's own time for this request.
+    // The services send serverTimestamp(), which Firestore fills in with request.time, so this is the only value that passes. The writer's device clock is never trusted.
+    // Why it matters: lists are sorted by createdAt (the feed newest first, comments and messages oldest first, fits by board position). A client-chosen date could pin a post to the top of the feed,
+    // or slip a comment or message in ahead of older ones. Every write in one batch shares the same request.time, which is what lets a message and its chat preview carry the same createdAt.
+    // Update rules freeze createdAt (it has to equal the stored value), so it can't be swapped out later.
+    function isNow(t) {
+    	return t == request.time;
     }
 
-    // This function checks a createdAt being written: it has to be an ISO timestamp string, and it can't be more than 5 minutes ahead of the server's clock (request.time).
-    // Why it matters: createdAt comes from the writer's own device (new Date().toISOString()), and lists are sorted by it (the feed newest first, comments and chats oldest first, fits by board position).
-    // Without this check, a doc dated years ahead would sit at the top of the feed forever, or jump the queue in a chat.
-    // The 5 minute allowance covers devices whose clocks run a little fast. Dates in the past are allowed on purpose: an old date only buries the writer's own doc,
-    // and writes made offline are sent late, so they'd fail if past dates were rejected.
-    // It's only used on create. Every update rule already freezes createdAt (it has to equal the stored value), so a checked date can't be swapped out later, and old docs stay editable.
-    // `s is string` comes first so a non-string never reaches isoToTimestamp; a string in the wrong format makes isoToTimestamp fail, which denies the write, so this doubles as the format check.
-    function isNotFuture(s) {
-    	return s is string
-      	&& isoToTimestamp(s) < request.time + duration.value(5, 'm');
+    // This function checks a username: 3-16 characters of a-z, 0-9, and underscores (the same rule as getUsernameError in src/utils/validation.ts; change both together).
+    // Used by the usernames claim and by the copies of a username stored on posts and comments, so neither can hold an oversized or malformed name.
+    function isUsername(s) {
+    	return s is string && s.matches('^[a-z0-9_]{3,16}$');
     }
 
     // This function checks that an image URL points at the app's own Storage bucket, inside the given folder for the given user (posts/{uid}/... or profile/{uid}/...).
@@ -77,7 +69,9 @@ service cloud.firestore {
       	return /databases/$(database)/documents/users/$(userId)/followers/$(request.auth.uid);
       }
 
-      allow read: if isSignedIn();
+      // Get: any signed-in user (profile pages, author lookups). List: only in small pages, which is all a "suggested users" query needs, so nobody can download every profile in one query.
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && request.query.limit <= 20;
 
       // Create: only for yourself, with a known field set, both counters starting at zero, and a username you actually own.
       // getAfter() reads the usernames doc as it will be AFTER this batch commits, which is what ties this doc to the username claim sign-up writes in the same batch, so nobody can create a profile under a username they never claimed.
@@ -88,7 +82,7 @@ service cloud.firestore {
                     && profilePicValid(request.resource.data)
                     && request.resource.data.username is string
                     && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid
-                    && isNotFuture(request.resource.data.createdAt)
+                    && isNow(request.resource.data.createdAt)
                     && request.resource.data.followerCount == 0
                     && request.resource.data.followingCount == 0;
 
@@ -135,8 +129,11 @@ service cloud.firestore {
                     && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == request.auth.uid
                     && !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.username));
 
-      // Delete: owner only (authService.deleteUser). Like deleting a post, this orphans the followers/following subcollections underneath.
-      allow delete: if isSignedIn() && request.auth.uid == userId;
+      // Delete: owner only (authService.deleteUser), and only together with their username claim, so a deleted profile can't leave its name locked forever (claims can never be overwritten).
+      // Like deleting a post, this orphans the followers/following subcollections underneath.
+      allow delete: if isSignedIn()
+      							&& request.auth.uid == userId
+                    && !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.username));
 
       // The two blocks below MUST stay nested inside this users block (same reason as likes/comments inside posts), which is also what puts userId in scope.
       // A follow is two mirrored docs plus two counters, all written in one batch by followService.toggleFollow:
@@ -160,7 +157,7 @@ service cloud.firestore {
                       && followerUid != userId
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                       && request.resource.data.uid == followerUid
-                      && isNotFuture(request.resource.data.createdAt)
+                      && isNow(request.resource.data.createdAt)
                       && existsAfter(mirrorFollowingPath())
                       && followerCountMoved(1);
         // Overwriting an existing follow doc counts as an update, so this is also what stops a double follow.
@@ -187,7 +184,7 @@ service cloud.firestore {
                       && followedUid != userId
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                       && request.resource.data.uid == followedUid
-                      && isNotFuture(request.resource.data.createdAt)
+                      && isNow(request.resource.data.createdAt)
                       && existsAfter(mirrorFollowerPath())
                       && followingCountMoved(1);
         allow update: if false;
@@ -212,8 +209,7 @@ service cloud.firestore {
             && d.get('materials', '') is string && d.get('materials', '').size() <= 100
             && d.get('dateAcquired', '') is string && d.get('dateAcquired', '').size() <= 100
             && d.hasDetails is bool
-            && d.fromUsername is string
-            && d.createdAt is string;
+            && d.fromUsername is string;
         }
 
         // This function fetches the post a favorite says it came from. It only runs for favorites, so adding your own piece costs no extra read.
@@ -229,7 +225,7 @@ service cloud.firestore {
         allow create: if isSignedIn()
         							&& request.auth.uid == userId
                       && pieceFieldsValid(request.resource.data)
-                      && isNotFuture(request.resource.data.createdAt)
+                      && isNow(request.resource.data.createdAt)
                       && (
                       	(request.resource.data.source == 'own'
                         	&& request.resource.data.keys().hasOnly(['name', 'price', 'size', 'materials', 'dateAcquired', 'hasDetails', 'source', 'fromUid', 'fromUsername', 'createdAt'])
@@ -267,8 +263,7 @@ service cloud.firestore {
             && sectionValid(d.sections, 'tops')
             && sectionValid(d.sections, 'bottoms')
             && sectionValid(d.sections, 'footwear')
-            && sectionValid(d.sections, 'accessories')
-            && d.createdAt is string;
+            && sectionValid(d.sections, 'accessories');
         }
 
       	allow read: if isSignedIn() && request.auth.uid == userId;
@@ -276,21 +271,23 @@ service cloud.firestore {
         							&& request.auth.uid == userId
                       && request.resource.data.keys().hasOnly(['name', 'sections', 'createdAt'])
                       && fitFieldsValid(request.resource.data)
-                      && isNotFuture(request.resource.data.createdAt);
+                      && isNow(request.resource.data.createdAt);
 
-        // Update: the owner editing a fit. createdAt is frozen (it's what decides the fit's spot on the board), and updatedAt has to be set.
+        // Update: the owner editing a fit. createdAt is frozen (it's what decides the fit's spot on the board), and updatedAt has to be set to the server's time.
         allow update: if isSignedIn()
         							&& request.auth.uid == userId
                       && request.resource.data.keys().hasOnly(['name', 'sections', 'createdAt', 'updatedAt'])
                       && fitFieldsValid(request.resource.data)
                       && request.resource.data.createdAt == resource.data.createdAt
-                      && request.resource.data.updatedAt is string;
+                      && isNow(request.resource.data.updatedAt);
         allow delete: if isSignedIn() && request.auth.uid == userId;
       }
     }
     
-  	// Username read stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.
+  	// Username get stays public since the sign-up form checks for username availabilty before the user is authenticated, unauthenticated reads only possible if public.
+    // Listing is off for everyone, so nobody can download every username with its owner's UID; the app only ever looks up one name at a time.
     // Username creation is only possible for yourself (uid must match), doc id must equal the stored username (request.resource.data.username), and no extra fields are published when the doc is created.
+    // The claim also has to be the name your profile uses after the batch (getAfter on your user doc). Sign-up and renames write both together, so this is what stops one account from claiming extra names.
     // The name itself has to be 3-16 characters of a-z, 0-9, and underscores (the same rule as getUsernameError in src/utils/validation.ts, which used to be the only place it was checked; change both together).
     // The pattern only allows lowercase letters, so it also covers the old "must be lowercase" check. The app lowercases names before saving, which is why the sign-up form can still accept capitals.
     // This is the only rule that needs the check: creating a user doc (sign-up) and renaming (users update case #4) both require a claim doc for the name, so a bad name can't get onto a profile any other way.
@@ -303,20 +300,21 @@ service cloud.firestore {
       	return /databases/$(database)/documents/users/$(resource.data.uid);
       }
 
-    	allow read: if true; 
+    	allow get: if true;
       allow create: if isSignedIn()
       							&& request.resource.data.keys().hasOnly(['uid', 'username', 'createdAt'])
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.username == username
-                    && username.matches('^[a-z0-9_]{3,16}$')
-                    && isNotFuture(request.resource.data.createdAt);
+                    && isUsername(username)
+                    && isNow(request.resource.data.createdAt)
+                    && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
       allow update: if false;
       allow delete: if isSignedIn()
       							&& request.auth.uid == resource.data.uid
                     && (!existsAfter(ownerUserPath()) || getAfter(ownerUserPath()).data.username != username);
     }
 
-    // The post feed is public by design, hence read staying public.
+    // Posts (and their likes and comments) can only be read by signed-in users. Every page that shows them is behind the login, so public reads would only serve scrapers.
     // Post creation is only possible for yourself (uid must match), the data that's inputted fulfills the post fields validation, and if the like/comment counts are initialized to 0.
     match /posts/{postId} {
     	// This function handles field-level validation which shared by create and owner-update.
@@ -325,11 +323,10 @@ service cloud.firestore {
       	return d.keys().hasOnly(['id', 'uid', 'username', 'caption', 'pieces', 'hasDetails', 'createdAt', 'updatedAt', 'imageURL', 'likeCount', 'commentCount'])
         	&& d.id == postId
           && d.uid is string
-          && d.username is string
+          && isUsername(d.username)
           && d.caption is string && d.caption.size() <= 500
           && d.pieces is list && d.pieces.size() <= 8
           && d.hasDetails is bool
-          && d.createdAt is string
           && d.imageURL is string
           && d.likeCount is int
           && d.commentCount is int;
@@ -345,7 +342,12 @@ service cloud.firestore {
       function pieceValid(p) {
       	return p.keys().hasOnly(['name', 'price', 'size', 'materials', 'dateAcquired'])
         	&& p.name.matches('(?s)^.{1,100}$')
-          && p.get('price', '').matches('(?s)^.{0,100}$')
+          && pieceDetailsValid(p);
+      }
+
+      // This function checks a piece's four optional details, shared by pieceValid and the piece a comment can be about (commentPieceValid below).
+      function pieceDetailsValid(p) {
+      	return p.get('price', '').matches('(?s)^.{0,100}$')
           && p.get('size', '').matches('(?s)^.{0,100}$')
           && p.get('materials', '').matches('(?s)^.{0,100}$')
           && p.get('dateAcquired', '').matches('(?s)^.{0,100}$');
@@ -368,9 +370,13 @@ service cloud.firestore {
       function myLikePath() {
       	return /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
       }
-      
-      // Post feed is public by design.
-      allow read: if true;
+
+      // This function fetches the path of this post, used by the likes and comments blocks below to check that the post's counters move with them.
+      function postPath() {
+      	return /databases/$(database)/documents/posts/$(postId);
+      }
+
+      allow read: if isSignedIn();
       
       // Create: you can only create a post as yourself (uid is validated against your auth token, closing the impersonation hole AKA unauthorized users logging into other users accounts) with valid inputs and both counters (like/comment) starting at zero.
       allow create: if isSignedIn()
@@ -378,25 +384,29 @@ service cloud.firestore {
                     && postFieldsValid(request.resource.data)
                     && piecesValid(request.resource.data.pieces)
                     && isOwnStorageURL(request.resource.data.imageURL, 'posts', request.auth.uid)
-                    && isNotFuture(request.resource.data.createdAt)
+                    && isNow(request.resource.data.createdAt)
+                    && !('updatedAt' in request.resource.data)
                     && request.resource.data.likeCount == 0
                     && request.resource.data.commentCount == 0;
                     
       // The three update cases below are additive, meaning an update goes through if ANY ONE of them passes. That's why each one locks down the exact set of fields it allows to change (via diff/affectedKeys or by re-asserting the frozen values), otherwise the loosest rule would quietly cancel out the stricter ones.
-      // Update case #1: post creator editing their own post's content. uid/createdAt are frozen (no reassigning posts, no backdating) and the counters cannot be tampered with in this case.
-      // Pieces and the image are only checked when they change, so an older post can still have its caption edited.
+      // Update case #1: post creator editing their own post's content. uid/username/createdAt are frozen (no reassigning posts, no backdating, no posing as someone else) and the counters cannot be tampered with in this case.
+      // Pieces and the image are only checked when they change, so an older post can still have its caption edited. updatedAt, when it changes, has to be the server's time.
       allow update: if isSignedIn()
       							&& request.auth.uid == resource.data.uid
                     && postFieldsValid(request.resource.data)
                     && (!isChanging('pieces') || piecesValid(request.resource.data.pieces))
                     && (!isChanging('imageURL') || isOwnStorageURL(request.resource.data.imageURL, 'posts', request.auth.uid))
+                    && (!isChanging('updatedAt') || isNow(request.resource.data.updatedAt))
                     && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.username == resource.data.username
                     && request.resource.data.createdAt == resource.data.createdAt
                     && request.resource.data.likeCount == resource.data.likeCount
                     && request.resource.data.commentCount == resource.data.commentCount;
       
       // Update case #2: like counter, which can be manipulated by any signed-in user but ONLY in increments or decrements of 1 to the total likes on the post and ONLY when the same batched write also creates/deletes that user's own like doc (checked via exists/existsAfter) according to whether they liked/unliked the post.
       // In simpler words, the counter physically cannot change without a matching like doc and each user can move the counter at most ONCE in each direction.
+      // The likes block below closes the other direction (a like doc can't be created or deleted without this counter moving), so the count always equals the number of like docs.
       allow update: if isSignedIn()
       							&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
                     && (
@@ -410,7 +420,8 @@ service cloud.firestore {
                     );
       
       // Update case #3: comment counter, same behavior as with like counter above, count can never be negative. However, unlike likes, this can't be bound to the specific comment doc (id is client-generated, so no fixed path to check; which is what the myLikePath() function above does).
-      // A determined user could nudge the comment count without commenting, so in order to make this update scenario airtight, a Cloud Function trigger maintaining the counter server-side will need to be implemented.
+      // The comments block below closes the other direction (a comment can't be added or deleted without this counter moving). What's left is that a determined user could nudge the count without commenting,
+      // which only a Cloud Function trigger maintaining the counter server-side would fully close.
       allow update: if isSignedIn()
       							&& request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
                     && (request.resource.data.commentCount == resource.data.commentCount + 1
@@ -426,15 +437,25 @@ service cloud.firestore {
 
       // One doc associated per liker, doc id = their uid (having doc id double as the uid is what enforces the "one like per user" rule and "only toggle your OWN like" server-side).
       match /likes/{userId} {
+      	// This function checks that the post's likeCount moves by delta in the same batch (getAfter vs get), the same pairing the followers block uses for followerCount.
+      	// Without it, "like in a batch, then delete just the like doc" would add 1 every time, and the reverse would take the count below zero.
+      	function likeCountMoved(delta) {
+        	return getAfter(postPath()).data.likeCount == get(postPath()).data.likeCount + delta;
+        }
+
       	// This is needed so the app can check "did I like this?" across each user.
-      	allow read: if true;
+      	allow read: if isSignedIn();
         allow create: if isSignedIn()
         							&& request.auth.uid == userId
                       && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                       && request.resource.data.uid == userId
-                      && isNotFuture(request.resource.data.createdAt);
+                      && isNow(request.resource.data.createdAt)
+                      && likeCountMoved(1);
         allow update: if false;
-        allow delete: if isSignedIn() && request.auth.uid == userId;
+        // Once the post is deleted there's no counter left to move, so its leftover like docs stay until the post cleanup Cloud Function on the to-do list exists.
+        allow delete: if isSignedIn()
+        							&& request.auth.uid == userId
+                      && likeCountMoved(-1);
       }
 
       // One doc associated per comment, comments are created AS yourself (uid validated), can only be edited by their author, and can be deleted either by their author or by the post's owner (moderation).
@@ -445,28 +466,38 @@ service cloud.firestore {
         	return /databases/$(database)/documents/posts/$(postId)/comments/$(commentId)/likes/$(request.auth.uid);
         }
 
+        // This function checks that the post's commentCount moves by delta in the same batch, which also proves the post exists (get() on a missing doc denies the request).
+        function commentCountMoved(delta) {
+        	return getAfter(postPath()).data.commentCount == get(postPath()).data.commentCount + delta;
+        }
+
         // This function handles validation for the optional piece a comment can be about (see CommentPiece in src/types.ts). It's a copy of one of the post's pieces, so the name and details setting have to match the post's piece at that index.
-        // The get() on the post is a billed read, but it only happens for comments about a piece, since !('piece' in d) passes first for every other comment.
+        // The details get the same 0-100 character check as a post's pieces, so a comment can't carry a non-string detail (which would crash the piece when expanded) or an oversized one.
+        // The get() on the post is the same doc commentCountMoved reads, so it doesn't cost an extra billed read.
         function commentPieceValid(d) {
         	return !('piece' in d)
           	|| (d.piece is map
             	&& d.piece.keys().hasOnly(['pieceIndex', 'name', 'price', 'size', 'materials', 'dateAcquired', 'hasDetails'])
               && d.piece.pieceIndex is int
-              && d.piece.name == get(/databases/$(database)/documents/posts/$(postId)).data.pieces[d.piece.pieceIndex].name
-              && d.piece.hasDetails == get(/databases/$(database)/documents/posts/$(postId)).data.hasDetails);
+              && pieceDetailsValid(d.piece)
+              && d.piece.name == get(postPath()).data.pieces[d.piece.pieceIndex].name
+              && d.piece.hasDetails == get(postPath()).data.hasDetails);
         }
 
-      	allow read: if true;
+      	allow read: if isSignedIn();
+
+        // Create: as yourself, with the post's commentCount moving up by 1 in the same batch (postService.addComment).
         allow create: if isSignedIn()
         							&& request.resource.data.keys().hasOnly(['id', 'uid', 'username', 'comment', 'createdAt', 'likeCount', 'piece'])
                       && request.resource.data.id == commentId
                       && request.resource.data.uid == request.auth.uid
-                      && request.resource.data.username is string
+                      && isUsername(request.resource.data.username)
                       && request.resource.data.comment is string
                       && request.resource.data.comment.size() > 0
                       && request.resource.data.comment.size() <= 500
-                      && isNotFuture(request.resource.data.createdAt)
+                      && isNow(request.resource.data.createdAt)
                       && request.resource.data.likeCount == 0
+                      && commentCountMoved(1)
                       && commentPieceValid(request.resource.data);
 
         // The two update cases below are additive, same as the post's update cases: an update goes through if EITHER passes, so each one pins down its own field set.
@@ -485,31 +516,41 @@ service cloud.firestore {
                       );
 
         // Update case #2: the author editing their own comment's text. Only comment and editedAt can move, so everything else (id, uid, username, createdAt, likeCount) stays frozen and an edit can't be used to reassign the comment or nudge its like count.
-        // The same size limits as create apply, and editedAt has to be a string afterwards so an edited comment is always marked as such.
+        // The same size limits as create apply, and editedAt has to be the server's time, so an edited comment is always marked as such (and when).
         allow update: if isSignedIn()
         							&& request.auth.uid == resource.data.uid
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comment', 'editedAt'])
                       && request.resource.data.comment is string
                       && request.resource.data.comment.size() > 0
                       && request.resource.data.comment.size() <= 500
-                      && request.resource.data.editedAt is string;
+                      && isNow(request.resource.data.editedAt);
 
-        // The get() below counts as a billed document read on every delete attempt, so it only runs when the first check (author deleting their own comment) already failed.
+        // Delete: by the author or the post's owner (moderation), with the post's commentCount moving down by 1 in the same batch (postService.deleteComment).
         // Deleting a comment orphans its likes subcollection, same caveat as deleting a post.
         allow delete: if isSignedIn()
         							&& (request.auth.uid == resource.data.uid
-                      		|| request.auth.uid == get(/databases/$(database)/documents/posts/$(postId)).data.uid);
+                      		|| request.auth.uid == get(postPath()).data.uid)
+                      && commentCountMoved(-1);
 
         // Comment likes, identical in shape to the post likes block above (doc id = the liker's uid, which is what enforces one like per user and toggling your OWN like only).
         match /likes/{userId} {
-        	allow read: if true;
+        	// Same pairing as the post likes block: the comment's likeCount has to move by delta in the same batch.
+        	function commentLikeCountMoved(delta) {
+          	let commentPath = /databases/$(database)/documents/posts/$(postId)/comments/$(commentId);
+          	return getAfter(commentPath).data.likeCount == get(commentPath).data.likeCount + delta;
+          }
+
+        	allow read: if isSignedIn();
           allow create: if isSignedIn()
           							&& request.auth.uid == userId
                         && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
                         && request.resource.data.uid == userId
-                        && isNotFuture(request.resource.data.createdAt);
+                        && isNow(request.resource.data.createdAt)
+                        && commentLikeCountMoved(1);
           allow update: if false;
-          allow delete: if isSignedIn() && request.auth.uid == userId;
+          allow delete: if isSignedIn()
+          							&& request.auth.uid == userId
+                        && commentLikeCountMoved(-1);
         }
       }
     }
@@ -532,7 +573,7 @@ service cloud.firestore {
           && p.text is string
           && p.text.size() > 0
           && p.text.size() <= 1000
-          && isNotFuture(p.createdAt);
+          && isNow(p.createdAt);
       }
 
       // This function fetches the path of the message the current preview is a copy of (used by update case #3).
@@ -545,7 +586,8 @@ service cloud.firestore {
       allow list: if isSignedIn() && request.auth.uid in resource.data.participantIds;
 
       // Create: happens in the same batch as the first message (chatService.sendMessage). participantIds has to be exactly two different, sorted UIDs, one of them the caller's, and both real users.
-      // The id has to be those two UIDs joined, and lastRead can only hold the participants' own keys. Sorting with < also rules out starting a chat with yourself, since a UID isn't less than itself.
+      // The id has to be those two UIDs joined. Sorting with < also rules out starting a chat with yourself, since a UID isn't less than itself.
+      // lastRead can only hold the creator's own key (set to the server's time), so nobody can start a chat with the other person's read state already set (which would hide the unread dot and show "Seen" early).
       allow create: if isSignedIn()
       							&& request.resource.data.keys().hasOnly(['participantIds', 'createdAt', 'updatedAt', 'lastMessage', 'lastRead'])
                     && request.resource.data.participantIds is list
@@ -555,11 +597,12 @@ service cloud.firestore {
                     && chatId == request.resource.data.participantIds[0] + '_' + request.resource.data.participantIds[1]
                     && exists(/databases/$(database)/documents/users/$(request.resource.data.participantIds[0]))
                     && exists(/databases/$(database)/documents/users/$(request.resource.data.participantIds[1]))
-                    && isNotFuture(request.resource.data.createdAt)
-                    && isNotFuture(request.resource.data.updatedAt)
+                    && isNow(request.resource.data.createdAt)
+                    && isNow(request.resource.data.updatedAt)
                     && previewValid(request.resource.data.lastMessage)
                     && request.resource.data.lastRead is map
-                    && request.resource.data.lastRead.keys().hasOnly(request.resource.data.participantIds);
+                    && request.resource.data.lastRead.keys().hasOnly([request.auth.uid])
+                    && request.resource.data.lastRead.get(request.auth.uid, request.time) == request.time;
 
       // The three update cases below are additive, same as the post's update cases: an update goes through if ANY ONE passes, so each one pins down its own field set.
       // Update case #1: a participant sending a message moves the latest-message preview and updatedAt, which has to match the preview's timestamp so the chat list stays in order.
@@ -575,7 +618,7 @@ service cloud.firestore {
       							&& isParticipant()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastRead'])
                     && request.resource.data.lastRead.diff(resource.data.lastRead).affectedKeys().hasOnly([request.auth.uid])
-                    && request.resource.data.lastRead[request.auth.uid] is string;
+                    && isNow(request.resource.data.lastRead[request.auth.uid]);
 
       // Update case #3: the sender of the latest message keeping the preview in sync when they edit or unsend that message (chatService.editMessage / unsendMessage). Only lastMessage can move, it has to stay a preview of the same message, and updatedAt stays put so editing doesn't bump the chat to the top of the list.
       // Edit: the preview's text and editedAt have to match the message doc as it will be AFTER the batch. Unsend: the message doc has to be gone after the batch, and the preview is emptied and marked unsent so the list never shows unsent text.
@@ -629,7 +672,7 @@ service cloud.firestore {
       	allow read: if isSignedIn() && request.auth.uid in chatId.split('_');
 
         // Create: as yourself only, with a known field set, 1-1000 characters of text, and an optional valid reply.
-        // createdAt can't be in the future (isNotFuture), so a fake future timestamp can't stretch the edit window below (or jump to the top of the chat).
+        // createdAt has to be the server's time (isNow), so a fake timestamp can't stretch the edit window below or slip the message in among older ones.
         // getAfter() reads the chat doc as it will be AFTER the batch commits, which ties the message to its preview: the chat has to exist (or be created in the same batch) with this exact message as its lastMessage.
         allow create: if isSignedIn()
         							&& request.auth.uid in chatId.split('_')
@@ -638,7 +681,7 @@ service cloud.firestore {
                       && request.resource.data.text is string
                       && request.resource.data.text.size() > 0
                       && request.resource.data.text.size() <= 1000
-                      && isNotFuture(request.resource.data.createdAt)
+                      && isNow(request.resource.data.createdAt)
                       && replyValid(request.resource.data)
                       && isPreviewedAfter()
                       && getAfter(chatPath()).data.lastMessage.senderId == request.resource.data.senderId
@@ -653,8 +696,8 @@ service cloud.firestore {
                       && request.resource.data.text is string
                       && request.resource.data.text.size() > 0
                       && request.resource.data.text.size() <= 1000
-                      && request.resource.data.editedAt is string
-                      && request.time < isoToTimestamp(resource.data.createdAt) + duration.value(15, 'm')
+                      && isNow(request.resource.data.editedAt)
+                      && request.time < resource.data.createdAt + duration.value(15, 'm')
                       && (!isPreviewedAfter()
                       		|| (getAfter(chatPath()).data.lastMessage.text == request.resource.data.text
                           		&& getAfter(chatPath()).data.lastMessage.get('editedAt', '') == request.resource.data.editedAt));

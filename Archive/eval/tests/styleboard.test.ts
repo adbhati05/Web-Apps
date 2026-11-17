@@ -1,7 +1,7 @@
 // Rules for the style board: users/{uid}/archive/{pieceId} and users/{uid}/fits/{fitId}.
 import { describe, it, beforeAll, beforeEach, afterAll } from 'vitest';
 import { assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, deleteField } from 'firebase/firestore';
 import { startEnv, clearAll, stopEnv, as, seed, now, minutesAgo, seedPost } from './helpers';
 
 beforeAll(startEnv);
@@ -74,7 +74,7 @@ describe('archive: your own pieces', () => {
         assertFails(setDoc(doc(as('alice'), 'users/alice/archive/own1'), ownPiece({ hasDetails: true, price: 'x'.repeat(101) }))));
 
     // The archive is sorted newest first, so a future date would pin a piece to the top.
-    it('createdAt cannot be in the future (own pieces or favorites)', async () => {
+    it('createdAt has to be the server\'s time (own pieces or favorites)', async () => {
         await assertFails(setDoc(doc(as('alice'), 'users/alice/archive/own1'), ownPiece({ createdAt: minutesAgo(-60) })));
         await assertFails(setDoc(doc(as('alice'), 'users/alice/archive/p1_0'), favorite({ createdAt: minutesAgo(-60) })));
     });
@@ -117,8 +117,8 @@ describe('fits', () => {
     it('sections can only be the five parts of an outfit', () =>
         assertFails(setDoc(doc(as('alice'), 'users/alice/fits/f1'), fit({ sections: { ...fit().sections, outerwear: [] } }))));
 
-    // A fit's spot on the board comes from createdAt, so a future date would keep it last no matter how many fits come after.
-    it('createdAt cannot be in the future', () =>
+    // A fit's spot on the board comes from createdAt, so a client-chosen date could move it anywhere on the board.
+    it('createdAt has to be the server\'s time', () =>
         assertFails(setDoc(doc(as('alice'), 'users/alice/fits/f1'), fit({ createdAt: minutesAgo(-60) }))));
 
     it('a section holds at most 10 pieces', () =>
@@ -130,12 +130,20 @@ describe('fits', () => {
         await assertFails(getDocs(collection(as('bob'), 'users/alice/fits')));
     });
 
+    // Mirrors fitService.updateFit, which only sends what changes (createdAt is left as stored, since it decides the fit's spot on the board).
     it('the owner can edit a fit, but createdAt stays frozen and updatedAt is required', async () => {
-        const original = fit();
-        await seed(db => setDoc(doc(db, 'users/alice/fits/f1'), original));
-        await assertSucceeds(setDoc(doc(as('alice'), 'users/alice/fits/f1'), { ...original, name: 'Brunch', updatedAt: now() }));
-        await assertFails(setDoc(doc(as('alice'), 'users/alice/fits/f1'), { ...original, name: 'Brunch' }));
-        await assertFails(setDoc(doc(as('alice'), 'users/alice/fits/f1'), { ...original, createdAt: '2000-01-01T00:00:00.000Z', updatedAt: now() }));
+        await seed(db => setDoc(doc(db, 'users/alice/fits/f1'), fit({ createdAt: minutesAgo(10) })));
+        const fitRef = doc(as('alice'), 'users/alice/fits/f1');
+        await assertSucceeds(updateDoc(fitRef, { name: 'Brunch', updatedAt: now() }));
+        await assertFails(updateDoc(fitRef, { name: 'Brunch' }));
+        await assertFails(updateDoc(fitRef, { name: 'Brunch', updatedAt: minutesAgo(-60) }));
+        await assertFails(updateDoc(fitRef, { createdAt: minutesAgo(60), updatedAt: now() }));
+    });
+
+    // Clearing the name in the fit form removes the field (deleteField), so the fit goes back to its "Fit #n" label.
+    it('the owner can clear a fit\'s name', async () => {
+        await seed(db => setDoc(doc(db, 'users/alice/fits/f1'), fit({ name: 'Brunch', createdAt: minutesAgo(10) })));
+        await assertSucceeds(updateDoc(doc(as('alice'), 'users/alice/fits/f1'), { name: deleteField(), updatedAt: now() }));
     });
 
     it('the owner can delete a fit, others cannot', async () => {

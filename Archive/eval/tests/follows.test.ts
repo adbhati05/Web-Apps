@@ -82,7 +82,7 @@ describe('follow', () => {
         return assertFails(batch.commit());
     });
 
-    it('follow docs\' createdAt cannot be in the future', () => {
+    it('follow docs\' createdAt has to be the server\'s time', () => {
         const db = as('bob');
         const batch = writeBatch(db);
         batch.set(doc(db, 'users/bob/following/alice'), { ...followDoc('alice'), createdAt: minutesAgo(-60) });

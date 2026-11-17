@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { authService } from './auth.service';
 import type { UserInfo } from '../types';
 import { logError } from '../utils/logger';
+import { docData } from '../utils/timestamps';
 
 // The fields on a user doc that its owner is allowed to edit. Everything else (username, createdAt, the counters) is frozen by the security rules, so the service doesn't accept them either.
 export type ProfileUpdate = Partial<Pick<UserInfo, 'displayName' | 'bio' | 'profilePicURL'>>;
@@ -21,7 +22,7 @@ export const profileService = {
             // While offline, Firestore can report a doc as not existing since nothing has cached yet. This is a false negative, so the listener should ignore it and wait for the server to report the doc's actual state.
             if (!docSnapshot.exists() && docSnapshot.metadata.fromCache) return;
 
-            const userInfo = docSnapshot.exists() ? ({ uid: docSnapshot.id, ...docSnapshot.data() } as UserInfo) : null;
+            const userInfo = docSnapshot.exists() ? ({ uid: docSnapshot.id, ...docData(docSnapshot) } as UserInfo) : null;
 
             // Keeping the cache in sync with the listener, so any author lookups elsewhere see the same values.
             if (userInfo) profileCache.set(uid, userInfo);
