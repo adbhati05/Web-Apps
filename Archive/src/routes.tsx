@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import StyleBoard from "./pages/StyleBoard";
 import Post from "./pages/Post";
@@ -15,6 +16,9 @@ import ProtectedRoutes from "./auth/ProtectedRoutes";
 export const router = createBrowserRouter([
   {
     element: <ProtectedRoutes />,
+    // ProtectedRoutes throws when the signed-in user's profile can't be loaded (or doesn't exist). An errorElement only catches errors from its own route and the ones below it,
+    // so without this one the throw would skip every page's errorElement and land on React Router's built-in error screen, which has no Sign out button.
+    errorElement: <Error />,
     children: [
       {
         path: "/",
@@ -74,6 +78,12 @@ export const router = createBrowserRouter([
   {
     path: "/signup",
     element: <SignUp />,
+    errorElement: <Error />
+  },
+  // Where the link in a password reset email lands (set as the custom action URL in the Firebase console). Public, since the person resetting isn't signed in.
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
     errorElement: <Error />
   },
   // Catch-all: "*" matches any URL that none of the routes above do, so a mistyped or outdated link shows the 404 version of the Error page instead of React Router's default error screen.

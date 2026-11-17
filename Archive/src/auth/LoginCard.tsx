@@ -1,8 +1,9 @@
 import "./LoginCard.css";
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useUserAuth } from "./UserAuthContext";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 import { useAlert } from "../alerts/AlertContext";
 import { getEmailError } from "../utils/validation";
 import { logError } from "../utils/logger";
@@ -16,10 +17,17 @@ const LoginCard = () => {
 
   const navigate = useNavigate();
   const { signIn } = useUserAuth();
+
+  // ProtectedRoutes saves the page someone was headed to (state.from) before sending them here, so signing in can take them back to it instead of always going home.
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? "/";
   const { showAlert } = useAlert();
 
   // True while the sign-in request is in flight, which disables the button (so it can't be clicked twice) and changes its label.
   const [submitting, setSubmitting] = useState(false);
+
+  // Whether the "Forgot password?" popup is open.
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -41,7 +49,7 @@ const LoginCard = () => {
     setSubmitting(true);
     try {
       await signIn(userLoginInfo.email, userLoginInfo.password);
-      navigate("/");
+      navigate(from, { replace: true });
     } catch (caught) {
       logError("An error occurred while logging in: ", caught);
 
@@ -96,6 +104,17 @@ const LoginCard = () => {
           />
         </div>
 
+        {/* type="button" so clicking it doesn't submit the form (and try to sign in). It opens the popup where the reset email is actually sent. */}
+        <div className="forgot-password-container">
+          <button className="forgot-password-button" type="button" onClick={() => setShowForgotPassword(true)}>
+            Forgot password?
+          </button>
+        </div>
+
+        <button className="sign-in-button" type="submit" disabled={submitting}>
+          {submitting ? "Signing in..." : "Sign in"}
+        </button>
+
         {/* Edit this so that it's a paragraph that says "Don't have an account? Sign up " and then a link that says " here." that redirects the user to the sign-up page. */}
         {/* Make sure that ONLY the link is styled to scale up after being hovered, NOT the entire paragraph. */}
         <div className="sign-up-link-container">
@@ -106,11 +125,12 @@ const LoginCard = () => {
             </Link>
           </p>
         </div>
-
-        <button className="sign-in-button" type="submit" disabled={submitting}>
-          {submitting ? "Signing in..." : "Sign in"}
-        </button>
       </form>
+
+      {/* Rendered outside the login form, so pressing Enter in the popup's email field sends the reset link instead of trying to sign in. */}
+      {showForgotPassword && (
+        <ForgotPasswordModal initialEmail={userLoginInfo.email} onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   );
 };

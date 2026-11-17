@@ -56,17 +56,19 @@ const SignUpCard = () => {
       return;
     }
 
-    // Checking if username is available via checkUsernameExists from authService. Done last, since it's the only check that needs a database read.
-    const isUsernameTaken = await authService.checkUsernameExists(
-      userSignUpInfo.username
-    );
-    if (isUsernameTaken) {
-      showAlert("error", "Username is already taken.");
-      return;
-    }
-
     setSubmitting(true);
     try {
+      // Checking if username is available via checkUsernameExists from authService. Done last, since it's the only check that needs a database read.
+      // It sits inside the try so a failed read (being offline, for instance) shows the error alert below instead of the button silently doing nothing.
+      const isUsernameTaken = await authService.checkUsernameExists(
+        userSignUpInfo.username
+      );
+      if (isUsernameTaken) {
+        showAlert("error", "Username is already taken.");
+        setSubmitting(false);
+        return;
+      }
+
       // Since both displayName and username depend on the input from the user for the Username field in the sign-up card, userSignUpInfo.username is passed as both displayName and username to signUp.
       await signUp(
         userSignUpInfo.email,

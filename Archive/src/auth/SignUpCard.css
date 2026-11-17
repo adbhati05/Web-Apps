@@ -33,13 +33,17 @@
 /* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
 .sign-up-input-bar {
     font-size: var(--font-size-lg);
-    font-style: italic;
     height: var(--input-height);
     width: 100%;  /* This line ensures the input bar takes the full width of its container */
     background-color: var(--color-bg);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--space-sm);
+}
+
+/* Only the placeholder is italic, so what the user types shows in normal text. */
+.sign-up-input-bar::placeholder {
+    font-style: italic;
 }
 
 .sign-up-input-bar:hover {

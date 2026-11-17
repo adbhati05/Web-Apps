@@ -28,13 +28,17 @@
 /* The next three rule sets are dedicated to making the input bars look aesthetic even when the user hovers over them or clicks on them. */
 .login-input-bar {
     font-size: var(--font-size-lg);
-    font-style: italic;
     height: var(--input-height);
     width: 100%;
     background-color: var(--color-bg);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--space-sm);
+}
+
+/* Only the placeholder is italic, so what the user types shows in normal text. */
+.login-input-bar::placeholder {
+    font-style: italic;
 }
 
 .login-input-bar:hover {
@@ -46,12 +50,45 @@
     border: var(--border-width) solid var(--color-border);
 }
 
-/* The next four rule sets are dedicated to styling the sign-up link that appears below the input bars. */
+/* The "Forgot password?" link under the password field, which opens the reset popup. It's styled as bold text (no button box) in the same size as the sign-up message, and grows on hover/click like the sign-up link. */
+.forgot-password-container {
+    width: 334px;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: calc(-1 * var(--space-lg));
+    margin-bottom: var(--space-2xl);
+}
+
+.forgot-password-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    color: var(--color-text);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.forgot-password-button:hover {
+    transform: scale(var(--scale-hover));
+}
+
+.forgot-password-button:active {
+    transform: scale(var(--scale-active));
+}
+
+/* The next four rule sets are dedicated to styling the sign-up link that appears below the sign-in button. */
 .sign-up-link-container {
     font-size: var(--font-size-md);
     color: var(--color-text);
     text-align: center;
-    margin-bottom: var(--space-4xl);
+    margin-top: var(--space-2xl);
+}
+
+/* Dropping the paragraph's default bottom margin, since the form's own margin already spaces the card's bottom edge. */
+.sign-up-link-container p {
+    margin-bottom: 0;
 }
 
 .sign-up-link {
@@ -106,6 +143,10 @@
     }
 
     .login-input-field-container {
+        width: 100%;
+    }
+
+    .forgot-password-container {
         width: 100%;
     }
 }

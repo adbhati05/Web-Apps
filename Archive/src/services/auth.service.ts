@@ -1,7 +1,8 @@
 // Include support for different sign-in methods, like via Google or socials (displayName will need to be added to UserInfo for that as well as functions in this doc supporting those sign-in options).
-import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail, updatePassword, deleteUser as deleteAuthUser } from 'firebase/auth';
-import { doc, getDoc, writeBatch } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, verifyPasswordResetCode, confirmPasswordReset, EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail, updatePassword, deleteUser as deleteAuthUser } from 'firebase/auth';
+import { doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { docData } from '../utils/timestamps';
 import { archiveService } from './archive.service';
 import { fitService } from './fit.service';
 import type { UserInfo } from '../types';
@@ -10,7 +11,7 @@ export const authService = {
     // This is just a simple function that retrieves the current user's info (AKA that user's document).
     async getUserInfo(uid: string): Promise<UserInfo | null> {
         const userDoc = await getDoc(doc(db, "users", uid));
-        return userDoc.exists() ? ({ uid: userDoc.id, ...userDoc.data() } as UserInfo) : null;
+        return userDoc.exists() ? ({ uid: userDoc.id, ...docData(userDoc) } as UserInfo) : null;
     },
 
     // This function handles user sign-up, promises a UserInfo object.
@@ -37,7 +38,7 @@ export const authService = {
         const userInfo: Omit<UserInfo, 'uid'> = {
             displayName,
             username: username.toLowerCase(),
-            createdAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(), // Only a local stand-in for the returned profile; both docs below get the server's time, which is all the rules accept.
             followerCount: 0,
             followingCount: 0
         };
@@ -49,11 +50,11 @@ export const authService = {
         batch.set(doc(db, "usernames", userInfo.username), {
             uid: user.uid,
             username: username.toLowerCase(),
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp()
         });
 
         // Setting up a user doc via userInfo object above and committing the write to Firestore.
-        batch.set(doc(db, "users", user.uid), userInfo);
+        batch.set(doc(db, "users", user.uid), { ...userInfo, createdAt: serverTimestamp() });
         await batch.commit();
 
         return {
@@ -62,15 +63,34 @@ export const authService = {
         };
     },
 
-    // This function handles user sign-in, checks if the user exists (has info in Firestore).
+    // This function handles user sign-in. The profile itself isn't read here: the auth context's listener on the user doc loads it, and its status ('noProfile') covers an account without one.
+    // (Reading it here too used to throw for a missing profile after the user was already signed in, so the login form showed an error for an account the app considered signed in.)
     async signIn(
         email: string,
         password: string
-    ): Promise<UserInfo> {
-        const { user } = await signInWithEmailAndPassword(auth, email, password);
-        const userInfo = await this.getUserInfo(user.uid);
-        if (!userInfo) throw new Error("User info not found after sign-in.");
-        return userInfo;
+    ): Promise<void> {
+        await signInWithEmailAndPassword(auth, email, password);
+    },
+
+    // This function sends Firebase's password reset email (a link to pick a new password) to the given address.
+    // With email enumeration protection on (Firebase's default), this succeeds even when no account uses the email, so the login form can show the same message either way.
+    // url adds a "Continue" button to Firebase's reset page, which brings the user back to the app's login page once the new password is saved. Its domain has to be on the Authorized domains list in the console (localhost is by default).
+    // NOTE: the link itself still opens Firebase's hosted page (handleCodeInApp doesn't skip it for reset emails, tested). Sending it to the app's own /reset-password page needs the console's custom action URL instead (see to-do.txt).
+    async resetPassword(email: string): Promise<void> {
+        await sendPasswordResetEmail(auth, email, {
+            url: `${window.location.origin}/login` // Whatever domain the app is running on, so this works in dev and prod without changes.
+        });
+    },
+
+    // Checks the code from a reset link (the oobCode in its URL) and returns the email it's for. Throws if the link has expired or was already used.
+    // This doesn't use up the code, so the reset page can check it as soon as it opens and only spend it once the new password is submitted.
+    async verifyResetCode(code: string): Promise<string> {
+        return await verifyPasswordResetCode(auth, code);
+    },
+
+    // Sets the new password for the account the reset code belongs to. This is what uses up the code, so the same link can't be used twice.
+    async confirmReset(code: string, newPassword: string): Promise<void> {
+        await confirmPasswordReset(auth, code, newPassword);
     },
 
     // This function handles user sign-out.
@@ -131,7 +151,7 @@ export const authService = {
         batch.set(doc(db, "usernames", username), {
             uid,
             username,
-            createdAt: new Date().toISOString()
+            createdAt: serverTimestamp()
         });
         batch.delete(doc(db, "usernames", oldUsername));
         batch.update(doc(db, "users", uid), { username });
